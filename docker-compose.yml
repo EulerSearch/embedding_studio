@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+  embedding_studio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - '5000:5000'
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: curl --fail http://localhost:5000/api/v1/ping || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:6.2-alpine
+    restart: always
+    environment:
+      - REDIS_PASSWORD=redispassword
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: redis-cli ping
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mongo:
+    image: mongo:4
+    restart: always
+    environment:
+      - MONGO_INITDB_DATABASE=emdegginstudio
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=mongopassword
+    ports:
+      - '27017:27017'
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo mongo:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+
+  minio:
+    image: docker.io/bitnami/minio:2022
+    restart: always
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      - MINIO_ROOT_USER=root
+      - MINIO_ROOT_PASSWORD=miniopassword
+      - MINIO_DEFAULT_BUCKETS=embeddingstudio_bucket
+    healthcheck:
+      test: curl -f http://localhost:9000/minio/health/live"
+      interval: 30s
+      timeout: 20s
+      retries: 3

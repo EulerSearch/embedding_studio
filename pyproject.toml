@@ -1,0 +1,56 @@
+[tool.poetry]
+name = "embedding_studio"
+version = "0.0.1"
+description = "A framework to simplify the creation of presize and adaptive search systems for unstructured data"
+authors = [
+  "Alexander Yudaev <alexander@yudaev.ru>",
+  "Andrey Kostin <andrey.kostin.eulersearch@gmail.com>",
+]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pydantic = "2.5.2"
+pydantic-settings = "2.1.0"
+fastapi = "0.104.1"
+uvicorn = "0.23.2"
+dramatiq = "1.15.0"
+pymongo = "4.6.1"
+redis = "5.0.1"
+python-dotenv = "1.0.0"
+PyYAML = "6.0.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "7.4.3"
+httpx = "0.25.2"
+autoflake = "2.2.1"
+flake8 = "6.1.0"
+black = "23.10.1"
+isort = "5.12.0"
+mongomock = "4.1.2"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  ".", "embedding_studio",
+]
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+line_length = 79
+combine_as_imports = true
+known_third_party = [
+  "fastapi", "pydantic", "dramatiq", "pymongo", "mongomock", "bson", "pytest", "uvicorn", "starlette",
+  "pydantic_settings", "torch", "sklearn", "boto3", "datasets", "PIL", "tqdm", "torchvision", "pytorch_lightning",
+  "sentence_transformers", "numpy"
+]
+known_local_folder = ["embedding_studio"]
+group_by_package = true
+sections = ['FUTURE','STDLIB','THIRDPARTY','FIRSTPARTY','LOCALFOLDER']
+
+[tool.black]
+line_length = 79

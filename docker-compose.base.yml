@@ -1,0 +1,6 @@
+version: "3.8"
+
+services:
+  base_service:
+    environment:
+      RUN_IN_DOCKER: 1
