@@ -3,10 +3,14 @@ import secrets
 from typing import List
 
 from pydantic import AnyHttpUrl
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file='.env', env_file_encoding='utf-8'
+    )
+
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = secrets.token_urlsafe(32)
     # 60 minutes * 24 hours * 8 days = 8 days
@@ -37,10 +41,6 @@ class Settings(BaseSettings):
         "S3_SECRET_ACCESS_KEY", "miniopassword"
     )
     S3_BUCKET: str = os.getenv("S3_BUCKET", "embeddingstudio_bucket")
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
 
 settings = Settings()

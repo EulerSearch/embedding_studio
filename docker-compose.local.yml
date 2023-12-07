@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  embedding_studio:
+    environment:
+      - MONGO_HOST=mongo
+      - REDIS_HOST=redis
+    volumes:
+      - .:/embedding_studio:rw
+
+
+  fine_tuning_worker:
+    environment:
+      - MONGO_HOST=mongo
+      - REDIS_HOST=redis
+    volumes:
+      - .:/embedding_studio:rw

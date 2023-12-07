@@ -5,6 +5,8 @@ import dramatiq
 
 from embedding_studio.crud.fine_tuning import fine_tuning_task
 from embedding_studio.schemas.fine_tuning import FineTuningStatus
+from embedding_studio.db.redis import redis_broker  # noqa
+
 
 logger = logging.getLogger(__name__)
 

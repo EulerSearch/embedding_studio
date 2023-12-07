@@ -1,5 +1,5 @@
 # This is the first stage, it is named requirements-stage.
-FROM python:3.10 as requirements-stage
+FROM python:3.9 as requirements-stage
 
 # Set /tmp as the current working directory.
 WORKDIR /tmp
@@ -11,10 +11,10 @@ RUN pip install poetry
 COPY ./pyproject.toml ./poetry.lock* /tmp/
 
 # Generate the requirements.txt file.
-RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
+RUN poetry export --without ml,dev -f requirements.txt --output requirements.txt --without-hashes
 
 # This is the final stage, anything here will be preserved in the final container image.
-FROM python:3.10
+FROM python:3.9
 
 # Set the working directory
 WORKDIR /embedding_studio

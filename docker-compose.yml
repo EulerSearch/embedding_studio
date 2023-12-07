@@ -4,7 +4,7 @@ services:
   embedding_studio:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: service.Dockerfile
     restart: always
     ports:
       - '5000:5000'
@@ -19,6 +19,17 @@ services:
       timeout: 10s
       retries: 5
       start_period: 10s
+
+  fine_tuning_worker:
+    build:
+      context: .
+      dockerfile: worker.fine_tuning.Dockerfile
+    restart: always
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   redis:
     image: redis:6.2-alpine
@@ -59,7 +70,7 @@ services:
     environment:
       - MINIO_ROOT_USER=root
       - MINIO_ROOT_PASSWORD=miniopassword
-      - MINIO_DEFAULT_BUCKETS=embeddingstudio_bucket
+      - MINIO_DEFAULT_BUCKETS=embeddingstudio
     healthcheck:
       test: curl -f http://localhost:9000/minio/health/live"
       interval: 30s
