@@ -23,21 +23,64 @@ class ItemsStorage(Dataset):
             indices_table=dataset._indices,
             fingerprint=dataset._fingerprint,
         )
-        self.item_field_name = item_field_name
-        self.id_field_name = id_field_name
+        if not id_field_name:
+            raise ValueError("id_field_name should be non-empty string")
 
-        self.id_to_index = {
+        if not item_field_name:
+            raise ValueError("item_field_name should be non-empty string")
+
+        self._item_field_name = item_field_name
+        self._id_field_name = id_field_name
+
+        self._id_to_index = {
             row[self.id_field_name]: index for index, row in enumerate(dataset)
         }
 
-    def rows_by_ids(self, ids: List[Any]) -> dict:
+    @property
+    def item_field_name(self) -> str:
+        return self._item_field_name
+
+    @item_field_name.setter
+    def item_field_name(self, value: str) -> None:
+        if not value or not isinstance(value, str):
+            raise ValueError("item_field_name should be a non-empty string")
+        self._item_field_name = value
+
+    @property
+    def id_field_name(self) -> str:
+        return self._id_field_name
+
+    @id_field_name.setter
+    def id_field_name(self, value: str) -> None:
+        if not value or not isinstance(value, str):
+            raise ValueError("id_field_name should be a non-empty string")
+        self._id_field_name = value
+
+    @property
+    def id_to_index(self) -> dict:
+        if self._id_to_index is None:
+            self._id_to_index = {
+                row[self.id_field_name]: index
+                for index, row in enumerate(self)
+            }
+        return self._id_to_index
+
+    def rows_by_ids(self, ids: List[Any], ignore_missed: bool = False) -> dict:
         """Get rows by row ids
 
         :param ids:
         :type ids: List[Any]
+        :param ignore_missed: whether we should ignore missed ids
+        :type ignore_missed: bool
         :return: rows from original dataset
         """
-        return self[[self.id_to_index[id_] for id_ in ids]]
+        if not ignore_missed:
+            for id_ in ids:
+                if id_ not in self.id_to_index:
+                    raise IndexError(f"ID {id_} is missed")
+        return self[
+            [self.id_to_index[id_] for id_ in ids if id_ in self.id_to_index]
+        ]
 
     def items_by_indices(self, indices: List[int]) -> List[Any]:
         """

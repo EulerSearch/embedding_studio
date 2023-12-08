@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, Optional
 
 from datasets import Dataset
@@ -5,6 +6,8 @@ from datasets import Dataset
 from embedding_studio.embeddings.data.transforms.image.clip_original import (
     center_crop_transform,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def image_transforms(
@@ -15,6 +18,11 @@ def image_transforms(
     pixel_values_name: Optional[str] = "pixel_values",
     del_images: Optional[bool] = False,
 ):
+    if not isinstance(n_pixels, int) or n_pixels <= 0:
+        raise ValueError(
+            f"Num of pixels {n_pixels} should be a positive integer"
+        )
+
     if image_field_name in examples:
         transform_func = transform(n_pixels)
         examples[pixel_values_name] = [
@@ -22,6 +30,7 @@ def image_transforms(
             for img in examples[image_field_name]
         ]
         if del_images:
+            logger.debug(f"Delete {image_field_name} field from dataset")
             del examples[image_field_name]
 
     else:

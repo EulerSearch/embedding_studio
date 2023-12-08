@@ -9,13 +9,13 @@ class ClickstreamSession(BaseModel):
 
     :param query: provided query.
     :type query: Any
-    :param events: ids of events (right now mostly clicks)
+    :param events: ids of results (right now mostly clicks)
     :type events: List[str]
     :param results: ids of result items
     :type results: List[str]
     :param ranks: dictionary of each item ranks
     :type ranks: Dict[str, float]
-    :param event_types: type of events
+    :param event_types: type of results
     :type event_types: Optional[List[float]]
     :param timestamp: when session was initialized
     :type timestamp:  Optional[int]
@@ -35,6 +35,14 @@ class ClickstreamSession(BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
+
+        if len(self.ranks) != len(self.results):
+            raise ValueError("Sizes of ranks and results are not equal")
+
+        for id_ in self.results:
+            if id_ not in self.ranks:
+                raise ValueError(f"No such ID ({id_}) in provided ranks dict")
+
         self.not_events = [
             id_ for id_ in self.results if id_ not in self.events
         ]
@@ -45,7 +53,7 @@ class ClickstreamSession(BaseModel):
     def __len__(self) -> int:
         return len(self.results)
 
-    @validator("events", "results", pre=True, always=True)
+    @validator("results", "results", pre=True, always=True)
     def preprocess_ids(cls, value):
         return [
             str(item[0])

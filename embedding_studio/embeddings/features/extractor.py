@@ -1,3 +1,4 @@
+import logging
 import random
 from typing import Callable, List, Optional, Tuple
 
@@ -24,6 +25,8 @@ from embedding_studio.embeddings.models.interface import (
 from embedding_studio.worker.experiments.finetuning_params import ExamplesType
 
 COSINE_SIMILARITY = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
+
+logger = logging.getLogger(__name__)
 
 
 class FeaturesExtractor(pl.LightningModule):
@@ -58,27 +61,78 @@ class FeaturesExtractor(pl.LightningModule):
                                     True - Triplet loss
                                     False - Contrastive-like loss
         :type not_irrelevant_only: Optional[bool]
-        :param negative_downsampling_factor: in real tasks amount of events is much larger than  not-events,
+        :param negative_downsampling_factor: in real tasks amount of results is much larger than  not-results,
                                              use this parameters to fix a balance (default: 0.5)
         :type negative_downsampling_factor: Optional[float]
         :param min_abs_difference_threshold: filter out soft pairs abs(neg_dist - pos_dist) < small value
         :type min_abs_difference_threshold: float
         :param max_abs_difference_threshold: filter out hard pairs abs(neg_dist - pos_dist) > huge value
         :type max_abs_difference_threshold: float
-        :param confidence_calculator: function to calculate events confidences (default: dummy_confidences)
+        :param confidence_calculator: function to calculate results confidences (default: dummy_confidences)
         :type confidence_calculator: Optional[Callable]
         :param examples_order: order of passing examples to a trainer (default: None)
         :type examples_order: Optional[List[ExamplesType]]
         """
         super(FeaturesExtractor, self).__init__()
+        # Check model type
+        if not isinstance(model, EmbeddingsModelInterface):
+            raise ValueError(
+                "Model must be an instance of EmbeddingsModelInterface."
+            )
         self.model = model
+
+        # Check ranker type and value
+        if not callable(ranker):
+            raise ValueError("Ranker must be a callable function.")
         self.ranker = ranker
-        self.is_similarty = is_similarity
+
+        # Check is_similarity type
+        if not isinstance(is_similarity, bool):
+            raise ValueError("is_similarity must be a boolean.")
+        self.is_similarity = is_similarity
+
+        # Check not_irrelevant_only type
+        if not isinstance(not_irrelevant_only, bool):
+            raise ValueError("not_irrelevant_only must be a boolean.")
         self.not_irrelevant_only = not_irrelevant_only
+
+        # TODO: use pydantic models here
+        if (
+            not isinstance(negative_downsampling_factor, float)
+            or negative_downsampling_factor < 0.0
+            or negative_downsampling_factor >= 1
+        ):
+            raise ValueError(
+                "negative downsampling factor should be un range (0.0, 1.0)"
+            )
         self.negative_donwsampling_factor = negative_downsampling_factor
+
+        if (
+            not isinstance(min_abs_difference_threshold, float)
+            or min_abs_difference_threshold <= 0.0
+        ):
+            raise ValueError(
+                "min_abs_difference_threshold should be positive numeric"
+            )
         self.min_abs_difference_threshold = min_abs_difference_threshold
+        if (
+            not isinstance(max_abs_difference_threshold, float)
+            or max_abs_difference_threshold <= 0.0
+        ):
+            raise ValueError(
+                "max_abs_difference_threshold should be positive numeric"
+            )
         self.max_abs_difference_threshold = max_abs_difference_threshold
         self.confidence_calculator = confidence_calculator
+
+        if len(exmaples_order) == 0:
+            exmaples_order = [ExamplesType.all_examples]
+            logger.debug("All types of examples will be used in training")
+
+        if len({isinstance(e, ExamplesType) for e in exmaples_order}) > 1:
+            raise ValueError(
+                "Some of exmaple types are not instances of ExampleType"
+            )
         self.exmaples_order = (
             exmaples_order  # TODO: use different examples order
         )
@@ -90,9 +144,9 @@ class FeaturesExtractor(pl.LightningModule):
 
         :param session: provided clickstream session
         :type session: ClickstreamSession
-        :param not_events: not-events (negatives) used for ranks prediction
+        :param not_events: not-results (negatives) used for ranks prediction
         :type not_events: List[str]
-        :return: positive (events) confidences, negative (not-events) confidences
+        :return: positive (results) confidences, negative (not-results) confidences
         :rtype: Tuple[Tensor, Tensor]
         """
         only_used: List[bool] = [
@@ -152,7 +206,7 @@ class FeaturesExtractor(pl.LightningModule):
         """
         features = SessionFeatures()
 
-        # For keep balance between events and not-events, we decrease a number of not-events
+        # For keep balance between results and not-results, we decrease a number of not-results
         not_events_count: int = int(
             self.negative_donwsampling_factor * len(session.not_events)
         )
@@ -281,6 +335,7 @@ class FeaturesExtractor(pl.LightningModule):
 
         for not_irrelevant_session, irrelevant_session in batch:
             if len(not_irrelevant_session.events) == 0:
+                logger.warning("Not irrelevant session has no results")
                 continue
 
             if (

@@ -1,8 +1,11 @@
+import logging
 import math
 from typing import Union
 
 import torch
 from torch import FloatTensor, Tensor
+
+logger = logging.getLogger(__name__)
 
 
 @torch.no_grad()
@@ -23,7 +26,7 @@ def dummy_confidences(
 
 @torch.no_grad()
 def calculate_confidences(
-    ranks: FloatTensor, events: Tensor, window_size: int = 3
+    ranks: FloatTensor, results: Tensor, window_size: int = 3
 ) -> Union[Tensor, FloatTensor]:
     """Calculate events (clicks) and not events (not clicks) confidences the way:
     * either event is among events of the same type
@@ -31,16 +34,32 @@ def calculate_confidences(
 
     :param ranks: list of ranks from search results
     :type ranks: FloatTensor
-    :param events: list of 0 if it's not an event, 1 if it's an event
-    :type events: FloatTensor
-    :param window_size: context window to check confidence (default: 3)
+    :param results: list of 0 if it's not an event, 1 if it's an event
+    :type results: FloatTensor
+    :param window_size: context window to check confidence, should be more than 1 (default: 3)
                         like <i - window_size // 2; i; i + window_size // 2 + 1>
     :type window_size: int
     :return: list of confidences
     :rtype: Union[Tensor, FloatTensor]
     """
-    num_results: int = len(events)
+
+    if not isinstance(window_size, int) or window_size <= 1:
+        raise ValueError(
+            "window_size should be an integer with value more than 1"
+        )
+
+    num_results: int = len(results)
+    if window_size >= num_results:
+        logger.warning(
+            "window_size is equal or more than length of results list"
+        )
+
     confidence_scores: Tensor = torch.zeros(num_results)
+
+    if num_results == 0:
+        logger.warning("Result list is empty")
+        return confidence_scores
+
     position_scores: Tensor = torch.zeros(num_results)
 
     for i in range(num_results):
@@ -49,10 +68,11 @@ def calculate_confidences(
 
         # Extract the ranks and clicks in the sliding window
         window_ranks: FloatTensor = ranks[start:end]
-        window_clicks: FloatTensor = events[start:end]
+        window_clicks: FloatTensor = results[start:end]
 
         # Calculate the average rank and click proportion in the window
-        avg_rank: Tensor = torch.mean(window_ranks)
+        avg_rank: Tensor = torch.mean(window_ranks) + 1e-9
+
         click_proportion: Tensor = torch.mean(
             window_clicks.type(torch.float32)
         )
@@ -62,7 +82,7 @@ def calculate_confidences(
         # TODO: move to config or provide customizable function
         position_scores[i] = math.exp(-3 * (i + 1) / num_results - 0.3) + 0.25
 
-        if events[i] == 1:
+        if results[i] == 1:
             confidence_scores[i] = (
                 (1 - rank_similarity) * click_proportion
             ) + (1 - click_proportion) * rank_similarity
@@ -74,7 +94,7 @@ def calculate_confidences(
     # Normalize confidence scores to be between 0 and 1
     confidence_scores: FloatTensor = confidence_scores * position_scores
     confidence_scores = (confidence_scores - confidence_scores.min()) / (
-        confidence_scores.max() - confidence_scores.min()
+        confidence_scores.max() - confidence_scores.min() + 1e-9
     )
 
     return confidence_scores

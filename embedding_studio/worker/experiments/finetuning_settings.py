@@ -3,11 +3,13 @@ from typing import Callable, List, Optional
 from pydantic import BaseModel
 from torch import FloatTensor
 
-from embedding_studio.embeddings import RankingLossInterface
 from embedding_studio.embeddings.features.event_confidences import (
     dummy_confidences,
 )
 from embedding_studio.embeddings.features.extractor import COSINE_SIMILARITY
+from embedding_studio.embeddings.losses.ranking_loss_interface import (
+    RankingLossInterface,
+)
 from embedding_studio.embeddings.metrics.metric import MetricCalculator
 
 
@@ -23,7 +25,7 @@ class FineTuningSettings(BaseModel):
     :type ranker: Optional[Callable[[FloatTensor, FloatTensor], FloatTensor]]
     :param is_similarity: is ranking function similarity like or distance (default: True)
     :type is_similarity: Optional[bool]
-    :param confidence_calculator: function to calculate events confidences (default: dummy_confidences)
+    :param confidence_calculator: function to calculate results confidences (default: dummy_confidences)
     :type confidence_calculator: Optional[Callable]
     :param step_size: optimizer steps (default: 500)
     :type step_size: Optional[int]

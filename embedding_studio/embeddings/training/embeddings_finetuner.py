@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from typing import Callable, List, Optional, Tuple, Union
 
@@ -44,6 +45,8 @@ from embedding_studio.worker.experiments.finetuning_settings import (
 )
 from embedding_studio.worker.experiments.metrics_accumulator import MetricValue
 
+logger = logging.getLogger(__name__)
+
 
 class EmbeddingsFineTuner(pl.LightningModule):
     def __init__(
@@ -85,13 +88,46 @@ class EmbeddingsFineTuner(pl.LightningModule):
         :type ranker: Callable[[FloatTensor, FloatTensor], FloatTensor]
         :param is_similarity: is ranking function similarity like or distance (default: True)
         :type is_similarity: bool
-        :param confidence_calculator: function to calculate events confidences (default: dummy_confidences)
+        :param confidence_calculator: function to calculate results confidences (default: dummy_confidences)
         :type confidence_calculator: Callable
         :param step_size: optimizer steps (default: 500)
         :type step_size: int
         :param gamma: optimizers gamma (default: 0.9)
         :type gamma: float
         """
+        if not isinstance(model, EmbeddingsModelInterface):
+            raise TypeError(
+                "model must be an instance of EmbeddingsModelInterface"
+            )
+
+        if not isinstance(items_storages, DatasetDict):
+            raise TypeError("items_storages must be a DatasetDict")
+
+        if not isinstance(query_retriever, QueryRetriever):
+            raise TypeError(
+                "query_retriever must be an instance of QueryRetriever"
+            )
+
+        if not isinstance(loss_func, RankingLossInterface):
+            raise TypeError(
+                "loss_func must be an instance of RankingLossInterface"
+            )
+
+        if not isinstance(fine_tuning_params, FineTuningParams):
+            raise TypeError(
+                "fine_tuning_params must be an instance of FineTuningParams"
+            )
+
+        if not isinstance(tracker, ExperimentsManager):
+            raise TypeError(
+                "tracker must be an instance of ExperimentsManager"
+            )
+
+        if not isinstance(fine_tuning_params, FineTuningParams):
+            raise TypeError(
+                "fine_tuning_params must be an instance of FineTuningParams"
+            )
+
         super(EmbeddingsFineTuner, self).__init__()
         self.features_extractor = FeaturesExtractor(
             model,
@@ -105,11 +141,17 @@ class EmbeddingsFineTuner(pl.LightningModule):
         )
         self.items_storages = items_storages
         self.query_retriever = query_retriever
+
+        if len(metric_calculators) == 0:
+            logger.debug(
+                "metric_calculators list is empty - DistanceShift metric will be used by default."
+            )
         self.calculators = (
             metric_calculators
             if metric_calculators is not None
             else [DistanceShift()]
         )
+
         self.loss_func = loss_func
         self.loss_func.set_margin(fine_tuning_params.margin)
         self.fine_tuning_params = fine_tuning_params
@@ -133,6 +175,12 @@ class EmbeddingsFineTuner(pl.LightningModule):
     def configure_optimizers(
         self,
     ) -> Tuple[List[Optimizer], List[LRScheduler]]:
+        if not (isinstance(self.step_size, int) and self.step_size > 0):
+            raise ValueError("step_size must be a positive integer")
+
+        if not (isinstance(self.gamma, float) and 0 < self.gamma < 1):
+            raise ValueError("gamma must be a float in the range (0, 1)")
+
         items_optimizer: SGD = SGD(
             self.features_extractor.model.get_items_model_params(),
             lr=self.fine_tuning_params.items_lr,
@@ -165,6 +213,17 @@ class EmbeddingsFineTuner(pl.LightningModule):
         batch: List[Tuple[ClickstreamSession, ClickstreamSession]],
         batch_idx: int,
     ) -> Union[FloatTensor, Tensor]:
+        if not (
+            isinstance(batch, (list, tuple))
+            and all(
+                isinstance(session, tuple) and len(session) == 2
+                for session in batch
+            )
+        ):
+            raise ValueError(
+                "batch must be a list or tuple, and each element must be a tuple of two ClickstreamSessions"
+            )
+
         if isinstance(batch, tuple):
             batch = [
                 batch,
@@ -219,6 +278,17 @@ class EmbeddingsFineTuner(pl.LightningModule):
         batch: List[Tuple[ClickstreamSession, ClickstreamSession]],
         batch_idx: int,
     ) -> Union[FloatTensor, Tensor]:
+        if not (
+            isinstance(batch, (list, tuple))
+            and all(
+                isinstance(session, tuple) and len(session) == 2
+                for session in batch
+            )
+        ):
+            raise ValueError(
+                "batch must be a list or tuple, and each element must be a tuple of two ClickstreamSessions"
+            )
+
         if isinstance(batch, tuple):
             batch = [
                 batch,

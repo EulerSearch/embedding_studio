@@ -1,4 +1,6 @@
+import logging
 import os
+import subprocess
 from socket import setdefaulttimeout
 from typing import Dict, List, Optional, Tuple
 
@@ -7,7 +9,9 @@ import numpy as np
 import pandas as pd
 from mlflow.entities import Experiment
 
-from embedding_studio.embeddings import EmbeddingsModelInterface
+from embedding_studio.embeddings.models.interface import (
+    EmbeddingsModelInterface,
+)
 from embedding_studio.worker.experiments.finetuning_params import (
     FineTuningParams,
 )
@@ -31,19 +35,25 @@ DEFAULT_TIMEOUT: int = 120000
 # MLFlow upload models using urllib3, if model is heavy enough provided default timeout is not enough
 # That's why increase it here. TODO: check from time to time whether this issue is resolved by MLFlow
 setdefaulttimeout(DEFAULT_TIMEOUT)
+logger = logging.getLogger(__name__)
 
 
 def _get_base_requirements():
-    with open(
-        os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            "requirements.txt",
-        ),
-        "r",
-    ) as f:
-        reqs: str = f.read()
+    try:
+        logger.info('Generate requirements with poetry')
+        # Run the poetry export command
+        result = subprocess.run([
+            "poetry", "export", f"--directory={os.path.dirname(__file__)}", "--with", "ml", "-f", "requirements.txt", "--without-hashes"
+        ], capture_output=True, text=True,
+                                check=True)
 
-    return reqs.split("\n")
+        # Get the requirements from the standard output
+        requirements = result.stdout.strip().split('\n')
+
+        return requirements
+    except subprocess.CalledProcessError as e:
+        print(f"Error running poetry export: {e}")
+        return []
 
 
 class ExperimentsManager:
@@ -71,16 +81,27 @@ class ExperimentsManager:
         :param requirements: extra requirements to be passed to mlflow.pytorch.log_model (default: None)
         :type requirements: Optional[str]
         """
+        if not isinstance(tracking_uri, str) or len(tracking_uri) == 0:
+            raise ValueError(
+                f"MLFlow tracking URI value should be a not empty string"
+            )
         mlflow.set_tracking_uri(tracking_uri)
 
+        if not isinstance(main_metric, str) or len(main_metric) == 0:
+            raise ValueError(f"main_metric value should be a not empty string")
         self.main_metric = main_metric
-        self.metric_field = f"metrics.{self.main_metric}"
-        self.n_top_runs = n_top_runs
-        self.is_loss = is_loss
+        self._metric_field = f"metrics.{self.main_metric}"
 
-        self.accumulators = accumulators
+        self._n_top_runs = n_top_runs
+        self._is_loss = is_loss
 
-        self.requirements: List[str] = (
+        if len(accumulators) == 0:
+            logger.warning(
+                "No accumulators were provided, there will be no metrics logged except loss"
+            )
+        self._accumulators = accumulators
+
+        self._requirements: List[str] = (
             _get_base_requirements() if requirements is None else requirements
         )
 
@@ -91,6 +112,10 @@ class ExperimentsManager:
         self._run = None
         self._run_params = None
         self._run_id = None
+
+    @property
+    def is_loss(self) -> bool:
+        return self._is_loss
 
     def __del__(self):
         self.finish_run()
@@ -107,9 +132,13 @@ class ExperimentsManager:
             experiment_id=get_experiment_id_by_name(INITIAL_EXPERIMENT_NAME),
             run_name=INITIAL_RUN_NAME,
         ) as run:
-            mlflow.pytorch.log_model(
-                model, "model", pip_requirements=self.requirements
+            logger.info(
+                f"Upload initial model to {INITIAL_EXPERIMENT_NAME} / {INITIAL_RUN_NAME}"
             )
+            mlflow.pytorch.log_model(
+                model, "model", pip_requirements=self._requirements
+            )
+            logger.info("Uploading is finished")
 
     def download_initial_model(self) -> EmbeddingsModelInterface:
         """Download initial model.
@@ -118,7 +147,10 @@ class ExperimentsManager:
         :rtype: EmbeddingsModelInterface
         """
         model_uri: str = f"runs:/{get_run_id_by_name(get_experiment_id_by_name(INITIAL_EXPERIMENT_NAME), INITIAL_RUN_NAME)}/model"
-        return mlflow.pytorch.load_model(model_uri)
+        logger.info(f"Download the model from {model_uri}")
+        model = mlflow.pytorch.load_model(model_uri)
+        logger.info("Downloading is finished")
+        return model
 
     def get_top_params(self) -> Optional[List[FineTuningParams]]:
         """Get top N previous fine-tuning session best params
@@ -131,6 +163,9 @@ class ExperimentsManager:
         )
         last_session_id: Optional[str] = self.get_previous_session_id()
         if initial_id == last_session_id:
+            logger.warning(
+                "Can't retrieve top params, no previous session in history"
+            )
             return None
 
         else:
@@ -142,11 +177,14 @@ class ExperimentsManager:
             )
             runs = runs[runs.status == "FINISHED"]  # and only finished ones
             if runs.shape[0] == 0:
+                logger.warning(
+                    "Can't retrieve top params, no previous session's finished runs with uploaded model in history"
+                )
                 return None
 
             # Get the indices that would sort the DataFrame based on the specified parameter
             sorted_indices: np.ndarray = np.argsort(
-                runs[self.metric_field].values
+                runs[self._metric_field].values
             )
             if not self.is_loss:
                 sorted_indices = sorted_indices[
@@ -155,7 +193,7 @@ class ExperimentsManager:
 
             # Extract the top N rows based on the sorted indices
             top_n_rows: np.ndarray = runs.iloc[
-                sorted_indices[: self.n_top_runs]
+                sorted_indices[: self._n_top_runs]
             ]
 
             # Define a mapping dictionary to remove the "params." prefix
@@ -181,14 +219,23 @@ class ExperimentsManager:
         )
         last_session_id: Optional[str] = self.get_previous_session_id()
         if initial_id == last_session_id or last_session_id is None:
+            logger.warning(
+                "Download initial model, no previous session in history"
+            )
             return self.download_initial_model()
         else:
             run_id, _ = self._get_best_quality(last_session_id)
             if run_id is None:
+                logger.warning(
+                    "Download initial model, no previous session's finished runs with uploaded model in history"
+                )
                 return self.download_initial_model()
             else:
                 model_uri: str = f"runs:/{run_id}/model"
-                return mlflow.pytorch.load_model(model_uri)
+                logger.info(f"Download the model from {model_uri}")
+                model = mlflow.pytorch.load_model(model_uri)
+                logger.info("Downloading is finished")
+                return model
 
     def get_previous_session_id(self) -> Optional[str]:
         experiments: List[Experiment] = [
@@ -197,6 +244,7 @@ class ExperimentsManager:
             if e.name.startswith(EXPERIMENT_PREFIX)
         ]
         if len(experiments) == 0:
+            logger.warning("No sessions found")
             return None
         else:
             return max(
@@ -205,7 +253,15 @@ class ExperimentsManager:
 
     def delete_previous_session(self):
         experiment_id: Optional[str] = self.get_previous_session_id()
-        mlflow.delete_experiment(experiment_id)
+        if experiment_id is not None:
+            logger.info(
+                f"Session with ID {experiment_id} is going to be deleted"
+            )
+            mlflow.delete_experiment(experiment_id)
+        else:
+            logger.warning(
+                "Can't delete a previous session, no previous session in history"
+            )
 
     def set_session(self, session: FineTuningSession):
         """Start a new fine-tuning session.
@@ -215,6 +271,8 @@ class ExperimentsManager:
         """
         if self._tuning_session == INITIAL_EXPERIMENT_NAME:
             self.finish_session()
+
+        logger.info("Start a new fine-tuning sessions")
 
         self._tuning_session = session
         self._tuning_session_id = get_experiment_id_by_name(str(session))
@@ -244,6 +302,10 @@ class ExperimentsManager:
         if self._run is not None:
             self.finish_run()
 
+        logger.info(
+            f"Start a new run for session {self._tuning_session_id} with params:\n\t{str(params)}"
+        )
+
         self._run_params = params
         run_name: str = self._run_params.id
         self._run_id = get_run_id_by_name(self._tuning_session_id, run_name)
@@ -260,6 +322,7 @@ class ExperimentsManager:
             mlflow.log_param(key, convert_value(value))
 
     def finish_session(self):
+        logger.info(f"Finish current session {self._tuning_session_id}")
         self._tuning_session = INITIAL_EXPERIMENT_NAME
         self._tuning_session_id = get_experiment_id_by_name(
             INITIAL_EXPERIMENT_NAME
@@ -275,8 +338,13 @@ class ExperimentsManager:
                 experiment_id=self._tuning_session_id
             )
 
+        logger.info(f"Current session is finished")
+
     def finish_run(self):
-        for accumulator in self.accumulators:
+        logger.info(
+            f"Finish current run {self._tuning_session_id} / {self._run_id}"
+        )
+        for accumulator in self._accumulators:
             accumulator.clear()
 
         mlflow.end_run()
@@ -285,6 +353,8 @@ class ExperimentsManager:
         self._run = None
         self._run_params = None
         self._run_id = None
+
+        logger.info(f"Current run is finished")
 
     def save_model(
         self, model: EmbeddingsModelInterface, best_only: bool = True
@@ -304,11 +374,15 @@ class ExperimentsManager:
         if self._run_id is None:
             raise ValueError("There is no current Run")
 
+        logger.info(
+            f"Save model for {self._tuning_session_id} / {self._run_id}"
+        )
         if not best_only:
             mlflow.pytorch.log_model(
-                model, "model", pip_requirements=self.requirements
+                model, "model", pip_requirements=self._requirements
             )
             mlflow.log_param("model_uploaded", 1)
+            logger.info("Upload is finished")
         else:
             current_quality = self.get_quality()
             best_run_id, best_quality = self.get_best_quality()
@@ -319,12 +393,15 @@ class ExperimentsManager:
                 else current_quality >= best_quality
             ):
                 mlflow.pytorch.log_model(
-                    model, "model", pip_requirements=self.requirements
+                    model, "model", pip_requirements=self._requirements
                 )
                 mlflow.log_param("model_uploaded", 1)
+                logger.info("Upload is finished")
 
                 if best_run_id is not None:
                     pass  # TODO: Delete model
+            else:
+                logger.info("Not the best run - ignore saving")
 
     def save_metric(self, metric_value: MetricValue):
         """Accumulate and save metric value
@@ -332,7 +409,7 @@ class ExperimentsManager:
         :param metric_value: value to be logged
         :type metric_value: MetricValue
         """
-        for accumulator in self.accumulators:
+        for accumulator in self._accumulators:
             for name, value in accumulator.accumulate(metric_value):
                 mlflow.log_metric(name, value)
 
@@ -354,7 +431,7 @@ class ExperimentsManager:
             experiment_ids=[self._tuning_session_id]
         )
         quality: np.ndarray = runs[runs.run_id == self._run_id][
-            self.metric_field
+            self._metric_field
         ]
         return float(quality) if quality.shape[0] == 1 else float(quality[0])
 
@@ -369,16 +446,19 @@ class ExperimentsManager:
         )
         runs = runs[runs.status == "FINISHED"]  # and not finished ones
         if runs.shape[0] == 0:
+            logger.warning(
+                "No finished experiments found with model uploaded, except initial"
+            )
             return None, 0.0
 
         else:
             value: float = (
-                runs[self.metric_field].min()
+                runs[self._metric_field].min()
                 if self.is_loss
-                else runs[self.metric_field].max()
+                else runs[self._metric_field].max()
             )
-            best: pd.DataFrame = runs[runs[self.metric_field] == value][
-                ["run_id", self.metric_field]
+            best: pd.DataFrame = runs[runs[self._metric_field] == value][
+                ["run_id", self._metric_field]
             ]
             return list(best.itertuples(index=False, name=None))[0]
 

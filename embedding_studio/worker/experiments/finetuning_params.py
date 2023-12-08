@@ -2,7 +2,7 @@ import hashlib
 from enum import Enum
 from typing import List
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, root_validator, validator
 
 
 class ExamplesType(Enum):
@@ -68,6 +68,45 @@ class FineTuningParams(BaseModel):
         elif isinstance(value, tuple):
             value = list(value)
         return [ExamplesType(v) for v in value]
+
+    @validator("items_lr", "query_lr", pre=True, always=True)
+    def validate_positive_float(cls, value):
+        if not (isinstance(value, float) and value > 0):
+            raise ValueError(f"{value} must be a positive float")
+        return value
+
+    @validator(
+        "items_weight_decay", "query_weight_decay", pre=True, always=True
+    )
+    def validate_non_negative_float(cls, value):
+        if not (isinstance(value, float) and value >= 0):
+            raise ValueError(f"{value} must be a non-negative float")
+        return value
+
+    @validator("margin", pre=True, always=True)
+    def validate_non_negative_float_margin(cls, value):
+        if not (isinstance(value, float) and value >= 0):
+            raise ValueError(f"{value} must be a non-negative float")
+        return value
+
+    @validator("num_fixed_layers", pre=True, always=True)
+    def validate_non_negative_int(cls, value):
+        if not (isinstance(value, int) and value >= 0):
+            raise ValueError(f"{value} must be a non-negative integer")
+        return value
+
+    @root_validator(skip_on_failure=True)
+    def validate_example_order(cls, values):
+        examples_order = values.get("examples_order")
+        if examples_order:
+            if isinstance(examples_order, str):
+                examples_order = list(map(int, examples_order.split(",")))
+            elif isinstance(examples_order, tuple):
+                examples_order = list(examples_order)
+            values["examples_order"] = [
+                ExamplesType(v) for v in examples_order
+            ]
+        return values
 
     @property
     def id(self) -> str:

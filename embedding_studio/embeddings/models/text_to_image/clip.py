@@ -1,3 +1,4 @@
+import logging
 from typing import Dict, Iterator, List
 
 import numpy as np
@@ -12,6 +13,8 @@ from embedding_studio.embeddings.models.interface import (
 from embedding_studio.embeddings.models.pooler_output import (
     PassPoolerOutputLayer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TextToImageCLIPModel(EmbeddingsModelInterface):
@@ -51,6 +54,15 @@ class TextToImageCLIPModel(EmbeddingsModelInterface):
         return self.vision_model.parameters()
 
     def fix_query_model(self, num_fixed_layers: int):
+        if (
+            len(self.text_model._modules["0"].encoder.layers)
+            >= num_fixed_layers
+        ):
+            raise ValueError(
+                f"Number of fixed layers ({num_fixed_layers}) >= number "
+                f'of existing layers ({len(self.text_model._modules["0"].encoder.layers)})'
+            )
+
         self.text_model._modules["0"].embeddings.requires_grad = False
         for i, attn in enumerate(self.text_model._modules["0"].encoder.layers):
             if i < num_fixed_layers:
@@ -66,6 +78,15 @@ class TextToImageCLIPModel(EmbeddingsModelInterface):
             ].requires_grad = True
 
     def fix_item_model(self, num_fixed_layers: int):
+        if (
+            len(self.vision_model._modules["0"].encoder.layers)
+            >= num_fixed_layers
+        ):
+            raise ValueError(
+                f"Number of fixed layers ({num_fixed_layers}) >= number "
+                f'of existing layers ({len(self.vision_model._modules["0"].encoder.layers)})'
+            )
+
         self.vision_model._modules["0"].embeddings.requires_grad = False
         for i, attn in enumerate(
             self.vision_model._modules["0"].encoder.layers
@@ -88,8 +109,14 @@ class TextToImageCLIPModel(EmbeddingsModelInterface):
         return self.clip_model.tokenize([query])
 
     def forward_query(self, query: str) -> FloatTensor:
+        if len(query) == 0:
+            logger.warning("Provided query is empty")
+
         tokenized = self.tokenize(query)
         return self.text_model.forward(tokenized["input_ids"].to(self.device))
 
     def forward_items(self, items: List[np.array]) -> FloatTensor:
+        if len(items) == 0:
+            raise ValueError("items list must not be empty")
+
         return self.vision_model.forward(torch.stack(items).to(self.device))

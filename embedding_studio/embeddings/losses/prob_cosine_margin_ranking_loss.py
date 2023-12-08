@@ -10,14 +10,15 @@ from embedding_studio.embeddings.losses.prob_margin_ranking_loss import (
 class CosineProbMarginRankingLoss(ProbMarginRankingLoss):
     def __init__(self, base_margin: Optional[float] = 1.0):
         """Embeddings Fine-tuning Loss (modification of MarginRankingLoss)
-        Use sigmoid instead of ReLU + events confidences to ignore noises and mistakes.
+        Use sigmoid instead of ReLU + results confidences to ignore noises and mistakes.
         Adapt to cosine similarity / distance
 
         :param base_margin: margin ranking loss margin (default: 1.0)
         :type base_margin: Optional[float]
         """
-        super(CosineProbMarginRankingLoss, self).__init__()
-        self.base_margin = base_margin
+        super(CosineProbMarginRankingLoss, self).__init__(
+            base_margin=base_margin
+        )
 
     def __adjust(self, adjusted_diff: FloatTensor) -> FloatTensor:
         # The way any wrong difference more than 0.01 is worth to be penaltized

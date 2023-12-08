@@ -1,5 +1,9 @@
+import logging
+
 from datasets import DatasetDict
 from torch import FloatTensor, Tensor
+
+logger = logging.getLogger(__name__)
 
 
 class DatasetFieldsNormalizer:
@@ -15,7 +19,12 @@ class DatasetFieldsNormalizer:
         :param id_field_name: name of ID column
         :type id_field_name: str
         """
+        if not id_field_name:
+            raise ValueError("id_field_name should be non-empty string")
         self.id_field_name = id_field_name
+
+        if not item_field_name:
+            raise ValueError("item_field_name should be non-empty string")
         self.item_field_name = item_field_name
 
     def __call__(self, dataset: DatasetDict) -> DatasetDict:
@@ -36,6 +45,10 @@ class DatasetFieldsNormalizer:
                 dataset = dataset.rename_column(
                     self.id_field_name, DatasetFieldsNormalizer.ID_FIELD_NAME
                 )
+            else:
+                logger.warning(
+                    f"Dataset {key} split already has {DatasetFieldsNormalizer.ID_FIELD_NAME} field"
+                )
 
             if (
                 DatasetFieldsNormalizer.ITEM_FIELD_NAME
@@ -44,6 +57,10 @@ class DatasetFieldsNormalizer:
                 dataset = dataset.rename_column(
                     self.item_field_name,
                     DatasetFieldsNormalizer.ITEM_FIELD_NAME,
+                )
+            else:
+                logger.warning(
+                    f"Dataset {key} split already has {DatasetFieldsNormalizer.ITEM_FIELD_NAME} field"
                 )
 
         return dataset.map(

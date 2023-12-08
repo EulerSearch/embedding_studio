@@ -36,7 +36,7 @@ class DistanceShift(MetricCalculator):
             extractor.ranker(query_vector, items_vectors).cpu().tolist()
         )
 
-        # for similarity ranks should be higher for events of not irrelevant sessions,
+        # for similarity ranks should be higher for results of not irrelevant sessions,
         # for distances should be vice versa
         target: int = 1 if extractor.is_similarty else -1
         compare = lambda prev, new: target * float(new - prev)

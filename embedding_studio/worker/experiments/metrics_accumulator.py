@@ -5,11 +5,24 @@ import numpy as np
 
 class MetricValue:
     def __init__(self, name: str, value: float):
-        self.name = name
-        self.value = value
+        if not isinstance(name, str) or len(name) == 0:
+            raise ValueError("MetricValue's name should not be empty")
+        self._name = name
+
+        if not isinstance(value, float):
+            raise ValueError("MetricValue's value should not be numeric")
+        self._value = value
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def value(self) -> float:
+        return self._value
 
     def add_prefix(self, prefix: str):
-        self.name = f"{prefix}_{self.name}"
+        self._name = f"{prefix}_{self._name}"
         return self
 
 
@@ -38,13 +51,38 @@ class MetricsAccumulator:
         :param window_size: size of sliding window (default: 10)
         :type window_size: int
         """
-        self.name = name
-        self.calc_mean = calc_mean
-        self.calc_sliding = calc_sliding
-        self.calc_min = calc_min
-        self.calc_max = calc_max
-        self.window_size = window_size
+        if not isinstance(name, str) or len(name) == 0:
+            raise ValueError("MetricsAccumulator's name should not be empty")
+
+        self._name = name
+
+        if not isinstance(calc_mean, bool):
+            raise ValueError("calc_mean value should be bool")
+        self._calc_mean = calc_mean
+
+        if not isinstance(calc_sliding, bool):
+            raise ValueError("calc_sliding value should be bool")
+        self._calc_sliding = calc_sliding
+
+        if not isinstance(calc_min, bool):
+            raise ValueError("calc_min value should be bool")
+        self._calc_min = calc_min
+
+        if not isinstance(calc_max, bool):
+            raise ValueError("calc_max value should be bool")
+        self._calc_max = calc_max
+
+        if not isinstance(window_size, int) or window_size <= 1:
+            raise ValueError(
+                "window_size value should be integer with value more than 1"
+            )
+
+        self._window_size = window_size
         self._values = []
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     def clear(self):
         """Clear accumulator"""
@@ -74,23 +112,23 @@ class MetricsAccumulator:
         aggregations: List[Tuple[str, float]] = []
         if len(self._values) > 0:
             aggregations.append((self.name, self._values[-1]))
-            if self.calc_mean:
+            if self._calc_mean:
                 aggregations.append(
-                    (f"mean_{self.name}", np.mean(self._values))
+                    (f"mean_{self.name}", float(np.mean(self._values)))
                 )
 
-            if self.calc_sliding:
+            if self._calc_sliding:
                 slide_value = float(
                     np.mean(self._values)
-                    if len(self._values) < self.window_size
-                    else np.mean(self._values[-self.window_size :])
+                    if len(self._values) < self._window_size
+                    else np.mean(self._values[-self._window_size :])
                 )
                 aggregations.append((f"sliding_{self.name}", slide_value))
 
-            if self.calc_min:
+            if self._calc_min:
                 aggregations.append((f"min_{self.name}", np.min(self._values)))
 
-            if self.calc_max:
+            if self._calc_max:
                 aggregations.append((f"max_{self.name}", np.max(self._values)))
 
         return aggregations

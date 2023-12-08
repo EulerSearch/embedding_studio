@@ -1,11 +1,28 @@
+import logging
 import random
-from typing import Dict, List, Set, Tuple, Union
+from itertools import cycle, islice
+from typing import Any, Dict, List, Set, Tuple, Union
 
 from torch.utils.data import Dataset
 
 from embedding_studio.embeddings.data.clickstream.raw_session import (
     ClickstreamSession,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def _make_lists_equal_size(
+    list1: List[Any], list2: List[Any]
+) -> Tuple[List[Any], List[Any]]:
+    # Calculate the maximum size of the two lists
+    max_size = max(len(list1), len(list2))
+
+    # Use itertools.cycle to repeat elements of the smaller list
+    equal_size_list1 = list(islice(cycle(list1), max_size))
+    equal_size_list2 = list(islice(cycle(list2), max_size))
+
+    return equal_size_list1, equal_size_list2
 
 
 class PairedClickstreamDataset(Dataset):
@@ -40,22 +57,16 @@ class PairedClickstreamDataset(Dataset):
 
         # Count of sessions should be different, so we need to aligned them
         if len(self.irrelevant) > 0 and len(self.not_irrelevant) > 0:
-            relevant_multiplier: float = len(self.irrelevant) // len(
-                self.not_irrelevant
-            )
-
-            if relevant_multiplier > 1:
-                self.not_irrelevant_indexes: List[
-                    int
-                ] = self.not_irrelevant_indexes * (relevant_multiplier + 1)
-
-            elif relevant_multiplier == 0:
-                relevant_multiplier: float = len(self.not_irrelevant) // len(
-                    self.irrelevant
+            if len(self.irrelevant) != len(self.not_irrelevant):
+                logger.debug(
+                    "Lists of irrelevant and not irrelevant sessions has different sizes. Make them equal."
                 )
-                self.irrelevant_indexes: List[
-                    int
-                ] = self.irrelevant_indexes * (relevant_multiplier + 1)
+                (
+                    self.irrelevant_indexes,
+                    self.not_irrelevant_indexes,
+                ) = _make_lists_equal_size(
+                    self.irrelevant_indexes, self.not_irrelevant_indexes
+                )
 
             if randomize:
                 random.shuffle(self.irrelevant_indexes)
@@ -69,6 +80,12 @@ class PairedClickstreamDataset(Dataset):
                     :session_count
                 ]
 
+        elif len(self.irrelevant) == 0:
+            logger.warning("List of irrelevant sessions is empty")
+
+        else:
+            raise ValueError("List of not irrelevant sessions is empty")
+
         self.irrelevant_ids: Set[str] = set()
         for session in self.irrelevant:
             self.irrelevant_ids.update(session.results)
@@ -78,17 +95,28 @@ class PairedClickstreamDataset(Dataset):
             self.not_irrelevant_ids.update(session.results)
 
     def __len__(self) -> int:
+        if len(self.irrelevant) == 0:
+            return len(self.not_irrelevant)
+
+        elif len(self.not_irrelevant) == 0:
+            return len(self.irrelevant)
+
         return min(
             len(self.irrelevant_indexes), len(self.not_irrelevant_indexes)
         )
 
     def __getitem__(
         self, idx
-    ) -> Tuple[ClickstreamSession, Union[ClickstreamSession, Dict]]:
-        if len(self.irrelevant) > 0:
-            return (
-                self.not_irrelevant[self.not_irrelevant_indexes[idx]],
-                self.irrelevant[self.irrelevant_indexes[idx]],
-            )
-        else:
+    ) -> Tuple[
+        Union[ClickstreamSession, Dict], Union[ClickstreamSession, Dict]
+    ]:
+        if len(self.irrelevant) == 0:
             return self.not_irrelevant[self.not_irrelevant_indexes[idx]], {}
+
+        elif len(self.not_irrelevant) == 0:
+            return {}, self.irrelevant[self.irrelevant_indexes[idx]]
+
+        return (
+            self.not_irrelevant[self.not_irrelevant_indexes[idx]],
+            self.irrelevant[self.irrelevant_indexes[idx]],
+        )

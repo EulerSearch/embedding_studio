@@ -1,3 +1,5 @@
+import logging
+import traceback
 from typing import Optional
 
 import torch
@@ -5,9 +7,12 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from torch.utils.data import DataLoader
 
-from embedding_studio.embeddings import EmbeddingsModelInterface, RankingData
 from embedding_studio.embeddings.data.clickstream.query_retriever import (
     QueryRetriever,
+)
+from embedding_studio.embeddings.data.ranking_data import RankingData
+from embedding_studio.embeddings.models.interface import (
+    EmbeddingsModelInterface,
 )
 from embedding_studio.embeddings.training.embeddings_finetuner import (
     EmbeddingsFineTuner,
@@ -21,6 +26,8 @@ from embedding_studio.worker.experiments.finetuning_params import (
 from embedding_studio.worker.experiments.finetuning_settings import (
     FineTuningSettings,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class CustomDataCollator:
@@ -50,13 +57,16 @@ def fine_tune_embedding_model_one_param(
     :type fine_tuning_params: FineTuningParams
     :param tracker: experiment management object
     :type tracker: ExperimentsManager
-    :return: best quality value
+    :return: the best quality value
     :rtype: float
     """
     use_cuda = torch.cuda.is_available()
     device = torch.device(
         "cuda" if use_cuda else "cpu"
     )  # TODO: use multiple devices
+
+    if not use_cuda:
+        logger.warning("No CUDA is available, use CPU device")
 
     # Start run
     tracker.set_run(fine_tuning_params)
@@ -75,6 +85,7 @@ def fine_tune_embedding_model_one_param(
         shuffle=False,
     )
 
+    logger.info("Init embeddings fine-tuner")
     fine_tuner: EmbeddingsFineTuner = EmbeddingsFineTuner.create(
         initial_model,
         settings,
@@ -90,6 +101,7 @@ def fine_tune_embedding_model_one_param(
         monitor="val_loss", patience=3, strict=False, verbose=False, mode="min"
     )
 
+    logger.info("Start fine-tuning")
     # Start fine-tuning
     trainer: Trainer = Trainer(
         max_epochs=settings.num_epochs,
@@ -109,11 +121,15 @@ def fine_tune_embedding_model_one_param(
 
     # Read current embedding quality
     quality: Optional[float] = tracker.get_quality()
+    logger.info(f"Save model (best only, current quality: {quality})")
     try:
         # Save model, best only
         tracker.save_model(initial_model, True)
-    except Exception:
-        pass
+        logger.info("Saving is finished")
+    except Exception as e:
+        logger.exception(
+            f"Unable to save a model: {str(e)}\nTraceback:\t{traceback.format_exc()}"
+        )
 
     tracker.finish_run()
 
