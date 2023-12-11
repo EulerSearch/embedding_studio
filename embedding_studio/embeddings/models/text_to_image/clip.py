@@ -56,7 +56,7 @@ class TextToImageCLIPModel(EmbeddingsModelInterface):
     def fix_query_model(self, num_fixed_layers: int):
         if (
             len(self.text_model._modules["0"].encoder.layers)
-            >= num_fixed_layers
+            <= num_fixed_layers
         ):
             raise ValueError(
                 f"Number of fixed layers ({num_fixed_layers}) >= number "
@@ -80,7 +80,7 @@ class TextToImageCLIPModel(EmbeddingsModelInterface):
     def fix_item_model(self, num_fixed_layers: int):
         if (
             len(self.vision_model._modules["0"].encoder.layers)
-            >= num_fixed_layers
+            <= num_fixed_layers
         ):
             raise ValueError(
                 f"Number of fixed layers ({num_fixed_layers}) >= number "

@@ -109,7 +109,7 @@ class FeaturesExtractor(pl.LightningModule):
 
         if (
             not isinstance(min_abs_difference_threshold, float)
-            or min_abs_difference_threshold <= 0.0
+            or min_abs_difference_threshold < 0.0
         ):
             raise ValueError(
                 "min_abs_difference_threshold should be positive numeric"
@@ -125,7 +125,7 @@ class FeaturesExtractor(pl.LightningModule):
         self.max_abs_difference_threshold = max_abs_difference_threshold
         self.confidence_calculator = confidence_calculator
 
-        if len(exmaples_order) == 0:
+        if not exmaples_order:
             exmaples_order = [ExamplesType.all_examples]
             logger.debug("All types of examples will be used in training")
 
@@ -268,7 +268,7 @@ class FeaturesExtractor(pl.LightningModule):
 
             features.negative_distances = negative_ranks_
 
-        target_value: int = 1 if self.is_similarty else -1
+        target_value: int = 1 if self.is_similarity else -1
         features.target = target_value * torch.ones(
             features.negative_confidences.shape[0]
         ).to(self.device)

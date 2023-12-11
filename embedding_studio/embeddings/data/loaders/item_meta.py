@@ -13,5 +13,5 @@ class ItemMeta(BaseModel):
         raise NotImplemented()
 
     def __hash__(self) -> int:
-        # Provide a default hash implementation
+        # Provide a default_params hash implementation
         return hash(self.id)

@@ -17,7 +17,7 @@ class ClickstreamSession(BaseModel):
     :type ranks: Dict[str, float]
     :param event_types: type of results
     :type event_types: Optional[List[float]]
-    :param timestamp: when session was initialized
+    :param timestamp: when srddion was initialized
     :type timestamp:  Optional[int]
     """
 

@@ -38,7 +38,7 @@ class DistanceShift(MetricCalculator):
 
         # for similarity ranks should be higher for results of not irrelevant sessions,
         # for distances should be vice versa
-        target: int = 1 if extractor.is_similarty else -1
+        target: int = 1 if extractor.is_similarity else -1
         compare = lambda prev, new: target * float(new - prev)
         results: List[str] = session.events
         if session.is_irrelevant:

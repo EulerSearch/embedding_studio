@@ -1,5 +1,4 @@
 import logging
-import traceback
 from typing import Optional
 
 import torch
@@ -69,67 +68,91 @@ def fine_tune_embedding_model_one_param(
         logger.warning("No CUDA is available, use CPU device")
 
     # Start run
-    tracker.set_run(fine_tuning_params)
-
-    # Init train / test clickstream data loaders
-    train_dataloader: DataLoader = DataLoader(
-        ranking_data.clickstream["train"],
-        batch_size=settings.batch_size,
-        collate_fn=CustomDataCollator(),
-        shuffle=True,
-    )
-    test_dataloader: DataLoader = DataLoader(
-        ranking_data.clickstream["test"],
-        batch_size=1,
-        collate_fn=CustomDataCollator(),
-        shuffle=False,
-    )
-
-    logger.info("Init embeddings fine-tuner")
-    fine_tuner: EmbeddingsFineTuner = EmbeddingsFineTuner.create(
-        initial_model,
-        settings,
-        ranking_data.items,
-        query_retriever,
-        fine_tuning_params,
-        tracker,
-    )
-    fine_tuner.to(device)
-
-    # If val loss is not changing - stop training
-    early_stop_callback: EarlyStopping = EarlyStopping(
-        monitor="val_loss", patience=3, strict=False, verbose=False, mode="min"
-    )
-
-    logger.info("Start fine-tuning")
-    # Start fine-tuning
-    trainer: Trainer = Trainer(
-        max_epochs=settings.num_epochs,
-        callbacks=[early_stop_callback],
-        val_check_interval=settings.test_each_n_sessions
-        if settings.test_each_n_sessions > 0
-        else len(train_dataloader),
-    )
-    trainer.fit(fine_tuner, train_dataloader, test_dataloader)
-
-    # Move model back to CPU
-    fine_tuner.cpu()
-
-    # Unfix layers
-    initial_model.unfix_item_model()
-    initial_model.unfix_query_model()
-
-    # Read current embedding quality
-    quality: Optional[float] = tracker.get_quality()
-    logger.info(f"Save model (best only, current quality: {quality})")
-    try:
-        # Save model, best only
-        tracker.save_model(initial_model, True)
-        logger.info("Saving is finished")
-    except Exception as e:
-        logger.exception(
-            f"Unable to save a model: {str(e)}\nTraceback:\t{traceback.format_exc()}"
+    is_finished = tracker.set_run(fine_tuning_params)
+    start_fine_tuning = True
+    quality = None
+    if is_finished:
+        logger.warning(
+            f"Run with params {str(fine_tuning_params)} is finished."
         )
+        # Read current embedding quality
+        quality: Optional[float] = tracker.get_quality()
+        _, best_quality = tracker.get_best_quality()
+        if quality is not None and best_quality is not None:
+            if quality < best_quality:
+                start_fine_tuning = False
+                logger.info(
+                    f"Do not retry: Run with params {str(fine_tuning_params)} has not the best quality: {quality} < {best_quality}."
+                )
+
+            elif tracker.model_is_uploaded():
+                start_fine_tuning = False
+                logger.info(
+                    f"Do not retry Run with params {str(fine_tuning_params)} has already had a model being uploaded."
+                )
+
+    if start_fine_tuning:
+        # Init train / test clickstream data loaders
+        train_dataloader: DataLoader = DataLoader(
+            ranking_data.clickstream["train"],
+            batch_size=settings.batch_size,
+            collate_fn=CustomDataCollator(),
+            shuffle=True,
+        )
+        test_dataloader: DataLoader = DataLoader(
+            ranking_data.clickstream["test"],
+            batch_size=1,
+            collate_fn=CustomDataCollator(),
+            shuffle=False,
+        )
+
+        logger.info("Init embeddings fine-tuner")
+        fine_tuner: EmbeddingsFineTuner = EmbeddingsFineTuner.create(
+            initial_model,
+            settings,
+            ranking_data.items,
+            query_retriever,
+            fine_tuning_params,
+            tracker,
+        )
+        fine_tuner.to(device)
+
+        # If val loss is not changing - stop training
+        early_stop_callback: EarlyStopping = EarlyStopping(
+            monitor="val_loss",
+            patience=3,
+            strict=False,
+            verbose=False,
+            mode="min",
+        )
+
+        logger.info("Start fine-tuning")
+        # Start fine-tuning
+        trainer: Trainer = Trainer(
+            max_epochs=settings.num_epochs,
+            callbacks=[early_stop_callback],
+            val_check_interval=settings.test_each_n_sessions
+            if settings.test_each_n_sessions > 0
+            else len(train_dataloader),
+        )
+        trainer.fit(fine_tuner, train_dataloader, test_dataloader)
+
+        # Move model back to CPU
+        fine_tuner.cpu()
+
+        # Unfix layers
+        initial_model.unfix_item_model()
+        initial_model.unfix_query_model()
+
+        # Read current embedding quality
+        quality: Optional[float] = tracker.get_quality()
+        logger.info(f"Save model (best only, current quality: {quality})")
+        try:
+            # Save model, best only
+            tracker.save_model(initial_model, True)
+            logger.info("Saving is finished")
+        except Exception as e:
+            logger.exception(f"Unable to save a model: {str(e)}")
 
     tracker.finish_run()
 

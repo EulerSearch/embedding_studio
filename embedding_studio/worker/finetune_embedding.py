@@ -18,11 +18,11 @@ from embedding_studio.embeddings.models.interface import (
 from embedding_studio.worker.experiments.experiments_tracker import (
     ExperimentsManager,
 )
+from embedding_studio.worker.experiments.finetuning_iteration import (
+    FineTuningIteration,
+)
 from embedding_studio.worker.experiments.finetuning_params import (
     FineTuningParams,
-)
-from embedding_studio.worker.experiments.finetuning_session import (
-    FineTuningSession,
 )
 from embedding_studio.worker.experiments.finetuning_settings import (
     FineTuningSettings,
@@ -77,14 +77,15 @@ def _finetune_embedding_model_one_step_hyperopt(
             tracker,
         )
     except Exception as e:
-        logger.error(f"Failed hyperopt run with exception: {str(e)}")
-        logger.debug(f"Traceback:\t{traceback.format_exc()}")
+        logger.error(
+            f"Failed hyperopt run with exception: {str(e)}\nTraceback:\t{traceback.format_exc()}"
+        )
 
     return quality if tracker.is_loss else -1 * quality
 
 
 def finetune_embedding_model(
-    session: FineTuningSession,
+    iteration: FineTuningIteration,
     settings: FineTuningSettings,
     ranking_data: RankingData,
     query_retriever: QueryRetriever,
@@ -92,18 +93,16 @@ def finetune_embedding_model(
     initial_params: Dict[str, List[Any]],
     initial_max_evals: int = 100,
 ):
-    """Start embedding fine-tuning session.
+    """Start embedding fine-tuning iteration.
 
-    :param session: fine-tuning session info
-    :type FineTuningSession
+    :param iteration: fine-tuning iteration info
+    :type FineTuningIteration
     :param settings: fine-tuning settings
     :type settings: FineTuningSettings
     :param ranking_data: dataset with clickstream and items
     :type ranking_data: RankingData
     :param query_retriever: object to get item related to query, that can be used in "forward"
     :type query_retriever: QueryRetriever
-    :param fine_tuning_params: hyper params of fine-tuning task
-    :type fine_tuning_params: FineTuningParams
     :param tracker: experiment management object
     :type tracker: ExperimentsManager
     :param initial_params: initial huperparams
@@ -112,15 +111,16 @@ def finetune_embedding_model(
     :type initial_max_evals: int
     :return:
     """
-    logger.info("Start fine-tuning session")
     if not isinstance(initial_max_evals, int) or initial_max_evals <= 0:
         raise ValueError("initial_max_evals should be a positive integer")
 
     if len(initial_params) == 0:
         raise ValueError("initial_params should not be empty")
 
+    tracker.set_iteration(iteration)
+    logger.info("Start fine-tuning iteration")
+
     best_params: Optional[List[FineTuningParams]] = tracker.get_top_params()
-    tracker.set_session(session)
     with tempfile.TemporaryDirectory() as tmpdirname:
         initial_model_path: str = os.path.join(tmpdirname, "initial_model.pth")
         try:
@@ -156,12 +156,12 @@ def finetune_embedding_model(
                     algo=tpe.suggest,
                     max_evals=initial_max_evals,
                     trials=trials,
-                    verbose=1,
+                    verbose=0,
                 )
 
             else:
                 logger.info(
-                    f"Use {len(best_params)} best parameters from the previous fine-tuning session"
+                    f"Use {len(best_params)} best parameters from the previous fine-tuning iteration"
                 )
                 failed_runs_count = 0
                 for index, finetuning_params in enumerate(best_params):
@@ -187,12 +187,15 @@ def finetune_embedding_model(
                 if failed_runs_count == len(best_params):
                     logger.error(f"Something went wrong, all runs were failed")
 
+                else:
+                    tracker.delete_previous_iteration()
+
         except Exception as e:
             logger.exception(
-                f"Session is failed due to exception: {str(e)}\nTraceback:\t{traceback.format_exc()}"
+                f"Iteration is failed due to exception: {str(e)}\nTraceback:\t{traceback.format_exc()}"
             )
 
         if os.path.exists(initial_model_path):
             os.remove(initial_model_path)
 
-    tracker.finish_session()
+    tracker.finish_iteration()

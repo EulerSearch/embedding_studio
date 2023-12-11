@@ -55,6 +55,20 @@ torchdata = "0.6.0"
 torchmetrics = "1.2.0"
 transformers = "4.33.0"
 
+[tool.poetry.group.minio-backend.dependencies]
+minio = "7.2.0"
+
+[tool.poetry.group.google-backend.dependencies]
+google-api-core = "1.34.0"
+google-api-python-client = "1.8.0"
+
+[tool.poetry.group.databricks-backend.dependencies]
+databricks-cli = "0.18.0"
+
+[tool.poetry.group.azure-backend.dependencies]
+azure-core = "1.29.5"
+azure-storage-blob = "12.19.0"
+
 [[tool.poetry.source]]
 name = "pytorch"
 url = "https://download.pytorch.org/whl/cu117"

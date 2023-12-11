@@ -86,7 +86,6 @@ class SessionFeatures:
     def positive_ranks(self, value: Optional[FloatTensor]):
         self._positive_ranks = value
         self._check_types()
-        self._check_lengths()
 
     @property
     def negative_ranks(self) -> Optional[FloatTensor]:
@@ -96,7 +95,6 @@ class SessionFeatures:
     def negative_ranks(self, value: Optional[FloatTensor]):
         self._negative_ranks = value
         self._check_types()
-        self._check_lengths()
 
     @property
     def target(self) -> Optional[Tensor]:
@@ -106,7 +104,6 @@ class SessionFeatures:
     def target(self, value: Optional[Tensor]):
         self._target = value
         self._check_types()
-        self._check_lengths()
 
     @property
     def positive_confidences(self) -> Optional[FloatTensor]:
@@ -116,7 +113,6 @@ class SessionFeatures:
     def positive_confidences(self, value: Optional[FloatTensor]):
         self._positive_confidences = value
         self._check_types()
-        self._check_lengths()
 
     @property
     def negative_confidences(self) -> Optional[FloatTensor]:
@@ -126,7 +122,6 @@ class SessionFeatures:
     def negative_confidences(self, value: Optional[FloatTensor]):
         self._negative_confidences = value
         self._check_types()
-        self._check_lengths()
 
     def _accumulate(self_var: Tensor, other_var: Tensor):
         if self_var is not None and other_var is not None:

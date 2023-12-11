@@ -71,7 +71,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
 
         :param model: embedding model itself
         :type model: EmbeddingsModelInterface
-        :param items_storages:  items storage related to a given session, as a datasetdict with train and test keys
+        :param items_storages:  items storage related to a given iteration, as a datasetdict with train and test keys
         :type items_storages: DatasetDict
         :param query_retriever: object to get item related to query, that can be used in "forward"
         :type query_retriever: QueryRetriever
@@ -82,7 +82,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
         :param tracker: experiment management object
         :type tracker: ExperimentsManager
         :param metric_calculators: list of trackable metrics calculators (default: None)
-                                   by default only DistanceShift metric
+                                   by default_params only DistanceShift metric
         :type metric_calculators: Optional[List[MetricCalculator]]
         :param ranker: ranking function (query, items) -> ranks (defult: cosine similarity)
         :type ranker: Callable[[FloatTensor, FloatTensor], FloatTensor]
@@ -142,7 +142,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
         self.items_storages = items_storages
         self.query_retriever = query_retriever
 
-        if len(metric_calculators) == 0:
+        if not metric_calculators:
             logger.debug(
                 "metric_calculators list is empty - DistanceShift metric will be used by default."
             )
@@ -346,7 +346,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
         :type model: EmbeddingsModelInterface
         :param settings: fine-tuning settings
         :type settings: FineTuningSettings
-        :param items_storages:  items storage related to a given session, as a datasetdict with train and test keys
+        :param items_storages:  items storage related to a given iteration, as a datasetdict with train and test keys
         :type items_storages: DatasetDict
         :param query_retriever: object to get item related to query, that can be used in "forward"
         :type query_retriever: QueryRetriever
