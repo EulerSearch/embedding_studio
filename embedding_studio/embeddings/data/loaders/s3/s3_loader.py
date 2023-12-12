@@ -9,7 +9,7 @@ from datasets import Dataset
 from PIL import Image
 from pydantic import BaseModel
 
-from embedding_studio.core.config import Settings
+from embedding_studio.core.config import settings
 from embedding_studio.embeddings.data.loaders.data_loader import DataLoader
 from embedding_studio.embeddings.data.loaders.s3.exceptions.failed_to_load_anything_from_s3 import (
     FailedToLoadAnythingFromAWSS3,
@@ -72,18 +72,18 @@ class AWSS3DataLoader(DataLoader):
     @staticmethod
     def _get_default_retry_config() -> RetryConfig:
         default_retry_params = RetryParams(
-            max_attempts=Settings.DEFAULT_MAX_ATTEMPTS,
-            wait_time_seconds=Settings.DEFAULT_WAIT_TIME_SECONDS,
+            max_attempts=settings.DEFAULT_MAX_ATTEMPTS,
+            wait_time_seconds=settings.DEFAULT_WAIT_TIME_SECONDS,
         )
 
         config = RetryConfig(default_params=default_retry_params)
         config["credentials"] = RetryParams(
-            max_attempts=Settings.S3_READ_CREDENTIALS_ATTEMPTS,
-            wait_time_seconds=Settings.S3_READ_WAIT_TIME_SECONDS,
+            max_attempts=settings.S3_READ_CREDENTIALS_ATTEMPTS,
+            wait_time_seconds=settings.S3_READ_WAIT_TIME_SECONDS,
         )
         config["download_data"] = RetryParams(
-            max_attempts=Settings.S3_DOWNLOAD_DATA_ATTEMPTS,
-            wait_time_seconds=Settings.S3_DOWNLOAD_DATA_WAIT_TIME_SECONDS,
+            max_attempts=settings.S3_DOWNLOAD_DATA_ATTEMPTS,
+            wait_time_seconds=settings.S3_DOWNLOAD_DATA_WAIT_TIME_SECONDS,
         )
         return config
 

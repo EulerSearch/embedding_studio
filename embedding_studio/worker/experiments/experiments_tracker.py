@@ -10,7 +10,7 @@ import pandas as pd
 from mlflow.entities import Experiment
 from mlflow.exceptions import RestException
 
-from embedding_studio.core.config import Settings
+from embedding_studio.core.config import settings
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
@@ -145,58 +145,58 @@ class ExperimentsManager:
     @staticmethod
     def _get_default_retry_config() -> RetryConfig:
         default_retry_params = RetryParams(
-            max_attempts=Settings.DEFAULT_MAX_ATTEMPTS,
-            wait_time_seconds=Settings.DEFAULT_WAIT_TIME_SECONDS,
+            max_attempts=settings.DEFAULT_MAX_ATTEMPTS,
+            wait_time_seconds=settings.DEFAULT_WAIT_TIME_SECONDS,
         )
 
         config = RetryConfig(default_params=default_retry_params)
         config["log_metric"] = RetryParams(
-            max_attempts=Settings.MLFLOW_LOG_METRIC_ATTEMPTS,
-            wait_time_seconds=Settings.MLFLOW_LOG_METRIC_WAIT_TIME_SECONDS,
+            max_attempts=settings.MLFLOW_LOG_METRIC_ATTEMPTS,
+            wait_time_seconds=settings.MLFLOW_LOG_METRIC_WAIT_TIME_SECONDS,
         )
         config["log_param"] = RetryParams(
-            max_attempts=Settings.MLFLOW_LOG_PARAM_ATTEMPTS,
-            wait_time_seconds=Settings.MLFLOW_LOG_PARAM_WAIT_TIME_SECONDS,
+            max_attempts=settings.MLFLOW_LOG_PARAM_ATTEMPTS,
+            wait_time_seconds=settings.MLFLOW_LOG_PARAM_WAIT_TIME_SECONDS,
         )
         config["log_model"] = RetryParams(
-            max_attempts=Settings.MLFLOW_LOG_MODEL_ATTEMPTS,
-            wait_time_seconds=Settings.MLFLOW_LOG_MODEL_WAIT_TIME_SECONDS,
+            max_attempts=settings.MLFLOW_LOG_MODEL_ATTEMPTS,
+            wait_time_seconds=settings.MLFLOW_LOG_MODEL_WAIT_TIME_SECONDS,
         )
         config["load_model"] = RetryParams(
-            max_attempts=Settings.MLFLOW_LOAD_MODEL_ATTEMPTS,
-            wait_time_seconds=Settings.MLFLOW_LOAD_MODEL_WAIT_TIME_SECONDS,
+            max_attempts=settings.MLFLOW_LOAD_MODEL_ATTEMPTS,
+            wait_time_seconds=settings.MLFLOW_LOAD_MODEL_WAIT_TIME_SECONDS,
         )
         config["delete_model"] = RetryParams(
-            max_attempts=Settings.MLFLOW_DELETE_MODEL_ATTEMPTS,
-            wait_time_seconds=Settings.MLFLOW_DELETE_MODEL_WAIT_TIME_SECONDS,
+            max_attempts=settings.MLFLOW_DELETE_MODEL_ATTEMPTS,
+            wait_time_seconds=settings.MLFLOW_DELETE_MODEL_WAIT_TIME_SECONDS,
         )
         config["search_runs"] = RetryParams(
-            max_attempts=Settings.MLFLOW_SEARCH_RUNS_ATTEMPTS,
-            wait_time_seconds=Settings.MLFLOW_SEARCH_RUNS_WAIT_TIME_SECONDS,
+            max_attempts=settings.MLFLOW_SEARCH_RUNS_ATTEMPTS,
+            wait_time_seconds=settings.MLFLOW_SEARCH_RUNS_WAIT_TIME_SECONDS,
         )
         config["end_run"] = RetryParams(
-            max_attempts=Settings.MLFLOW_END_RUN_ATTEMPTS,
-            wait_time_seconds=Settings.MLFLOW_END_RUN_WAIT_TIME_SECONDS,
+            max_attempts=settings.MLFLOW_END_RUN_ATTEMPTS,
+            wait_time_seconds=settings.MLFLOW_END_RUN_WAIT_TIME_SECONDS,
         )
         config["get_run"] = RetryParams(
-            max_attempts=Settings.MLFLOW_GET_RUN_ATTEMPTS,
-            wait_time_seconds=Settings.MLFLOW_GET_RUN_WAIT_TIME_SECONDS,
+            max_attempts=settings.MLFLOW_GET_RUN_ATTEMPTS,
+            wait_time_seconds=settings.MLFLOW_GET_RUN_WAIT_TIME_SECONDS,
         )
         config["search_experiments"] = RetryParams(
-            max_attempts=Settings.MLFLOW_SEARCH_EXPERIMENTS_ATTEMPTS,
-            wait_time_seconds=Settings.MLFLOW_SEARCH_EXPERIMENTS_WAIT_TIME_SECONDS,
+            max_attempts=settings.MLFLOW_SEARCH_EXPERIMENTS_ATTEMPTS,
+            wait_time_seconds=settings.MLFLOW_SEARCH_EXPERIMENTS_WAIT_TIME_SECONDS,
         )
         config["delete_experiment"] = RetryParams(
-            max_attempts=Settings.MLFLOW_DELETE_EXPERIMENT_ATTEMPTS,
-            wait_time_seconds=Settings.MLFLOW_DELETE_EXPERIMENT_WAIT_TIME_SECONDS,
+            max_attempts=settings.MLFLOW_DELETE_EXPERIMENT_ATTEMPTS,
+            wait_time_seconds=settings.MLFLOW_DELETE_EXPERIMENT_WAIT_TIME_SECONDS,
         )
         config["create_experiment"] = RetryParams(
-            max_attempts=Settings.MLFLOW_CREATE_EXPERIMENT_ATTEMPTS,
-            wait_time_seconds=Settings.MLFLOW_CREATE_EXPERIMENT_WAIT_TIME_SECONDS,
+            max_attempts=settings.MLFLOW_CREATE_EXPERIMENT_ATTEMPTS,
+            wait_time_seconds=settings.MLFLOW_CREATE_EXPERIMENT_WAIT_TIME_SECONDS,
         )
         config["get_experiment"] = RetryParams(
-            max_attempts=Settings.MLFLOW_GET_EXPERIMENT_ATTEMPTS,
-            wait_time_seconds=Settings.MLFLOW_GET_EXPERIMENT_WAIT_TIME_SECONDS,
+            max_attempts=settings.MLFLOW_GET_EXPERIMENT_ATTEMPTS,
+            wait_time_seconds=settings.MLFLOW_GET_EXPERIMENT_WAIT_TIME_SECONDS,
         )
 
         return config
