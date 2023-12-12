@@ -1,6 +1,6 @@
 import logging
 import random
-from typing import Callable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import pytorch_lightning as pl
 import torch
@@ -186,6 +186,38 @@ class FeaturesExtractor(pl.LightningModule):
         return positive_confidences.to(self.device), negative_confidences.to(
             self.device
         )
+
+    @torch.no_grad()
+    def calculate_ranks(self,
+                        session: ClickstreamSession,
+                        dataset: ItemsStorage,
+                        query_retriever: QueryRetriever
+    ) -> Dict[str, float]:
+        """Calculate ranks for a single session
+
+        :param session: given session
+        :type session: ClickstreamSession
+        :param dataset: items storage related to a given session
+        :type dataset: ItemsStorage
+        :param query_retriever: object to get item related to query, that can be used in "forward"
+        :type query_retriever: QueryRetriever
+        :return: provided session's results ranks
+        :rtype: Dict[str, float]
+        """
+        query_vector: FloatTensor = self.model.forward_query(
+            query_retriever(session.query)
+        )
+        items_vectors: FloatTensor = self.model.forward_items(
+            dataset.items_by_ids(session.results)
+        )
+        ranks_: FloatTensor = self.ranker(
+            query_vector, items_vectors
+        )
+        ranks = dict()
+        for id_, rank in zip(session.results, ranks_.cpu().tolist()):
+            ranks[id_] = rank
+
+        return ranks
 
     def _get_session_features(
         self,

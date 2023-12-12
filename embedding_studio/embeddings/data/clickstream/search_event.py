@@ -24,7 +24,7 @@ class DummyEventType(EventType):
 class SearchResult(BaseModel):
     item: ItemMeta
     is_click: bool
-    rank: float
+    rank: Optional[float] = None
     event_type: Optional[EventType] = None
     timestamp: Optional[int] = None
 

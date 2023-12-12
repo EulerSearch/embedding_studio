@@ -170,6 +170,21 @@ class EmbeddingsFineTuner(pl.LightningModule):
 
         self.automatic_optimization = False
 
+    def preprocess_sessions(self, clickstream_dataset: DatasetDict):
+        for key in clickstream_dataset.keys():
+            item_storage = self.items_storages[key]
+            logger.info(f"Calculate ranks for {key} not irrelevant clickstream sessions")
+            for session in clickstream_dataset[key].not_irrelevant:
+                unique_values = set(session.ranks.values())
+                if len(unique_values) == 0 or None in unique_values:
+                    session.ranks = self.features_extractor.calculate_ranks(session, item_storage, self.query_retriever)
+
+            logger.info(f"Calculate ranks for {key} irrelevant clickstream sessions")
+            for session in clickstream_dataset[key].irrelevant:
+                unique_values = set(session.ranks.values())
+                if len(unique_values) == 0 or None in unique_values:
+                    session.ranks = self.features_extractor.calculate_ranks(session, item_storage, self.query_retriever)
+
     # Standart LightningModule methods to be overrided to be used in PytorchLightning Trainer
     # 1. Configure optimizers and schedulers
     def configure_optimizers(

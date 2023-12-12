@@ -92,6 +92,18 @@ def fine_tune_embedding_model_one_param(
                 )
 
     if start_fine_tuning:
+        logger.info("Init embeddings fine-tuner")
+        fine_tuner: EmbeddingsFineTuner = EmbeddingsFineTuner.create(
+            initial_model,
+            settings,
+            ranking_data.items,
+            query_retriever,
+            fine_tuning_params,
+            tracker,
+        )
+        fine_tuner.to(device)
+        fine_tuner.preprocess_sessions(ranking_data.clickstream)
+
         # Init train / test clickstream data loaders
         train_dataloader: DataLoader = DataLoader(
             ranking_data.clickstream["train"],
@@ -105,17 +117,6 @@ def fine_tune_embedding_model_one_param(
             collate_fn=CustomDataCollator(),
             shuffle=False,
         )
-
-        logger.info("Init embeddings fine-tuner")
-        fine_tuner: EmbeddingsFineTuner = EmbeddingsFineTuner.create(
-            initial_model,
-            settings,
-            ranking_data.items,
-            query_retriever,
-            fine_tuning_params,
-            tracker,
-        )
-        fine_tuner.to(device)
 
         # If val loss is not changing - stop training
         early_stop_callback: EarlyStopping = EarlyStopping(

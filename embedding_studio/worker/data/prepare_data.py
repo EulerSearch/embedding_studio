@@ -18,6 +18,7 @@ from embedding_studio.embeddings.data.clickstream.session import (
 from embedding_studio.embeddings.data.clickstream.splitter import (
     ClickstreamSessionsSplitter,
 )
+from embedding_studio.embeddings.features.extractor import FeaturesExtractor
 from embedding_studio.embeddings.data.loaders.data_loader import DataLoader
 from embedding_studio.embeddings.data.loaders.item_meta import ItemMeta
 from embedding_studio.embeddings.data.ranking_data import RankingData
@@ -34,7 +35,7 @@ def prepare_data(
     clickstream_splitter: ClickstreamSessionsSplitter,
     query_retriever: QueryRetriever,
     loader: DataLoader,
-    storage_producer: ItemStorageProducer,
+    storage_producer: ItemStorageProducer
 ) -> RankingData:
     """Prepare fine-tuning data.
 
@@ -60,6 +61,7 @@ def prepare_data(
     raw_clickstream_sessions: List[RawClickstreamSession] = [
         parser.parse(session) for session in clickstream_sessions
     ]
+
     clickstream_sessions: List[ClickstreamSession] = [
         r.get_session() for r in raw_clickstream_sessions
     ]
@@ -86,4 +88,5 @@ def prepare_data(
     dataset: DatasetDict = storage_producer(
         loader.load(files_to_load), clickstream_dataset
     )
+
     return RankingData(clickstream_dataset, dataset)

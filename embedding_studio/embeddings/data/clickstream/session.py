@@ -24,7 +24,7 @@ class ClickstreamSession(BaseModel):
     query: Any
     events: List[str]
     results: List[str]
-    ranks: Dict[str, float]
+    ranks: Dict[str, Optional[float]]
     event_types: Optional[List[float]] = None
     timestamp: Optional[int] = None
     not_events: Optional[List[str]] = None
