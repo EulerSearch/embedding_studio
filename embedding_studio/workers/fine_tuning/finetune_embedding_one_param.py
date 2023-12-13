@@ -16,13 +16,13 @@ from embedding_studio.embeddings.models.interface import (
 from embedding_studio.embeddings.training.embeddings_finetuner import (
     EmbeddingsFineTuner,
 )
-from embedding_studio.worker.experiments.experiments_tracker import (
+from embedding_studio.workers.fine_tuning.experiments.experiments_tracker import (
     ExperimentsManager,
 )
-from embedding_studio.worker.experiments.finetuning_params import (
+from embedding_studio.workers.fine_tuning.experiments.finetuning_params import (
     FineTuningParams,
 )
-from embedding_studio.worker.experiments.finetuning_settings import (
+from embedding_studio.workers.fine_tuning.experiments.finetuning_settings import (
     FineTuningSettings,
 )
 
@@ -101,7 +101,9 @@ def fine_tune_embedding_model_one_param(
             fine_tuning_params,
             tracker,
         )
+        logger.info("Trying to move to the device...")
         fine_tuner.to(device)
+        logger.info("Trying to move to the device... OK")
         fine_tuner.preprocess_sessions(ranking_data.clickstream)
 
         # Init train / test clickstream data loaders

@@ -50,5 +50,5 @@ class SearchResult(BaseModel):
             is_click=data["is_click"],
             rank=data["rank"],
             event_type=event_instance,
-            timestamp=data.get("timestamp"),
+            timestamp=int(data.get("timestamp")),
         )

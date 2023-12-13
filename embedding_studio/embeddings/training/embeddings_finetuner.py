@@ -34,16 +34,18 @@ from embedding_studio.embeddings.metrics.metric import MetricCalculator
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
-from embedding_studio.worker.experiments.experiments_tracker import (
+from embedding_studio.workers.fine_tuning.experiments.experiments_tracker import (
     ExperimentsManager,
 )
-from embedding_studio.worker.experiments.finetuning_params import (
+from embedding_studio.workers.fine_tuning.experiments.finetuning_params import (
     FineTuningParams,
 )
-from embedding_studio.worker.experiments.finetuning_settings import (
+from embedding_studio.workers.fine_tuning.experiments.finetuning_settings import (
     FineTuningSettings,
 )
-from embedding_studio.worker.experiments.metrics_accumulator import MetricValue
+from embedding_studio.workers.fine_tuning.experiments.metrics_accumulator import (
+    MetricValue,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -173,17 +175,25 @@ class EmbeddingsFineTuner(pl.LightningModule):
     def preprocess_sessions(self, clickstream_dataset: DatasetDict):
         for key in clickstream_dataset.keys():
             item_storage = self.items_storages[key]
-            logger.info(f"Calculate ranks for {key} not irrelevant clickstream sessions")
+            logger.info(
+                f"Calculate ranks for {key} not irrelevant clickstream sessions"
+            )
             for session in clickstream_dataset[key].not_irrelevant:
                 unique_values = set(session.ranks.values())
                 if len(unique_values) == 0 or None in unique_values:
-                    session.ranks = self.features_extractor.calculate_ranks(session, item_storage, self.query_retriever)
+                    session.ranks = self.features_extractor.calculate_ranks(
+                        session, item_storage, self.query_retriever
+                    )
 
-            logger.info(f"Calculate ranks for {key} irrelevant clickstream sessions")
+            logger.info(
+                f"Calculate ranks for {key} irrelevant clickstream sessions"
+            )
             for session in clickstream_dataset[key].irrelevant:
                 unique_values = set(session.ranks.values())
                 if len(unique_values) == 0 or None in unique_values:
-                    session.ranks = self.features_extractor.calculate_ranks(session, item_storage, self.query_retriever)
+                    session.ranks = self.features_extractor.calculate_ranks(
+                        session, item_storage, self.query_retriever
+                    )
 
     # Standart LightningModule methods to be overrided to be used in PytorchLightning Trainer
     # 1. Configure optimizers and schedulers

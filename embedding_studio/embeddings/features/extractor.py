@@ -1,6 +1,6 @@
 import logging
 import random
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import pytorch_lightning as pl
 import torch
@@ -22,7 +22,9 @@ from embedding_studio.embeddings.features.session_features import (
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
-from embedding_studio.worker.experiments.finetuning_params import ExamplesType
+from embedding_studio.workers.fine_tuning.experiments.finetuning_params import (
+    ExamplesType,
+)
 
 COSINE_SIMILARITY = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
 
@@ -188,10 +190,11 @@ class FeaturesExtractor(pl.LightningModule):
         )
 
     @torch.no_grad()
-    def calculate_ranks(self,
-                        session: ClickstreamSession,
-                        dataset: ItemsStorage,
-                        query_retriever: QueryRetriever
+    def calculate_ranks(
+        self,
+        session: ClickstreamSession,
+        dataset: ItemsStorage,
+        query_retriever: QueryRetriever,
     ) -> Dict[str, float]:
         """Calculate ranks for a single session
 
@@ -210,9 +213,7 @@ class FeaturesExtractor(pl.LightningModule):
         items_vectors: FloatTensor = self.model.forward_items(
             dataset.items_by_ids(session.results)
         )
-        ranks_: FloatTensor = self.ranker(
-            query_vector, items_vectors
-        )
+        ranks_: FloatTensor = self.ranker(query_vector, items_vectors)
         ranks = dict()
         for id_, rank in zip(session.results, ranks_.cpu().tolist()):
             ranks[id_] = rank
@@ -297,7 +298,6 @@ class FeaturesExtractor(pl.LightningModule):
             ]
 
         else:
-
             features.negative_distances = negative_ranks_
 
         target_value: int = 1 if self.is_similarity else -1

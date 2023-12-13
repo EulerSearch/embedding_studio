@@ -14,32 +14,35 @@ from embedding_studio.core.config import settings
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
-from embedding_studio.worker.experiments.finetuning_iteration import (
+from embedding_studio.workers.fine_tuning.experiments.finetuning_iteration import (
     EXPERIMENT_PREFIX,
     FineTuningIteration,
 )
-from embedding_studio.worker.experiments.finetuning_params import (
+from embedding_studio.workers.fine_tuning.experiments.finetuning_params import (
     FineTuningParams,
 )
-from embedding_studio.worker.experiments.metrics_accumulator import (
+from embedding_studio.workers.fine_tuning.experiments.metrics_accumulator import (
     MetricsAccumulator,
     MetricValue,
 )
-from embedding_studio.worker.mlflow.utils import (
+from embedding_studio.workers.fine_tuning.mlflow.utils import (
     get_experiment_id_by_name,
     get_run_id_by_name,
 )
-from embedding_studio.worker.utils.config import RetryConfig, RetryParams
-from embedding_studio.worker.utils.exceptions import (
+from embedding_studio.workers.fine_tuning.utils.config import (
+    RetryConfig,
+    RetryParams,
+)
+from embedding_studio.workers.fine_tuning.utils.exceptions import (
     MaxAttemptsReachedException,
 )
-from embedding_studio.worker.utils.retry import retry_method
+from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 
 INITIAL_EXPERIMENT_NAME: str = f"{EXPERIMENT_PREFIX} / initial"
 INITIAL_RUN_NAME: str = "initial_model"
 DEFAULT_TIMEOUT: int = 120000
 
-# MLFlow upload models using urllib3, if model is heavy enough provided default_params timeout is not enough
+# MLFlow upload models using urllib3, if model is heavy enough provided default timeout is not enough
 # That's why increase it here. TODO: check from time to time whether this issue is resolved by MLFlow
 setdefaulttimeout(DEFAULT_TIMEOUT)
 logger = logging.getLogger(__name__)

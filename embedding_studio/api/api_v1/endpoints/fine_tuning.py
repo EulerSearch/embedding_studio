@@ -8,7 +8,7 @@ from embedding_studio.schemas.fine_tuning import (
     FineTuningTaskCreate,
     FineTuningTaskInDb,
 )
-from embedding_studio.workers.fine_tuning import fine_tuning_worker
+from embedding_studio.workers.fine_tuning.worker import fine_tuning_worker
 
 logger = logging.getLogger(__name__)
 

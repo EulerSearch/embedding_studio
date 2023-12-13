@@ -1,6 +1,6 @@
 import os
 import secrets
-from typing import Any, List
+from typing import List
 
 from pydantic import AnyHttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -42,9 +42,22 @@ class Settings(BaseSettings):
     )
     S3_BUCKET: str = os.getenv("S3_BUCKET", "embeddingstudio_bucket")
 
+    # Plugins
+    ES_PLUGINS_PATH: str = os.getenv("ES_PLUGINS_PATH", "plugins")
+
+    # Fine-tuning worker
+    FINE_TUNING_WORKER_MAX_RETRIES: int = os.getenv(
+        "FINE_TUNING_WORKER_MAX_RETRIES", 3
+    )
+    FINE_TUNING_WORKER_TIME_LIMIT: int = os.getenv(
+        "FINE_TUNING_WORKER_TIME_LIMIT", 18000000
+    )
+
     # Retry strategy
     DEFAULT_MAX_ATTEMPTS: int = os.getenv("DEFAULT_MAX_ATTEMPTS", 3)
-    DEFAULT_WAIT_TIME_SECONDS: float = os.getenv("DEFAULT_WAIT_TIME_SECONDS", 3.0)
+    DEFAULT_WAIT_TIME_SECONDS: float = os.getenv(
+        "DEFAULT_WAIT_TIME_SECONDS", 3.0
+    )
 
     # S3
     S3_READ_CREDENTIALS_ATTEMPTS: int = os.getenv(

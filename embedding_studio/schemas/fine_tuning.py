@@ -17,6 +17,7 @@ class FineTuningStatus(str, enum.Enum):
 
 
 class FineTuningTask(BaseModel):
+    fine_tuning_method: str = Field(...)
     status: FineTuningStatus = Field(default=FineTuningStatus.pending)
     start_at: datetime = Field(...)
     end_at: datetime = Field(...)
@@ -30,6 +31,7 @@ class FineTuningTaskInDb(FineTuningTask):
 
 
 class FineTuningTaskCreate(FineTuningTask):
+    fine_tuning_method: str
     start_at: datetime
     end_at: datetime
     metadata: Optional[Dict] = None

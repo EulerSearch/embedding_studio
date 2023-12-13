@@ -37,7 +37,6 @@ class DatasetFieldsNormalizer:
             else str(id_value)
         )
         for key in dataset.keys():
-
             if (
                 DatasetFieldsNormalizer.ID_FIELD_NAME
                 not in dataset.column_names[key]

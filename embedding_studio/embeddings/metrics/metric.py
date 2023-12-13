@@ -11,7 +11,9 @@ from embedding_studio.embeddings.data.clickstream.raw_session import (
 )
 from embedding_studio.embeddings.data.storages.storage import ItemsStorage
 from embedding_studio.embeddings.features.extractor import FeaturesExtractor
-from embedding_studio.worker.experiments.metrics_accumulator import MetricValue
+from embedding_studio.workers.fine_tuning.experiments.metrics_accumulator import (
+    MetricValue,
+)
 
 
 class MetricCalculator(ABC):

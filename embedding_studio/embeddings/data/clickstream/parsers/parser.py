@@ -20,7 +20,6 @@ class ClickstreamParser(object):
         self.event_type = event_type
 
     def parse(self, session_data: Dict) -> RawClickstreamSession:
-
         return RawClickstreamSession.from_dict(
             session_data,
             self.query_item_type,

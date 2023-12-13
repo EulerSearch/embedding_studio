@@ -15,8 +15,11 @@ from embedding_studio.embeddings.data.loaders.s3.exceptions.failed_to_load_anyth
     FailedToLoadAnythingFromAWSS3,
 )
 from embedding_studio.embeddings.data.loaders.s3.item_meta import S3FileMeta
-from embedding_studio.worker.utils.config import RetryConfig, RetryParams
-from embedding_studio.worker.utils.retry import retry_method
+from embedding_studio.workers.fine_tuning.utils.config import (
+    RetryConfig,
+    RetryParams,
+)
+from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 
 logger = logging.getLogger(__name__)
 

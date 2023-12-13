@@ -52,7 +52,7 @@ class RawClickstreamSession(BaseModel):
                 search_result_type.from_dict(i, item_type, event_type)
                 for i in data["results"]
             ],
-            timestamp=data.get("timestamp"),
+            timestamp=int(data.get("timestamp")),
         )
 
     def get_session(self) -> ClickstreamSession:

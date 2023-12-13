@@ -3,7 +3,7 @@ import time
 
 from requests.exceptions import ConnectionError, RequestException, Timeout
 
-from embedding_studio.worker.utils.exceptions import (
+from embedding_studio.workers.fine_tuning.utils.exceptions import (
     MaxAttemptsReachedException,
 )
 

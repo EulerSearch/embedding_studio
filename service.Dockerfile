@@ -10,7 +10,7 @@ RUN pip install poetry
 # Copy the pyproject.toml and poetry.lock files to the /tmp directory.
 COPY ./pyproject.toml ./poetry.lock* /tmp/
 
-# Generate the _requirements.txt file.
+# Generate the requirements.txt file.
 RUN poetry export --without ml,dev -f requirements.txt --output requirements.txt --without-hashes
 
 # This is the final stage, anything here will be preserved in the final container image.
@@ -19,10 +19,10 @@ FROM python:3.9
 # Set the working directory
 WORKDIR /embedding_studio
 
-# Copy the _requirements.txt file to the /embedding_studio directory.
+# Copy the requirements.txt file to the /embedding_studio directory.
 COPY --from=requirements-stage /tmp/requirements.txt /embedding_studio/requirements.txt
 
-# Install the package dependencies in the _requirements file.
+# Install the package dependencies in the requirements file.
 RUN pip install --no-cache-dir --upgrade -r /embedding_studio/requirements.txt
 
 # Copy the application directory inside the /code directory.

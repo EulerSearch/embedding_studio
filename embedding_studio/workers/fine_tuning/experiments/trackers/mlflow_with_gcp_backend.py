@@ -6,14 +6,14 @@ from google.api_core.exceptions import GoogleAPIError, NotFound
 from google.cloud import storage
 from pydantic import BaseModel
 
-from embedding_studio.worker.experiments.experiments_tracker import (
+from embedding_studio.workers.fine_tuning.experiments.experiments_tracker import (
     ExperimentsManager,
 )
-from embedding_studio.worker.experiments.metrics_accumulator import (
+from embedding_studio.workers.fine_tuning.experiments.metrics_accumulator import (
     MetricsAccumulator,
 )
-from embedding_studio.worker.utils.config import RetryConfig
-from embedding_studio.worker.utils.retry import retry_method
+from embedding_studio.workers.fine_tuning.utils.config import RetryConfig
+from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +108,5 @@ class ExperimentsManagerWithGCPBackend(ExperimentsManager):
             return True
 
         except NotFound as e:
-
             logger.exception(f"Error deleting model files from GCP: {e}")
             return False
