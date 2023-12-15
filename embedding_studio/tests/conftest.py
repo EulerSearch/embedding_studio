@@ -2,7 +2,7 @@ import pytest
 from dramatiq import Worker
 from fastapi.testclient import TestClient
 
-from embedding_studio.db.mongo import database
+from embedding_studio.db.mongo import finetuning_mongo_database
 from embedding_studio.db.redis import redis_broker
 from embedding_studio.main import app
 
@@ -27,4 +27,4 @@ def stub_worker():
 def client_fixture():
     client = TestClient(app=app)
     yield client
-    database["fine_tuning"].drop()
+    finetuning_mongo_database["fine_tuning"].drop()

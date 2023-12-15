@@ -42,7 +42,7 @@ def prepare_data(
     :type clickstream_sessions: List[Dict]
     :param parser: how to parse a clickstream session
     :type parser: ClickstreamParser
-    :param clickstream_splitter: how to split clicstream sessions
+    :param clickstream_splitter: how to split clickstream sessions
     :type clickstream_splitter: ClickstreamSessionsSplitter
     :param query_retriever: retrieve query item
     :type query_retriever: QueryRetriever

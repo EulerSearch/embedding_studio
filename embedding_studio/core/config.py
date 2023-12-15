@@ -6,6 +6,7 @@ from pydantic import AnyHttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+# noinspection SpellCheckingInspection
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8"
@@ -18,14 +19,42 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
 
     # MongoDB
-    MONGO_HOST: str = os.getenv("MONGO_HOST", "localhost")
-    MONGO_PORT: int = os.getenv("MONGO_PORT", 27017)
-    MONGO_DB_NAME: str = os.getenv("MONGO_DB_NAME", "emdegginstudio")
-    MONGO_USERNAME: str = os.getenv("MONGO_USERNAME", "root")
-    MONGO_PASSWORD: str = os.getenv("MONGO_PASSWORD", "mongopassword")
-    MONGO_URL: str = (
-        f"mongodb://{MONGO_USERNAME}:{MONGO_PASSWORD}@"
-        f"{MONGO_HOST}:{MONGO_PORT}"
+    FINETUNING_MONGO_HOST: str = os.getenv(
+        "FINETUNING_MONGO_HOST", "localhost"
+    )
+    FINETUNING_MONGO_PORT: int = os.getenv("FINETUNING_MONGO_PORT", 27017)
+    FINETUNING_MONGO_DB_NAME: str = os.getenv(
+        "FINETUNING_MONGO_DB_NAME", "embedding_studio"
+    )
+
+    FINETUNING_MONGO_USERNAME: str = os.getenv(
+        "FINETUNING_MONGO_USERNAME", "root"
+    )
+    FINETUNING_MONGO_PASSWORD: str = os.getenv(
+        "FINETUNING_MONGO_PASSWORD", "mongopassword"
+    )
+    FINETUNING_MONGO_URL: str = (
+        f"mongodb://{FINETUNING_MONGO_USERNAME}:{FINETUNING_MONGO_PASSWORD}@"
+        f"{FINETUNING_MONGO_HOST}:{FINETUNING_MONGO_PORT}"
+    )
+
+    CLICKSTREAM_MONGO_HOST: str = os.getenv(
+        "CLICKSTREAM_MONGO_HOST", "localhost"
+    )
+    CLICKSTREAM_MONGO_PORT: int = os.getenv("CLICKSTREAM_MONGO_PORT", 27017)
+    CLICKSTREAM_MONGO_DB_NAME: str = os.getenv(
+        "CLICKSTREAM_MONGO_DB_NAME", "embedding_studio"
+    )
+
+    CLICKSTREAM_MONGO_USERNAME: str = os.getenv(
+        "CLICKSTREAM_MONGO_USERNAME", "root"
+    )
+    CLICKSTREAM_MONGO_PASSWORD: str = os.getenv(
+        "CLICKSTREAM_MONGO_PASSWORD", "mongopassword"
+    )
+    CLICKSTREAM_MONGO_URL: str = (
+        f"mongodb://{CLICKSTREAM_MONGO_USERNAME}:{CLICKSTREAM_MONGO_PASSWORD}@"
+        f"{CLICKSTREAM_MONGO_HOST}:{CLICKSTREAM_MONGO_PORT}"
     )
 
     # Redis (broker for dramatiq)
@@ -158,6 +187,14 @@ class Settings(BaseSettings):
     )
     MLFLOW_GET_EXPERIMENT_WAIT_TIME_SECONDS: float = os.getenv(
         "MLFLOW_GET_EXPERIMENT_WAIT_TIME_SECONDS", DEFAULT_WAIT_TIME_SECONDS
+    )
+
+    # Clickstream
+    CLICKSTREAM_TIME_MAX_DELTA_MINUS_SEC: int = os.getenv(
+        "CLICKSTREAM_TIME_MAX_DELTA_MINUS_SEC", 12 * 60 * 60
+    )
+    CLICKSTREAM_TIME_MAX_DELTA_PLUS_SEC: int = os.getenv(
+        "CLICKSTREAM_TIME_MAX_DELTA_PLUS_SEC", 5 * 60
     )
 
 

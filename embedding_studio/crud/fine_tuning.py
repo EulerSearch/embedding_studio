@@ -14,5 +14,5 @@ class CRUDFineTuning(
 
 
 fine_tuning_task = CRUDFineTuning(
-    mongo.database["fine_tuning"], FineTuningTaskInDb
+    mongo.finetuning_mongo_database["fine_tuning"], FineTuningTaskInDb
 )
