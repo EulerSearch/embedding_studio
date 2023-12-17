@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Union
 
 from datasets import DatasetDict
 
@@ -24,12 +24,13 @@ from embedding_studio.embeddings.data.ranking_data import RankingData
 from embedding_studio.embeddings.data.storages.producer import (
     ItemStorageProducer,
 )
+from embedding_studio.models.clickstream.sessions import SessionWithEvents
 
 logger = logging.getLogger(__name__)
 
 
 def prepare_data(
-    clickstream_sessions: List[Dict],
+    clickstream_sessions: List[Union[Dict, SessionWithEvents]],
     parser: ClickstreamParser,
     clickstream_splitter: ClickstreamSessionsSplitter,
     query_retriever: QueryRetriever,
@@ -39,7 +40,7 @@ def prepare_data(
     """Prepare fine-tuning data.
 
     :param clickstream_sessions: clickstream sessions
-    :type clickstream_sessions: List[Dict]
+    :type clickstream_sessions: List[Union[Dict, SessionWithEvents]]
     :param parser: how to parse a clickstream session
     :type parser: ClickstreamParser
     :param clickstream_splitter: how to split clickstream sessions
@@ -58,7 +59,12 @@ def prepare_data(
 
     logger.info("Parse clickstream sessions data")
     raw_clickstream_sessions: List[RawClickstreamSession] = [
-        parser.parse(session) for session in clickstream_sessions
+        (
+            parser.parse(session)
+            if isinstance(session, dict)
+            else parser.parse_from_mongo(session)
+        )
+        for session in clickstream_sessions
     ]
 
     clickstream_sessions: List[ClickstreamSession] = [

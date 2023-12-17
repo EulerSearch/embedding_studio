@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Dict, Optional, Set
 
 from pydantic import BaseModel, validator
 
 from embedding_studio.embeddings.data.loaders.item_meta import ItemMeta
+from embedding_studio.models.clickstream.sessions import SearchResultItem
 
 
 class EventType(ABC, BaseModel):
@@ -38,7 +39,26 @@ class SearchResult(BaseModel):
         arbitrary_types_allowed = True
 
     @classmethod
-    def from_dict(cls, data: dict, item_type: type, event_type: type):
+    def from_mongo(
+        cls,
+        result: SearchResultItem,
+        event_ids: Set[str],
+        item_type: type,
+        event_type: type,
+    ) -> "SearchResult":
+        event_instance = DummyEventType(importance=1)
+
+        return cls(
+            item=item_type(**result.meta),
+            is_click=result.object_id in event_ids,
+            event_type=event_instance,
+            timestamp=None,
+        )
+
+    @classmethod
+    def from_dict(
+        cls, data: dict, item_type: type, event_type: type
+    ) -> "SearchResult":
         event_data: Optional[Dict] = data.get("event_type")
         event_instance = None
 

@@ -3,6 +3,7 @@ from typing import Dict
 from embedding_studio.embeddings.data.clickstream.raw_session import (
     RawClickstreamSession,
 )
+from embedding_studio.models.clickstream.sessions import SessionWithEvents
 
 
 class ClickstreamParser(object):
@@ -21,6 +22,18 @@ class ClickstreamParser(object):
 
     def parse(self, session_data: Dict) -> RawClickstreamSession:
         return RawClickstreamSession.from_dict(
+            session_data,
+            self.query_item_type,
+            self.search_result_type,
+            self.meta_type,
+            self.event_type,
+        )
+
+    # TODO: merge schemas
+    def parse_from_mongo(
+        self, session_data: SessionWithEvents
+    ) -> RawClickstreamSession:
+        return RawClickstreamSession.from_mongo(
             session_data,
             self.query_item_type,
             self.search_result_type,

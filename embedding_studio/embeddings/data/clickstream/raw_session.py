@@ -9,6 +9,7 @@ from embedding_studio.embeddings.data.clickstream.search_event import (
 from embedding_studio.embeddings.data.clickstream.session import (
     ClickstreamSession,
 )
+from embedding_studio.models.clickstream.sessions import SessionWithEvents
 
 
 class RawClickstreamSession(BaseModel):
@@ -36,6 +37,35 @@ class RawClickstreamSession(BaseModel):
 
     def __len__(self) -> int:
         return len(self.results)
+
+    # TODO: merge schemas
+    @classmethod
+    def from_mongo(
+        cls,
+        session: SessionWithEvents,
+        query_item_type: type,
+        search_result_type: type,
+        item_type: type,
+        event_type: type,
+    ) -> "RawClickstreamSession":
+        event_ids = set()
+        for result in session.events:
+            event_ids.add(result.object_id)
+
+        results = []
+        for result in session.search_results:
+            results.append(
+                search_result_type.from_mongo(
+                    result, event_ids, item_type, event_type
+                )
+            )
+
+        return cls(
+            query=query_item_type(text=session.search_query),
+            timestamp=session.created_at,
+            results=results,
+            is_irrelevant=session.is_irrelevant,
+        )
 
     @classmethod
     def from_dict(
