@@ -135,10 +135,13 @@ class MongoClickstreamDao(ClickstreamDao):
     def get_batch_sessions(
         self,
         batch_id: str,
-        after_number: int = 0,
-        limit: int = 10,
-        events_limit: int = 100,
+        after_number: Optional[int] = None,
+        limit: Optional[int] = None,
+        events_limit: Optional[int] = None,
     ) -> List[SessionWithEvents]:
+        after_number = after_number or 0
+        limit = limit or 0
+        events_limit = events_limit or 0
         sessions = self._session_dao.find(
             sort_args=[self._SESSION_NUMBER],
             filter={

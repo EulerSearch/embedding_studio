@@ -55,9 +55,9 @@ class ClickstreamDao(ABC):
     def get_batch_sessions(
         self,
         batch_id: str,
-        after_number: int = 0,
-        limit: int = 10,
-        events_limit: int = 100,
+        after_number: Optional[int] = None,
+        limit: Optional[int] = None,
+        events_limit: Optional[int] = None,
     ) -> List[SessionWithEvents]:
         """Get registered sessions with events by batch_id
 
