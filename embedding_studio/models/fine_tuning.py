@@ -1,11 +1,13 @@
 import enum
+import uuid
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from bson import ObjectId
 from pydantic import BaseModel, ConfigDict, Field
 
 from embedding_studio.db.common import PyObjectId
+from embedding_studio.utils.datetime_utils import current_time
 
 
 class FineTuningStatus(str, enum.Enum):
@@ -19,23 +21,15 @@ class FineTuningStatus(str, enum.Enum):
 class FineTuningTask(BaseModel):
     fine_tuning_method: str = Field(...)
     status: FineTuningStatus = Field(default=FineTuningStatus.pending)
-    start_at: datetime = Field(...)
-    end_at: datetime = Field(...)
-    metadata: dict = Field(...)
-
-
-class FineTuningTaskInDb(FineTuningTask):
-    id: Optional[PyObjectId] = Field(default=ObjectId, alias="_id")
+    created_at: datetime = Field(default_factory=current_time)
+    updated_at: datetime = Field(default_factory=current_time)
+    batch_id: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+    idempotency_key: Optional[uuid.UUID] = None
 
     model_config = ConfigDict(populate_by_name=True)
 
 
-class FineTuningTaskCreate(FineTuningTask):
-    fine_tuning_method: str
-    start_at: datetime
-    end_at: datetime
-    metadata: Optional[Dict] = None
-
-
-class FineTuningTaskUpdate(FineTuningTask):
-    pass
+class FineTuningTaskInDb(FineTuningTask):
+    id: Optional[PyObjectId] = Field(default=ObjectId, alias="_id")
+    broker_id: Optional[str] = Field(default=None)

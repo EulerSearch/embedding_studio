@@ -1,3 +1,4 @@
+import freezegun
 import pytest
 from dramatiq import Worker
 from fastapi.testclient import TestClient
@@ -6,7 +7,9 @@ from embedding_studio.db.mongo import finetuning_mongo_database
 from embedding_studio.db.redis import redis_broker
 from embedding_studio.main import app
 
-pytest_plugins = ["tests.plugins.env_vars"]
+pytest_plugins = ["tests.pytest_plugins.env_vars"]
+
+freezegun.config.configure(extend_ignore_list=["transformers"])
 
 
 @pytest.fixture()

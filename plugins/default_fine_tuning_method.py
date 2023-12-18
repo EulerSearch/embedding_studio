@@ -1,3 +1,5 @@
+from typing import List
+
 from embedding_studio.core.plugin import FineTuningMethod
 from embedding_studio.embeddings.data.clickstream.parsers.s3_parser import (
     AWSS3ClickstreamParser,
@@ -27,6 +29,7 @@ from embedding_studio.embeddings.data.utils.fields_normalizer import (
 from embedding_studio.embeddings.losses.prob_cosine_margin_ranking_loss import (
     CosineProbMarginRankingLoss,
 )
+from embedding_studio.models.clickstream.sessions import SessionWithEvents
 from embedding_studio.models.plugin import FineTuningBuilder, PluginMeta
 from embedding_studio.workers.fine_tuning.data.prepare_data import prepare_data
 from embedding_studio.workers.fine_tuning.experiments.experiments_tracker import (
@@ -106,7 +109,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
             num_epochs=3,
         )
 
-    def get_fine_tuning_builder(self, clickstream) -> FineTuningBuilder:
+    def get_fine_tuning_builder(self, clickstream: List[SessionWithEvents]) -> FineTuningBuilder:
         ranking_dataset = prepare_data(
             clickstream,
             self.parser,

@@ -2,6 +2,7 @@ from typing import Dict, List, NamedTuple, Union
 
 import pytest
 from fastapi.testclient import TestClient
+from freezegun import freeze_time
 
 
 class Params(NamedTuple):
@@ -10,61 +11,58 @@ class Params(NamedTuple):
     preload_data: List[Dict[str, str]] = [
         {
             "method": "POST",
-            "url": "/api/v1/fine-tuning/create",
+            "url": "/api/v1/fine-tuning/task",
             "json": {
-                "start_at": "2022-11-29T10:00:00",
-                "end_at": "2022-11-30T10:00:00",
-                "metadata": {},
+                "fine_tuning_method": "Test Method 1",
             },
         },
         {
             "method": "POST",
-            "url": "/api/v1/fine-tuning/create",
+            "url": "/api/v1/fine-tuning/task",
             "json": {
-                "start_at": "2023-01-01T00:00:00",
-                "end_at": "2023-12-30T23:59:59",
-                "metadata": {},
+                "fine_tuning_method": "Test Method 2",
+                "metadata": {"some": "testmetadata"},
             },
         },
     ]
 
 
+@freeze_time("2023-12-15T11:15:00")
 def test_fine_tuning_base(client: TestClient):
     response = client.post(
-        url="/api/v1/fine-tuning/create",
+        url="/api/v1/fine-tuning/task",
         json={
-            "start_at": "2022-11-29T10:00:00",
-            "end_at": "2022-11-30T10:00:00",
-            "metadata": {},
+            "fine_tuning_method": "Test Method",
         },
     )
-    assert response.status_code == 201
+    assert response.status_code == 200
     task_id = response.json()["id"]
 
-    response = client.get(url=f"/api/v1/fine-tuning/get/{task_id}")
+    response = client.get(url=f"/api/v1/fine-tuning/task/{task_id}")
     assert response.status_code == 200
     assert response.json() == {
-        "start_at": "2022-11-29T10:00:00",
-        "end_at": "2022-11-30T10:00:00",
-        "metadata": {},
+        "fine_tuning_method": "Test Method",
         "id": task_id,
         "status": "pending",
+        "created_at": "2023-12-15T11:15:00",
+        "updated_at": "2023-12-15T11:15:00",
     }
 
-    response = client.get(url="/api/v1/fine-tuning/get")
+    response = client.get(url="/api/v1/fine-tuning/task")
     assert response.status_code == 200
     assert response.json() == [
         {
-            "start_at": "2022-11-29T10:00:00",
-            "end_at": "2022-11-30T10:00:00",
-            "metadata": {},
+            "fine_tuning_method": "Test Method",
             "id": task_id,
             "status": "pending",
+            "created_at": "2023-12-15T11:15:00",
+            "updated_at": "2023-12-15T11:15:00",
         }
     ]
 
 
 # TODO: need to add more tests
+@freeze_time("2023-12-15T11:15:00")
 @pytest.mark.parametrize(
     "params",
     [
@@ -74,22 +72,20 @@ def test_fine_tuning_base(client: TestClient):
                 requests=[
                     {
                         "method": "POST",
-                        "url": "/api/v1/fine-tuning/create",
+                        "url": "/api/v1/fine-tuning/task",
                         "json": {
-                            "start_at": "2022-11-29T10:00:00",
-                            "end_at": "2022-11-30T10:00:00",
-                            "metadata": {},
+                            "fine_tuning_method": "Test Method",
                         },
                     }
                 ],
                 responses=[
                     {
-                        "status_code": 201,
+                        "status_code": 200,
                         "json": {
-                            "start_at": "2022-11-29T10:00:00",
-                            "end_at": "2022-11-30T10:00:00",
-                            "metadata": {},
+                            "fine_tuning_method": "Test Method",
                             "status": "pending",
+                            "created_at": "2023-12-15T11:15:00",
+                            "updated_at": "2023-12-15T11:15:00",
                         },
                     }
                 ],
@@ -101,16 +97,16 @@ def test_fine_tuning_base(client: TestClient):
                 requests=[
                     {
                         "method": "GET",
-                        "url": "/api/v1/fine-tuning/get",
+                        "url": "/api/v1/fine-tuning/task",
                     },
                     {
                         "method": "GET",
-                        "url": "/api/v1/fine-tuning/get/",
+                        "url": "/api/v1/fine-tuning/task/",
                         "use_index": 0,
                     },
                     {
                         "method": "GET",
-                        "url": "/api/v1/fine-tuning/get/",
+                        "url": "/api/v1/fine-tuning/task/",
                         "use_index": 1,
                     },
                 ],
@@ -119,40 +115,73 @@ def test_fine_tuning_base(client: TestClient):
                         "status_code": 200,
                         "json": [
                             {
-                                "start_at": "2022-11-29T10:00:00",
-                                "end_at": "2022-11-30T10:00:00",
-                                "metadata": {},
+                                "fine_tuning_method": "Test Method 1",
                                 "status": "pending",
+                                "created_at": "2023-12-15T11:15:00",
+                                "updated_at": "2023-12-15T11:15:00",
                             },
                             {
-                                "start_at": "2023-01-01T00:00:00",
-                                "end_at": "2023-12-30T23:59:59",
-                                "metadata": {},
+                                "fine_tuning_method": "Test Method 2",
+                                "metadata": {"some": "testmetadata"},
                                 "status": "pending",
+                                "created_at": "2023-12-15T11:15:00",
+                                "updated_at": "2023-12-15T11:15:00",
                             },
                         ],
                     },
                     {
                         "status_code": 200,
                         "json": {
-                            "start_at": "2022-11-29T10:00:00",
-                            "end_at": "2022-11-30T10:00:00",
-                            "metadata": {},
+                            "fine_tuning_method": "Test Method 1",
                             "status": "pending",
+                            "created_at": "2023-12-15T11:15:00",
+                            "updated_at": "2023-12-15T11:15:00",
                         },
                     },
                     {
                         "status_code": 200,
                         "json": {
-                            "start_at": "2023-01-01T00:00:00",
-                            "end_at": "2023-12-30T23:59:59",
-                            "metadata": {},
+                            "fine_tuning_method": "Test Method 2",
+                            "metadata": {"some": "testmetadata"},
                             "status": "pending",
+                            "created_at": "2023-12-15T11:15:00",
+                            "updated_at": "2023-12-15T11:15:00",
                         },
                     },
                 ],
             ),
             id="get task",
+        ),
+        pytest.param(
+            Params(
+                requests=[
+                    {
+                        "method": "GET",
+                        "url": "/api/v1/fine-tuning/task?status=pending",
+                    },
+                ],
+                responses=[
+                    {
+                        "status_code": 200,
+                        "json": [
+                            {
+                                "fine_tuning_method": "Test Method 1",
+                                "status": "pending",
+                                "created_at": "2023-12-15T11:15:00",
+                                "updated_at": "2023-12-15T11:15:00",
+                            },
+                            {
+                                "fine_tuning_method": "Test Method 2",
+                                "metadata": {"some": "testmetadata"},
+                                "status": "pending",
+                                "created_at": "2023-12-15T11:15:00",
+                                "updated_at": "2023-12-15T11:15:00",
+                            },
+                        ],
+                    },
+                ],
+            ),
+            id="get tasks by status",
         ),
     ],
 )
