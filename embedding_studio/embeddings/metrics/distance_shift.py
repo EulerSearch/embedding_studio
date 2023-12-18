@@ -82,29 +82,32 @@ class DistanceShift(MetricCalculator):
         for index, (not_irrelevenat_session, irrelevant_session) in enumerate(
             batch
         ):
-            not_irrelevenat_shifts.append(
-                self._calc_dist_shift(
-                    not_irrelevenat_session,
-                    extractor,
-                    items_storage,
-                    query_retriever,
+            if not_irrelevenat_session is not None:
+                not_irrelevenat_shifts.append(
+                    self._calc_dist_shift(
+                        not_irrelevenat_session,
+                        extractor,
+                        items_storage,
+                        query_retriever,
+                    )
                 )
-            )
-            irrelevenat_shifts.append(
-                self._calc_dist_shift(
-                    irrelevant_session,
-                    extractor,
-                    items_storage,
-                    query_retriever,
+
+            if irrelevant_session is not None:
+                irrelevenat_shifts.append(
+                    self._calc_dist_shift(
+                        irrelevant_session,
+                        extractor,
+                        items_storage,
+                        query_retriever,
+                    )
                 )
-            )
 
         return [
             MetricValue(
                 "not_irrelevant_dist_shift",
-                float(np.mean(not_irrelevenat_shifts)),
+                float(np.mean(not_irrelevenat_shifts)) if len(not_irrelevenat_shifts) > 0 else 0.0,
             ),
             MetricValue(
-                "irrelevant_dist_shift", float(np.mean(irrelevenat_shifts))
+                "irrelevant_dist_shift", float(np.mean(irrelevenat_shifts)) if len(irrelevenat_shifts) > 0 else 0.0
             ),
         ]

@@ -102,7 +102,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
         self.settings = FineTuningSettings(
             loss_func=CosineProbMarginRankingLoss(),
             step_size=35,
-            test_each_n_sessions=35,
+            test_each_n_sessions=0.5,
             num_epochs=3,
         )
 

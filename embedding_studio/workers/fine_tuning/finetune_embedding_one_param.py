@@ -130,13 +130,15 @@ def fine_tune_embedding_model_one_param(
         )
 
         logger.info("Start fine-tuning")
+        if 0 < settings.test_each_n_sessions <= 1:
+            settings.test_each_n_sessions *= len(ranking_data.clickstream["train"])
         # Start fine-tuning
         trainer: Trainer = Trainer(
             max_epochs=settings.num_epochs,
             callbacks=[early_stop_callback],
-            val_check_interval=settings.test_each_n_sessions
+            val_check_interval=int(settings.test_each_n_sessions
             if settings.test_each_n_sessions > 0
-            else len(train_dataloader),
+            else len(train_dataloader)),
         )
         trainer.fit(fine_tuner, train_dataloader, test_dataloader)
 

@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional
+from typing import Callable, List, Union, Optional
 
 from pydantic import BaseModel
 from torch import FloatTensor
@@ -35,8 +35,8 @@ class FineTuningSettings(BaseModel):
     :type num_epochs:  Optional[int]
     :param batch_size: count of sessions in a batch (default: 1)
     :type batch_size:  Optional[int]
-    :param test_each_n_sessions: frequency of validation (default: -1)
-    :type test_each_n_sessions:  Optional[int]
+    :param test_each_n_sessions: frequency of validation, if value in range [0, 1] - used as ratio (default: -1)
+    :type test_each_n_sessions:  Optional[Union[float, int]]
     """
 
     loss_func: RankingLossInterface
@@ -50,7 +50,7 @@ class FineTuningSettings(BaseModel):
     gamma: Optional[float] = 0.9
     num_epochs: Optional[int] = 10
     batch_size: Optional[int] = 1
-    test_each_n_sessions: Optional[int] = -1
+    test_each_n_sessions: Optional[Union[float, int]] = -1
 
     class Config:
         arbitrary_types_allowed = True
