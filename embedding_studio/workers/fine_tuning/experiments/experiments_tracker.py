@@ -8,7 +8,7 @@ import mlflow
 import numpy as np
 import pandas as pd
 from mlflow.entities import Experiment
-from mlflow.exceptions import RestException
+from mlflow.exceptions import RestException, MlflowException
 
 from embedding_studio.core.config import settings
 from embedding_studio.embeddings.models.interface import (
@@ -226,6 +226,34 @@ class ExperimentsManager:
         :type model: EmbeddingsModelInterface
         """
         self.finish_iteration()
+        experiment_id = get_experiment_id_by_name(INITIAL_EXPERIMENT_NAME)
+        if experiment_id is None:
+            logger.info(f"Can\'t find any active iteration with name: {INITIAL_EXPERIMENT_NAME}")
+            try:
+                logger.info("Create initial experiment")
+                mlflow.create_experiment(INITIAL_EXPERIMENT_NAME)
+            except MlflowException as e:
+                if 'Cannot set a deleted experiment' in str(e):
+                    logger.error(f"Creation of initial experiment is failed: experiment with the same name {INITIAL_EXPERIMENT_NAME} is deleted, but not archived")
+                    experiments = mlflow.search_experiments(view_type=mlflow.entities.ViewType.ALL)
+                    deleted_experiment_id = None
+
+                    for exp in experiments:
+                        if exp.name == INITIAL_EXPERIMENT_NAME:
+                            deleted_experiment_id = exp.experiment_id
+                            break
+
+                    logger.info(f'Restore deleted experiment with the same name: {INITIAL_EXPERIMENT_NAME}')
+                    mlflow.tracking.MlflowClient().restore_experiment(deleted_experiment_id)
+                    logger.info(f'Archive deleted experiment with the same name: {INITIAL_EXPERIMENT_NAME}')
+                    mlflow.tracking.MlflowClient().rename_experiment(deleted_experiment_id, INITIAL_EXPERIMENT_NAME + '_archive')
+                    logger.info(f'Delete archived experiment with the same name: {INITIAL_EXPERIMENT_NAME}')
+                    mlflow.delete_experiment(deleted_experiment_id)
+                    logger.info(f'Create initial experiment')
+                    mlflow.create_experiment(INITIAL_EXPERIMENT_NAME)
+                else:
+                    raise e
+
         with mlflow.start_run(
             experiment_id=get_experiment_id_by_name(INITIAL_EXPERIMENT_NAME),
             run_name=INITIAL_RUN_NAME,
@@ -374,6 +402,7 @@ class ExperimentsManager:
             logger.info(
                 f"Iteration with ID {experiment_id} is going to be deleted"
             )
+            mlflow.tracking.MlflowClient().rename_experiment(experiment_id, INITIAL_EXPERIMENT_NAME + '_archive')
             mlflow.delete_experiment(experiment_id)
         else:
             logger.warning(
