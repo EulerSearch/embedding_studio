@@ -31,13 +31,8 @@ class MetricCalculator(ABC):
         """Calculate abstract metric value over provided batch of items.
 
         :param batch: batch of pairs clickstream sessions (not_irrelevant, irrelevant)
-        :type batch: List[Tuple[ClickstreamSession, ClickstreamSession]]
         :param extractor: object to extract SessionFeatures out of provided sessions
-        :type extractor: FeaturesExtractor
         :param items_storage: items dataset
-        :type items_storage: ItemsStorage
         :param query_retriever: how to retrieve a value related to session query
-        :type query_retriever: QueryRetriever
         :return: list of calculated metrics
-        :type: List[MetricValue]
         """

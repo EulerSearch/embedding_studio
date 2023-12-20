@@ -15,11 +15,8 @@ def dummy_confidences(
     """Confidence = 1.0
 
     :param ranks: list of ranks from search results
-    :type ranks: FloatTensor
     :param events: list of 0 if it's not an event, 1 if it's an event
-    :type events: FloatTensor
     :return: list of confidences
-    :rtype: Union[Tensor, FloatTensor]
     """
     return torch.ones(len(events))
 
@@ -33,14 +30,10 @@ def calculate_confidences(
     * either event is among events of another type with different ranks
 
     :param ranks: list of ranks from search results
-    :type ranks: FloatTensor
     :param results: list of 0 if it's not an event, 1 if it's an event
-    :type results: FloatTensor
     :param window_size: context window to check confidence, should be more than 1 (default: 3)
                         like <i - window_size // 2; i; i + window_size // 2 + 1>
-    :type window_size: int
     :return: list of confidences
-    :rtype: Union[Tensor, FloatTensor]
     """
 
     if not isinstance(window_size, int) or window_size <= 1:

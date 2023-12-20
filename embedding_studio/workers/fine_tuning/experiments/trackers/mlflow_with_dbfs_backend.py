@@ -46,22 +46,13 @@ class ExperimentsManagerWithDBFSBackend(ExperimentsManager):
         """Wrapper over mlflow package to manage certain fine-tuning experiments with DBFS backend.
 
         :param tracking_uri: url of MLFlow server
-        :type tracking_uri: str
         :param databricks_credentials: credentials to connect to DBFS Client
-        :type databricks_credentials: DatabricksCredentials
         :param main_metric: name of the main metric that will be used to find models
-        :type main_metric: str
         :param accumulators: accumulators of metrics to be logged
-        :type accumulators: List[MetricsAccumulator]
         :param is_loss: is the main metric loss (if True, then the best quality is minimal) (default: False)
-        :type is_loss: bool
         :param n_top_runs: how many hyper params groups to consider for following tuning steps (default: 10)
-        :type n_top_runs: int
         :param requirements: extra requirements to be passed to mlflow.pytorch.log_model (default: None)
-        :type requirements: Optional[str]
         :param retry_config: retry policy (default: None)
-        :type retry_config: Optional[RetryConfig]
-        :return: Decorated function
         """
         super(ExperimentsManagerWithDBFSBackend, self).__init__(
             tracking_uri,

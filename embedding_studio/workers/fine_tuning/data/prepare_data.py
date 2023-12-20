@@ -40,19 +40,12 @@ def prepare_data(
     """Prepare fine-tuning data.
 
     :param clickstream_sessions: clickstream sessions
-    :type clickstream_sessions: List[Union[Dict, SessionWithEvents]]
     :param parser: how to parse a clickstream session
-    :type parser: ClickstreamParser
     :param clickstream_splitter: how to split clickstream sessions
-    :type clickstream_splitter: ClickstreamSessionsSplitter
     :param query_retriever: retrieve query item
-    :type query_retriever: QueryRetriever
     :param loader: load items data
-    :type loader: DataLoader
     :param storage_producer: get train/test datasets
-    :type storage_producer: ItemStorageProducer
     :return: train / test clickstream sessiobs and dataset dict
-    :rtype: RankingData
     """
     if len(clickstream_sessions) == 0:
         raise ValueError("Empty clickstream sessions list")

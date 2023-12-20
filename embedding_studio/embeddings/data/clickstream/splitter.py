@@ -25,11 +25,8 @@ class ClickstreamSessionsSplitter:
         """Generate train / test clickstream sessions split.
 
         :param test_size_ratio: ratio of test split size (default: 0.2)
-        :type test_size_ratio: float
         :param shuffle: to shuffle or not paired clickstream sessions (default: True)
-        :type shuffle:  bool
         :param random_state: random state to sklearn splitter (default: None)
-        :type random_state: Optional[int]
         """
         if (
             not isinstance(test_size_ratio, float)
@@ -60,9 +57,7 @@ class ClickstreamSessionsSplitter:
         """Split clickstream sessions.
 
         :param sessions: sessions to be split
-        :type sessions: List[ClickstreamSession]
         :return: train / test splits accordingly (PairedClickstreamDataset)
-        :rtype: DatasetDict
         """
         # Get all IDs
         all_result_ids: Set[str] = set()

@@ -72,30 +72,18 @@ class EmbeddingsFineTuner(pl.LightningModule):
         designed in the way to be use PytorchLightning Trainer.
 
         :param model: embedding model itself
-        :type model: EmbeddingsModelInterface
         :param items_storages:  items storage related to a given iteration, as a datasetdict with train and test keys
-        :type items_storages: DatasetDict
         :param query_retriever: object to get item related to query, that can be used in "forward"
-        :type query_retriever: QueryRetriever
         :param loss_func: loss object for a ranking task
-        :type loss_func: RankingLossInterface
         :param fine_tuning_params: hyper params of fine-tuning task
-        :type fine_tuning_params: FineTuningParams
         :param tracker: experiment management object
-        :type tracker: ExperimentsManager
         :param metric_calculators: list of trackable metrics calculators (default: None)
                                    by default_params only DistanceShift metric
-        :type metric_calculators: Optional[List[MetricCalculator]]
         :param ranker: ranking function (query, items) -> ranks (defult: cosine similarity)
-        :type ranker: Callable[[FloatTensor, FloatTensor], FloatTensor]
         :param is_similarity: is ranking function similarity like or distance (default: True)
-        :type is_similarity: bool
         :param confidence_calculator: function to calculate results confidences (default: dummy_confidences)
-        :type confidence_calculator: Callable
         :param step_size: optimizer steps (default: 500)
-        :type step_size: int
         :param gamma: optimizers gamma (default: 0.9)
-        :type gamma: float
         """
         if not isinstance(model, EmbeddingsModelInterface):
             raise TypeError(
@@ -368,17 +356,11 @@ class EmbeddingsFineTuner(pl.LightningModule):
         """Create embedding fine tuner from settings.
 
         :param model: embedding model itself
-        :type model: EmbeddingsModelInterface
         :param settings: fine-tuning settings
-        :type settings: FineTuningSettings
         :param items_storages:  items storage related to a given iteration, as a datasetdict with train and test keys
-        :type items_storages: DatasetDict
         :param query_retriever: object to get item related to query, that can be used in "forward"
-        :type query_retriever: QueryRetriever
         :param fine_tuning_params: hyper params of fine-tuning task
-        :type fine_tuning_params: FineTuningParams
         :param tracker: experiment management object
-        :type tracker: ExperimentsManager
         :return:
         """
         return EmbeddingsFineTuner(

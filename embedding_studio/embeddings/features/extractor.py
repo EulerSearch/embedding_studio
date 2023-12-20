@@ -54,26 +54,17 @@ class FeaturesExtractor(pl.LightningModule):
         and pack it in SessionFeatures object.
 
         :param model: embedding model itself
-        :type model: EmbeddingsModelInterface
         :param ranker: ranking function (query, items) -> ranks (defult: cosine similarity)
-        :type ranker: Optional[Callable[[FloatTensor, FloatTensor], FloatTensor]]
         :param is_similarity: is ranking function similarity like or distance (default: True)
-        :type is_similarity: Optional[bool]
         :param not_irrelevant_only: use only not irrelevant sessions (default: True)
                                     True - Triplet loss
                                     False - Contrastive-like loss
-        :type not_irrelevant_only: Optional[bool]
         :param negative_downsampling_factor: in real tasks amount of results is much larger than  not-results,
                                              use this parameters to fix a balance (default: 0.5)
-        :type negative_downsampling_factor: Optional[float]
         :param min_abs_difference_threshold: filter out soft pairs abs(neg_dist - pos_dist) < small value
-        :type min_abs_difference_threshold: float
         :param max_abs_difference_threshold: filter out hard pairs abs(neg_dist - pos_dist) > huge value
-        :type max_abs_difference_threshold: float
         :param confidence_calculator: function to calculate results confidences (default: dummy_confidences)
-        :type confidence_calculator: Optional[Callable]
         :param examples_order: order of passing examples to a trainer (default: None)
-        :type examples_order: Optional[List[ExamplesType]]
         """
         super(FeaturesExtractor, self).__init__()
         # Check model type
@@ -145,11 +136,8 @@ class FeaturesExtractor(pl.LightningModule):
         """Calculate confidences for a given clickstream session items.
 
         :param session: provided clickstream session
-        :type session: ClickstreamSession
         :param not_events: not-results (negatives) used for ranks prediction
-        :type not_events: List[str]
         :return: positive (results) confidences, negative (not-results) confidences
-        :rtype: Tuple[Tensor, Tensor]
         """
         only_used: List[bool] = [
             (id_ in session.events or id_ in not_events)
@@ -199,13 +187,9 @@ class FeaturesExtractor(pl.LightningModule):
         """Calculate ranks for a single session
 
         :param session: given session
-        :type session: ClickstreamSession
         :param dataset: items storage related to a given session
-        :type dataset: ItemsStorage
         :param query_retriever: object to get item related to query, that can be used in "forward"
-        :type query_retriever: QueryRetriever
         :return: provided session's results ranks
-        :rtype: Dict[str, float]
         """
         query_vector: FloatTensor = self.model.forward_query(
             query_retriever(session.query)
@@ -229,13 +213,9 @@ class FeaturesExtractor(pl.LightningModule):
         """Calculate features for a single session
 
         :param session: given session
-        :type session: ClickstreamSession
         :param dataset: items storage related to a given session
-        :type dataset: ItemsStorage
         :param query_retriever: object to get item related to query, that can be used in "forward"
-        :type query_retriever: QueryRetriever
         :return: provided session's features
-        :rtype: SessionFeatures
         """
         features = SessionFeatures()
 
@@ -323,15 +303,10 @@ class FeaturesExtractor(pl.LightningModule):
         """Calculate features for a given pair: irrelevant and not irrelevant sessions
 
         :param not_irrelevant_session: not-irrelevant session
-        :type not_irrelevant_session: ClickstreamSession
         :param irrelevant_session: irrelevant session
-        :type irrelevant_session: ClickstreamSession
         :param dataset: storage of items related to clickstream sessions
-        :type dataset: ItemsStorage
         :param query_retriever: object to get item related to query, that can be used in "forward"
-        :type query_retriever: QueryRetriever
         :return: features related for both irrelevant and not irrelevant sessions
-        :rtype: SessionFeatures
         """
         not_irrelevant_features: SessionFeatures = self._get_session_features(
             not_irrelevant_session, dataset, query_retriever
@@ -355,13 +330,9 @@ class FeaturesExtractor(pl.LightningModule):
         """Calculate features for a given batch of pairs: irrelevant and not irrelevant sessions
 
         :param batch: list of pairs: irrelevant and not irrelevant sessions
-        :type batch: List[Tuple[ClickstreamSession, ClickstreamSession]]
         :param dataset:  storage of items related to clickstream sessions
-        :type dataset: ItemsStorage
         :param query_retriever: object to get item related to query, that can be used in "forward"
-        :type query_retriever: QueryRetriever
         :return: session features related to a given batch
-        :rtype: SessionFeatures
         """
         features = SessionFeatures()
 

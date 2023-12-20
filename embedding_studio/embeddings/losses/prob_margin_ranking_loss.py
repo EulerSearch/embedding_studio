@@ -15,7 +15,6 @@ class ProbMarginRankingLoss(RankingLossInterface):
         Use sigmoid instead of ReLU + results confidences to ignore noises and mistakes.
 
         :param base_margin: margin ranking loss margin (default: 1.0)
-        :type base_margin: float
         """
 
         if not isinstance(base_margin, (int, float)) or base_margin <= 0:

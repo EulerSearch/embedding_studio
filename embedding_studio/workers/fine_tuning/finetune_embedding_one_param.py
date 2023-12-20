@@ -45,19 +45,12 @@ def fine_tune_embedding_model_one_param(
     """Run embeddings fine-tuning over single fine-tuning params set
 
     :param initial_model: embedding model itself
-    :type initial_model: EmbeddingsModelInterface
     :param settings: fine-tuning settings
-    :type settings: FineTuningSettings
     :param ranking_data: dataset with clickstream and items
-    :type ranking_data: RankingData
     :param query_retriever: object to get item related to query, that can be used in "forward"
-    :type query_retriever: QueryRetriever
     :param fine_tuning_params: hyper params of fine-tuning task
-    :type fine_tuning_params: FineTuningParams
     :param tracker: experiment management object
-    :type tracker: ExperimentsManager
     :return: the best quality value
-    :rtype: float
     """
     use_cuda = torch.cuda.is_available()
     device = torch.device(

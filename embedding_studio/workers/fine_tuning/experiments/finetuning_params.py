@@ -23,27 +23,16 @@ class FineTuningParams(BaseModel):
     """Params of fine-tuning procedure
 
     :param num_fixed_layers: number of fixed embeddings layers
-    :type num_fixed_layers: float
     :param query_lr: learning rate of query model optimizer
-    :type query_lr:  float
     :param items_lr: learning rate of items model optimizer
-    :type items_lr:  float
     :param query_weight_decay: weight decay of query model optimizer
-    :type query_weight_decay: float
     :param items_weight_decay: weight decay of items model optimizer
-    :type items_weight_decay: float
     :param margin: margin from MarginRankingLoss
-    :type margin:  float
     :param not_irrelevant_only: use only not irrelevant sessions
-    :type not_irrelevant_only: bool
     :param negative_downsampling: ratio of negative samples to be used
-    :type negative_downsampling: float
     :param min_abs_difference_threshold: filter out soft pairs abs(neg_dist - pos_dist) < small value (default: 0.0)
-    :type min_abs_difference_threshold: float
     :param max_abs_difference_threshold: filter out hard pairs abs(neg_dist - pos_dist) > huge value (default: 1.0)
-    :type max_abs_difference_threshold: float
     :param examples_order: order of passing examples to a trainer (default: None)
-    :type examples_order: Optional[List[ExamplesType]]
     """
 
     num_fixed_layers: int

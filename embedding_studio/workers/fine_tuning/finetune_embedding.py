@@ -96,19 +96,12 @@ def finetune_embedding_model(
     """Start embedding fine-tuning iteration.
 
     :param iteration: fine-tuning iteration info
-    :type FineTuningIteration
     :param settings: fine-tuning settings
-    :type settings: FineTuningSettings
     :param ranking_data: dataset with clickstream and items
-    :type ranking_data: RankingData
     :param query_retriever: object to get item related to query, that can be used in "forward"
-    :type query_retriever: QueryRetriever
     :param tracker: experiment management object
-    :type tracker: ExperimentsManager
     :param initial_params: initial huperparams
-    :type initial_params: Dict[str, List]
     :param initial_max_evals: max initial hyperparams (default: 100)
-    :type initial_max_evals: int
     :return:
     """
     if not isinstance(initial_max_evals, int) or initial_max_evals <= 0:

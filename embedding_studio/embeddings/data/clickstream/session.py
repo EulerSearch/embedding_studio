@@ -8,17 +8,11 @@ class ClickstreamSession(BaseModel):
     """Class that represents clickstream session.
 
     :param query: provided query.
-    :type query: Any
     :param events: ids of results (right now mostly clicks)
-    :type events: List[str]
     :param results: ids of result items
-    :type results: List[str]
     :param ranks: dictionary of each item ranks
-    :type ranks: Dict[str, float]
     :param event_types: type of results
-    :type event_types: Optional[List[float]]
     :param timestamp: when srddion was initialized
-    :type timestamp:  Optional[int]
     """
 
     query: Any

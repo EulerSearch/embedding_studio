@@ -29,11 +29,8 @@ class ImageItemsDatasetDictPreprocessor(ItemsDatasetDictPreprocessor):
         """Preprocessor for image data storages.
 
         :param field_normalizer: how to normalize field names
-        :type field_normalizer: DatasetFieldsNormalizer
         :param n_pixels: side size
-        :type n_pixels: int
         :param transform: function to get pixels (np.array) out of images
-        :type transform: Optional[Callable]
         """
         self._field_normalizer = field_normalizer
 
@@ -52,9 +49,7 @@ class ImageItemsDatasetDictPreprocessor(ItemsDatasetDictPreprocessor):
         """Normalize fields, apply image transforms and create items storages.
 
         :param dataset: dataset dict to be preprocessed
-        :type dataset: DatasetDict
         :return: train/test DatasetDict with ItemsStorage as values
-        :rtype: DatasetDict
         """
         dataset: DatasetDict = self._field_normalizer(dataset)
 

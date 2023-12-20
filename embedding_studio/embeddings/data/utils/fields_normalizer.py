@@ -15,9 +15,7 @@ class DatasetFieldsNormalizer:
         A dataset should have ID column, related to ID in clickstream.
 
         :param item_field_name: name of column with items.
-        :type item_field_name: str
         :param id_field_name: name of ID column
-        :type id_field_name: str
         """
         if not id_field_name:
             raise ValueError("id_field_name should be non-empty string")

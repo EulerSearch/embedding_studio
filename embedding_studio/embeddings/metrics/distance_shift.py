@@ -67,15 +67,10 @@ class DistanceShift(MetricCalculator):
         """Calculate metric, that means how ranks of provided sessions were changed .
 
         :param batch: batch of pairs clickstream sessions (not_irrelevant, irrelevant)
-        :type batch: List[Tuple[ClickstreamSession, ClickstreamSession]]
         :param extractor: object to extract SessionFeatures out of provided sessions
-        :type extractor: FeaturesExtractor
         :param items_storage: items dataset
-        :type items_storage: ItemsStorage
         :param query_retriever: how to retrieve a value related to session query
-        :type query_retriever: QueryRetriever
         :return: list of calculated not_irrelevant_dist_shift and irrelevant_dist_shift metrics
-        :type: List[MetricValue]
         """
         not_irrelevenat_shifts: List[float] = []
         irrelevenat_shifts: List[float] = []

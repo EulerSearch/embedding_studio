@@ -16,15 +16,10 @@ class SessionFeatures:
         """Extracted features of clickstream session using embeddings.
 
         :param positive_ranks: ranks of positive results
-        :type positive_ranks: Optional[FloatTensor]
         :param negative_ranks: ranks of negative results
-        :type negative_ranks: Optional[FloatTensor]
         :param target: if target == 1 ranks are similarities, if target == -1 ranks are distances
-        :type target: Optional[Tensor]
         :param positive_confidences: confidences of positive results (like clicks)
-        :type positive_confidences: Optional[FloatTensor]
         :param negative_confidences: confidences of not positive results
-        :type negative_confidences: Optional[FloatTensor]
         """
 
         self._positive_ranks = positive_ranks
@@ -133,9 +128,7 @@ class SessionFeatures:
         """Accumulate features from another session
 
         :param other: other session
-        :type other: SessionFeatures
         :return: aggregates features
-        :rtype: SessionFeatures
         """
 
         self._positive_ranks = SessionFeatures._accumulate(
@@ -160,9 +153,7 @@ class SessionFeatures:
         """Filter min < |positive_ranks - negative_ranks| < max examples.
 
         :param min: minimal difference between pos and neg ranks
-        :type min: float
         :param max: maximal difference between pos and neg ranks
-        :type max: float
         """
         if (
             self._positive_ranks is not None
@@ -190,7 +181,6 @@ class SessionFeatures:
         This way "triple loss" becomes "contrastive"
 
         :param other: not irrelevant session with positive evidences
-        :type other: SessionFeatures
         """
         other._check_types()
         other._check_lengths()

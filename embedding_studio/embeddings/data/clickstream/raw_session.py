@@ -16,11 +16,8 @@ class RawClickstreamSession(BaseModel):
     """Class that represents clickstream session.
 
     :param query: provided query.
-    :type query: QueryItem
     :param results: search result info
-    :type results: List[SearchResult]
     :param timestamp: when session was initialized
-    :type timestamp:  Optional[int]
     """
 
     query: QueryItem

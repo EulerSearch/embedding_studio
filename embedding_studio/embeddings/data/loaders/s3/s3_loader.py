@@ -58,9 +58,7 @@ class AWSS3DataLoader(DataLoader):
         """Items loader from AWS S3.
 
         :param max_attempts: maximum number of attempts (default: 10)
-        :type max_attempts: int
         :param wait_time_seconds: time to wait between (default: 10)
-        :type wait_time_seconds: int
         :param kwargs: dict data for AWSS3Credentials
         """
         super(AWSS3DataLoader, self).__init__(**kwargs)

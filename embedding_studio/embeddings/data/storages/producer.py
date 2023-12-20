@@ -22,9 +22,7 @@ class ItemStorageProducer:
         """Preprocess and split dataset with train/test clickstream sessions.
 
         :param preprocessor: items dataset dict preprocessing
-        :type preprocessor: ItemsDatasetDictPreprocessor
         :param id_field_name: specified field name ID (default: None)
-        :type id_field_name: Optional[str]
         """
         self.preprocessor = preprocessor
         self._id_field_name = (
@@ -49,11 +47,8 @@ class ItemStorageProducer:
         """Split dataset with train_clickstream / test_clickstream
 
         :param dataset: dataset to be split
-        :type dataset: Union[Dataset, DatasetDict]
         :param clickstream_dataset: train /test clickstream sessions (PairedClickstreamDataset)
-        :type clickstream_dataset: DatasetDict
         :return: split dataset
-        :rtype: DatasetDict
         """
 
         if not (

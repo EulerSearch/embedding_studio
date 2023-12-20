@@ -36,11 +36,8 @@ class PairedClickstreamDataset(Dataset):
         usual sessions to extract useful information for the future.
 
         :param sessions: clickstream sessions to group
-        :type sessions: List[ClickstreamSession]
         :param randomize: shuffle sessions or not (default: False)
-        :type randomize: bool
         :param session_count: maximum session pairs to use (default: -1)
-        :type session_count: int
         """
         self.irrelevant: List[ClickstreamSession] = []
         self.not_irrelevant: List[ClickstreamSession] = []

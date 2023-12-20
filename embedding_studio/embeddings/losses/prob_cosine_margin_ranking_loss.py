@@ -14,7 +14,6 @@ class CosineProbMarginRankingLoss(ProbMarginRankingLoss):
         Adapt to cosine similarity / distance
 
         :param base_margin: margin ranking loss margin (default: 1.0)
-        :type base_margin: Optional[float]
         """
         super(CosineProbMarginRankingLoss, self).__init__(
             base_margin=base_margin

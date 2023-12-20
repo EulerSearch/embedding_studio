@@ -12,7 +12,6 @@ class EmbeddingsModelInterface(pl.LightningModule):
         This is the interface we used in fine-tuning procedure.
 
         :param same_query_and_items: are query and items models acutally the same model (default: False)
-        :type bool
         """
         super(EmbeddingsModelInterface, self).__init__()
         self.same_query_and_items = same_query_and_items
@@ -30,7 +29,6 @@ class EmbeddingsModelInterface(pl.LightningModule):
         """One of fine-tuning hyperparams is num of fixed layers at a query model
 
         :param num_fixed_layers: how many layers to fix
-        :type num_fixed_layers: int
         """
 
     @abstractmethod
@@ -42,7 +40,6 @@ class EmbeddingsModelInterface(pl.LightningModule):
         """One of fine-tuning hyperparams is num of fixed layers at an item model
 
         :param num_fixed_layers: how many layers to fix
-        :type num_fixed_layers: int
         """
 
     @abstractmethod

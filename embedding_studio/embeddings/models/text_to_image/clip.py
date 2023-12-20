@@ -23,7 +23,6 @@ class TextToImageCLIPModel(EmbeddingsModelInterface):
         Usage: model = TextToImageCLIPModel(SentenceTransformer('clip-ViT-B-32'))
 
         :param clip_model: clip model from SentenceTransformer package
-        :type clip_model: SentenceTransformer
         """
         super(TextToImageCLIPModel, self).__init__(same_query_and_items=False)
         self.clip_model = clip_model

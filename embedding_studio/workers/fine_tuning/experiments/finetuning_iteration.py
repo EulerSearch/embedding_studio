@@ -8,9 +8,7 @@ class FineTuningIteration(BaseModel):
     """Fine tuning iteration.
 
     :param batch_id: session batch id
-    :type batch_id:  str
     :param plugin_name: name of tuned embedding (default: "")
-    :type plugin_name: str
     """
 
     batch_id: str = ""

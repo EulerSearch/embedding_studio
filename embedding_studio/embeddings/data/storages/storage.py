@@ -10,11 +10,8 @@ class ItemsStorage(Dataset):
         """Dataset wrapper to represent storage of search result items
 
         :param dataset: items huggingface like dataset
-        :type dataset: Dataset
         :param item_field_name: field represents item to be passed to embedding model
-        :type item_field_name: str
         :param id_field_name: ID of item
-        :type id_field_name: str
         """
         super(ItemsStorage, self).__init__(
             arrow_table=dataset._data,
@@ -69,9 +66,7 @@ class ItemsStorage(Dataset):
         """Get rows by row ids
 
         :param ids:
-        :type ids: List[Any]
         :param ignore_missed: whether we should ignore missed ids
-        :type ignore_missed: bool
         :return: rows from original dataset
         """
         if not ignore_missed:
@@ -87,9 +82,7 @@ class ItemsStorage(Dataset):
         Get a slice of items from the dataset based on a list of indices.
 
         :param indices: List of indices to retrieve items.
-        :type indices: list[int]
         :return: List of items corresponding to the given indices.
-        :rtype: list
         """
         return self[indices][self.item_field_name]
 
@@ -98,9 +91,7 @@ class ItemsStorage(Dataset):
         Get a slice of items from the dataset based on a list of ids.
 
         :param indices: List of indices to retrieve items.
-        :type indices: list[int]
         :return: List of items corresponding to the given indices.
-        :rtype: list
         """
         return self.rows_by_ids(ids)[self.item_field_name]
 
@@ -110,11 +101,8 @@ class ItemsStorage(Dataset):
         """Get a slice of items from the dataset based on a range of indices.
 
         :param start_idx: Start index of the slice.
-        :type start_idx: int
         :param end_idx: End index of the slice (exclusive).
-        :type end_idx: Optional[int]
         :return: List of items within the specified range of indices.
-        :rtype: list
         """
         end_idx: int = end_idx if end_idx is not None else len(self)
         return self[start_idx:end_idx][self.item_field_name]

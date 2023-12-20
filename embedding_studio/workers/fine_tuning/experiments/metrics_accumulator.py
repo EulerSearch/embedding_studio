@@ -39,17 +39,11 @@ class MetricsAccumulator:
         """Accumulator of metric values + calculator of aggregations like mean, max, min, sliding_mean.
 
         :param name: metric name (metrics with other name will be ignored)
-        :type name: str
         :param calc_mean: should accumulator calculate mean value (default: False)
-        :type calc_mean: bool
         :param calc_sliding: should accumulator calculate sliding mean value (default: False)
-        :type calc_sliding: bool
         :param calc_min: should accumulator calculate min value (default: False)
-        :type calc_min: bool
         :param calc_max: should accumulator calculate max value (default: False)
-        :type calc_max: bool
         :param window_size: size of sliding window (default: 10)
-        :type window_size: int
         """
         if not isinstance(name, str) or len(name) == 0:
             raise ValueError("MetricsAccumulator's name should not be empty")
@@ -92,9 +86,7 @@ class MetricsAccumulator:
         """Add metric value to an accumulator.
 
         :param value: metric to be accumulated
-        :type value:  MetricValue
         :return: aggregations
-        :rtype: List[Tuple[str, float]]
         """
         if self.name == value.name:
             self._values.append(value.value)
@@ -107,7 +99,6 @@ class MetricsAccumulator:
         """Aggregate accumulated metrics
 
         :return: metric aggregations (last, mean, sliding, min, max)
-        :rtype:  List[Tuple[str, float]]
         """
         aggregations: List[Tuple[str, float]] = []
         if len(self._values) > 0:

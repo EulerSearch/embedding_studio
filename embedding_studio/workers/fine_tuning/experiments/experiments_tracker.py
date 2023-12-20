@@ -91,20 +91,12 @@ class ExperimentsManager:
         """Wrapper over mlflow package to manage certain fine-tuning experiments.
 
         :param tracking_uri: url of MLFlow server
-        :type tracking_uri: str
         :param main_metric: name of main metric that will be used to find best model
-        :type main_metric: str
         :param accumulators: accumulators of metrics to be logged
-        :type accumulators: List[MetricsAccumulator]
         :param is_loss: is main metric loss (if True, then best quality is minimal) (default: False)
-        :type is_loss:  bool
         :param n_top_runs: how many hyper params group consider to be used in following tuning steps (default: 10)
-        :type n_top_runs: int
         :param requirements: extra requirements to be passed to mlflow.pytorch.log_model (default: None)
-        :type requirements: Optional[str]
         :param retry_config: retry policy (default: None)
-        :type retry_config: Optional[RetryConfig]
-        :return: Decorated function
         """
         if not isinstance(tracking_uri, str) or len(tracking_uri) == 0:
             raise ValueError(
@@ -223,7 +215,6 @@ class ExperimentsManager:
         """Upload the very first, initial model to the mlflow server
 
         :param model: model to be uploaded
-        :type model: EmbeddingsModelInterface
         """
         self.finish_iteration()
         experiment_id = get_experiment_id_by_name(INITIAL_EXPERIMENT_NAME)
@@ -271,7 +262,6 @@ class ExperimentsManager:
         """Download initial model.
 
         :return: initial embeddings model
-        :rtype: EmbeddingsModelInterface
         """
         model_uri: str = f"runs:/{get_run_id_by_name(get_experiment_id_by_name(INITIAL_EXPERIMENT_NAME), INITIAL_RUN_NAME)}/model"
         logger.info(f"Download the model from {model_uri}")
@@ -284,7 +274,6 @@ class ExperimentsManager:
         """Get top N previous fine-tuning iteration best params
 
         :return: fine-tuning iteration params
-        :rtype: List[FineTuningParams]
         """
         initial_id: Optional[str] = get_experiment_id_by_name(
             INITIAL_EXPERIMENT_NAME
@@ -339,7 +328,6 @@ class ExperimentsManager:
         """Get previous iteration best embedding model.
 
         :return: best embedding model
-        :rtype: EmbeddingsModelInterface
         """
         initial_id: Optional[str] = get_experiment_id_by_name(
             INITIAL_EXPERIMENT_NAME
@@ -414,7 +402,6 @@ class ExperimentsManager:
         """Start a new fine-tuning session.
 
         :param iteration: fine-tuning iteration info
-        :type iteration:  FineTuningIteration
         """
         if self._tuning_iteration == INITIAL_EXPERIMENT_NAME:
             self.finish_iteration()
@@ -437,9 +424,7 @@ class ExperimentsManager:
         """Start a new run with provided fine-tuning params
 
         :param params: provided fine-tuning params
-        :type params: FineTuningParams
         :return: True if it's a finished run (otherwise False)
-        :rtype: bool
         """
         convert_value = (
             lambda value: ", ".join(map(str, value))
@@ -590,9 +575,7 @@ class ExperimentsManager:
         """Save fine-tuned embedding model
 
         :param model: model to be saved
-        :type model:  EmbeddingsModelInterface
         :param best_only: save only if it's the best (default: True)
-        :type best_only: bool
         """
         if self._tuning_iteration == INITIAL_EXPERIMENT_NAME:
             raise ValueError(
@@ -636,7 +619,6 @@ class ExperimentsManager:
         """Accumulate and save metric value
 
         :param metric_value: value to be logged
-        :type metric_value: MetricValue
         """
         for accumulator in self._accumulators:
             for name, value in accumulator.accumulate(metric_value):
@@ -647,7 +629,6 @@ class ExperimentsManager:
         """Current run quality value
 
         :return: quality value
-        :rtype: float
         """
         if self._tuning_iteration == INITIAL_EXPERIMENT_NAME:
             raise ValueError(
@@ -695,7 +676,6 @@ class ExperimentsManager:
         """Get current fine-tuning iteration best quality
 
         :return: run_id and best metric value
-        :rtype: Tuple[str, float]
         """
         if self._tuning_iteration == INITIAL_EXPERIMENT_NAME:
             raise ValueError(
