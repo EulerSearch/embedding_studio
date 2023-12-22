@@ -4,6 +4,8 @@ import uuid
 from typing import Dict, Iterable, List, Optional
 
 import boto3
+from botocore import UNSIGNED
+from botocore.client import Config
 from botocore.exceptions import ClientError, EndpointConnectionError
 from datasets import Dataset
 from PIL import Image
@@ -25,10 +27,11 @@ logger = logging.getLogger(__name__)
 
 
 class AWSS3Credentials(BaseModel):
-    role_arn: str
+    role_arn: Optional[str] = None
     aws_access_key_id: Optional[str] = None
     aws_secret_access_key: Optional[str] = None
     external_id: Optional[str] = None
+    use_system_info: bool = False
 
 
 def read_from_s3(client, bucket: str, file: str) -> Image:
@@ -94,29 +97,40 @@ class AWSS3DataLoader(DataLoader):
 
     @retry_method(name="credentials")
     def _get_client(self, task_id: str):
-        sts_client = boto3.client(
-            "sts",
-            aws_access_key_id=self.credentials.aws_access_key_id,
-            aws_secret_access_key=self.credentials.aws_secret_access_key,
-        )
-        if self.credentials.external_id:
-            assumed_role_object = sts_client.assume_role(
-                RoleArn=self.credentials.role_arn,
-                RoleSessionName=task_id,
-                ExternalId=self.credentials.external_id,
+        if (
+            self.credentials.aws_access_key_id is None
+            or self.credentials.aws_secret_access_key is None
+        ) and not self.credentials.use_system_info:
+            logger.warning(
+                "No specific AWS credentials, use Anonymous session"
+            )
+            s3_client = boto3.client(
+                "s3", config=Config(signature_version=UNSIGNED)
             )
         else:
-            assumed_role_object = sts_client.assume_role(
-                RoleArn=self.credentials.role_arn,
-                RoleSessionName=task_id,
+            sts_client = boto3.client(
+                "sts",
+                aws_access_key_id=self.credentials.aws_access_key_id,
+                aws_secret_access_key=self.credentials.aws_secret_access_key,
             )
-        credentials = assumed_role_object["Credentials"]
-        s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=credentials["AccessKeyId"],
-            aws_secret_access_key=credentials["SecretAccessKey"],
-            aws_session_token=credentials["SessionToken"],
-        )
+            if self.credentials.external_id:
+                assumed_role_object = sts_client.assume_role(
+                    RoleArn=self.credentials.role_arn,
+                    RoleSessionName=task_id,
+                    ExternalId=self.credentials.external_id,
+                )
+            else:
+                assumed_role_object = sts_client.assume_role(
+                    RoleArn=self.credentials.role_arn,
+                    RoleSessionName=task_id,
+                )
+            credentials = assumed_role_object["Credentials"]
+            s3_client = boto3.client(
+                "s3",
+                aws_access_key_id=credentials["AccessKeyId"],
+                aws_secret_access_key=credentials["SecretAccessKey"],
+                aws_session_token=credentials["SessionToken"],
+            )
         return s3_client
 
     def _generate_dataset_from_s3(

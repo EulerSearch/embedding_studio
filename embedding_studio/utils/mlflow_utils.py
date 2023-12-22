@@ -1,4 +1,11 @@
+import logging
+from typing import Optional
+
 import mlflow
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_FINE_TUNING_METHOD_NAME = 'Default Fine Tuning Method'
 
 
 def get_experiment_id_by_name(experiment_name: str) -> str:
@@ -23,3 +30,26 @@ def get_run_id_by_name(experiment_id: str, run_name: str) -> str:
 
     # Return run_id if found, else return None
     return matching_runs.iloc[0]["run_id"] if not matching_runs.empty else None
+
+
+def get_mlflow_results_url(mlflow_url: str, batch_id: str) -> Optional[str]:
+    """Generate URL where to check results.
+
+    :param mlflow_url: MLFlow connection URL
+    :param batch_id: released batch ID
+    :return:
+    """
+    mlflow.set_tracking_uri(mlflow_url)
+    iteration_name = (
+        f"iteration / {DEFAULT_FINE_TUNING_METHOD_NAME} / {batch_id}"
+    )
+    experiment_ids = [
+        experiment.id
+        for experiment in mlflow.search_experiments()
+        if experiment.name.startswith(iteration_name)
+    ]
+    if len(experiment_ids) == 0:
+        logger.error(f"Can't find any experiments with name {iteration_name}")
+        return None
+
+    return experiment_ids[0]

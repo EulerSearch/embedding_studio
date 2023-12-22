@@ -15,6 +15,10 @@ from embedding_studio.core.config import settings
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
+from embedding_studio.utils.mlflow_utils import (
+    get_experiment_id_by_name,
+    get_run_id_by_name,
+)
 from embedding_studio.workers.fine_tuning.experiments.finetuning_iteration import (
     EXPERIMENT_PREFIX,
     FineTuningIteration,
@@ -25,10 +29,6 @@ from embedding_studio.workers.fine_tuning.experiments.finetuning_params import (
 from embedding_studio.workers.fine_tuning.experiments.metrics_accumulator import (
     MetricsAccumulator,
     MetricValue,
-)
-from embedding_studio.workers.fine_tuning.mlflow.utils import (
-    get_experiment_id_by_name,
-    get_run_id_by_name,
 )
 from embedding_studio.workers.fine_tuning.utils.config import (
     RetryConfig,
