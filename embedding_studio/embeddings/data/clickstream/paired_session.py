@@ -105,7 +105,8 @@ class PairedClickstreamDataset(Dataset):
     def __getitem__(
         self, idx
     ) -> Tuple[
-        Union[ClickstreamSession, Dict, None], Union[ClickstreamSession, Dict, None]
+        Union[ClickstreamSession, Dict, None],
+        Union[ClickstreamSession, Dict, None],
     ]:
         if len(self.irrelevant) == 0:
             return self.not_irrelevant[self.not_irrelevant_indexes[idx]], None

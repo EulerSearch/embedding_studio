@@ -24,6 +24,7 @@ class FineTuningTask(BaseModel):
     created_at: datetime = Field(default_factory=current_time)
     updated_at: datetime = Field(default_factory=current_time)
     batch_id: Optional[str] = None
+    best_model_url: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
     idempotency_key: Optional[uuid.UUID] = None
 

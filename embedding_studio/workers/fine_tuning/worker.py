@@ -91,6 +91,12 @@ def fine_tuning_worker(task_id: str):
             initial_max_evals=builder.initial_max_evals,
         )
 
+        best_model_url = builder.experiments_manager.get_last_model_url()
+        logger.info(
+            f"You can download best model using this url: {best_model_url}"
+        )
+        task.best_model_url = best_model_url
+
     except Exception:
         try:
             task.status = FineTuningStatus.error

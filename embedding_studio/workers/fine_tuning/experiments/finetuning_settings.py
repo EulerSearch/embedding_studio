@@ -1,4 +1,4 @@
-from typing import Callable, List, Union, Optional
+from typing import Callable, List, Optional, Union
 
 from pydantic import BaseModel
 from torch import FloatTensor

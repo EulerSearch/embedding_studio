@@ -1,6 +1,7 @@
 import logging
 import os
 import subprocess
+import urllib.parse
 from socket import setdefaulttimeout
 from typing import Dict, List, Optional, Tuple
 
@@ -8,7 +9,7 @@ import mlflow
 import numpy as np
 import pandas as pd
 from mlflow.entities import Experiment
-from mlflow.exceptions import RestException, MlflowException
+from mlflow.exceptions import MlflowException, RestException
 
 from embedding_studio.core.config import settings
 from embedding_studio.embeddings.models.interface import (
@@ -41,6 +42,8 @@ from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 INITIAL_EXPERIMENT_NAME: str = f"{EXPERIMENT_PREFIX} / initial"
 INITIAL_RUN_NAME: str = "initial_model"
 DEFAULT_TIMEOUT: int = 120000
+
+MODEL_ARTIFACT_PATH = "model/data/model.pth"
 
 # MLFlow upload models using urllib3, if model is heavy enough provided default timeout is not enough
 # That's why increase it here. TODO: check from time to time whether this issue is resolved by MLFlow
@@ -103,6 +106,7 @@ class ExperimentsManager:
                 f"MLFlow tracking URI value should be a not empty string"
             )
         mlflow.set_tracking_uri(tracking_uri)
+        self._tracking_uri = tracking_uri
 
         self.retry_config = (
             retry_config
@@ -210,6 +214,12 @@ class ExperimentsManager:
     def _get_model_exists_filter(self) -> str:
         return "params.model_uploaded = '1' AND params.model_deleted != '1'"
 
+    def _get_artifact_url(self, run_id: str, artifact_path: str) -> str:
+        return (
+            f"{self._tracking_uri}/get-artifact?path="
+            f'{urllib.parse.quote(artifact_path, safe="")}&run_uuid={run_id}'
+        )
+
     @retry_method(name="log_model")
     def upload_initial_model(self, model: EmbeddingsModelInterface):
         """Upload the very first, initial model to the mlflow server
@@ -219,14 +229,20 @@ class ExperimentsManager:
         self.finish_iteration()
         experiment_id = get_experiment_id_by_name(INITIAL_EXPERIMENT_NAME)
         if experiment_id is None:
-            logger.info(f"Can\'t find any active iteration with name: {INITIAL_EXPERIMENT_NAME}")
+            logger.info(
+                f"Can't find any active iteration with name: {INITIAL_EXPERIMENT_NAME}"
+            )
             try:
                 logger.info("Create initial experiment")
                 mlflow.create_experiment(INITIAL_EXPERIMENT_NAME)
             except MlflowException as e:
-                if 'Cannot set a deleted experiment' in str(e):
-                    logger.error(f"Creation of initial experiment is failed: experiment with the same name {INITIAL_EXPERIMENT_NAME} is deleted, but not archived")
-                    experiments = mlflow.search_experiments(view_type=mlflow.entities.ViewType.ALL)
+                if "Cannot set a deleted experiment" in str(e):
+                    logger.error(
+                        f"Creation of initial experiment is failed: experiment with the same name {INITIAL_EXPERIMENT_NAME} is deleted, but not archived"
+                    )
+                    experiments = mlflow.search_experiments(
+                        view_type=mlflow.entities.ViewType.ALL
+                    )
                     deleted_experiment_id = None
 
                     for exp in experiments:
@@ -234,13 +250,24 @@ class ExperimentsManager:
                             deleted_experiment_id = exp.experiment_id
                             break
 
-                    logger.info(f'Restore deleted experiment with the same name: {INITIAL_EXPERIMENT_NAME}')
-                    mlflow.tracking.MlflowClient().restore_experiment(deleted_experiment_id)
-                    logger.info(f'Archive deleted experiment with the same name: {INITIAL_EXPERIMENT_NAME}')
-                    mlflow.tracking.MlflowClient().rename_experiment(deleted_experiment_id, INITIAL_EXPERIMENT_NAME + '_archive')
-                    logger.info(f'Delete archived experiment with the same name: {INITIAL_EXPERIMENT_NAME}')
+                    logger.info(
+                        f"Restore deleted experiment with the same name: {INITIAL_EXPERIMENT_NAME}"
+                    )
+                    mlflow.tracking.MlflowClient().restore_experiment(
+                        deleted_experiment_id
+                    )
+                    logger.info(
+                        f"Archive deleted experiment with the same name: {INITIAL_EXPERIMENT_NAME}"
+                    )
+                    mlflow.tracking.MlflowClient().rename_experiment(
+                        deleted_experiment_id,
+                        INITIAL_EXPERIMENT_NAME + "_archive",
+                    )
+                    logger.info(
+                        f"Delete archived experiment with the same name: {INITIAL_EXPERIMENT_NAME}"
+                    )
                     mlflow.delete_experiment(deleted_experiment_id)
-                    logger.info(f'Create initial experiment')
+                    logger.info(f"Create initial experiment")
                     mlflow.create_experiment(INITIAL_EXPERIMENT_NAME)
                 else:
                     raise e
@@ -323,26 +350,53 @@ class ExperimentsManager:
 
             return [FineTuningParams(**row) for row in top_n_rows]
 
+    def _get_best_previous_run_id(self) -> Tuple[Optional[str], bool]:
+        initial_id: Optional[str] = get_experiment_id_by_name(
+            INITIAL_EXPERIMENT_NAME
+        )
+        last_session_id: Optional[str] = self.get_previous_iteration_id()
+        if initial_id == last_session_id or last_session_id is None:
+            return None, False
+        else:
+            run_id, _ = self._get_best_quality(last_session_id)
+            return run_id, True
+
+    @retry_method(name="load_model")
+    def get_last_model_url(self) -> Optional[str]:
+        run_id, is_initial = self._get_best_previous_run_id()
+        if is_initial:
+            logger.warning(
+                "Can't get the best model URL, no previous iteration in history"
+            )
+            return None
+        else:
+            if run_id is None:
+                logger.warning(
+                    "Can't get the best model URL, no previous iteration's "
+                    "finished runs with uploaded model in history"
+                )
+                return None
+            path = MODEL_ARTIFACT_PATH
+            return self._get_artifact_url(run_id, path)
+
     @retry_method(name="load_model")
     def get_last_model(self) -> EmbeddingsModelInterface:
         """Get previous iteration best embedding model.
 
         :return: best embedding model
         """
-        initial_id: Optional[str] = get_experiment_id_by_name(
-            INITIAL_EXPERIMENT_NAME
-        )
-        last_session_id: Optional[str] = self.get_previous_iteration_id()
-        if initial_id == last_session_id or last_session_id is None:
+        run_id, is_initial = self._get_best_previous_run_id()
+        if is_initial:
             logger.warning(
                 "Download initial model, no previous iteration in history"
             )
             return self.download_initial_model()
+
         else:
-            run_id, _ = self._get_best_quality(last_session_id)
             if run_id is None:
                 logger.warning(
-                    "Download initial model, no previous iteration's finished runs with uploaded model in history"
+                    "Download initial model, no previous iteration's "
+                    "finished runs with uploaded model in history"
                 )
                 return self.download_initial_model()
             else:
@@ -390,7 +444,9 @@ class ExperimentsManager:
             logger.info(
                 f"Iteration with ID {experiment_id} is going to be deleted"
             )
-            mlflow.tracking.MlflowClient().rename_experiment(experiment_id, INITIAL_EXPERIMENT_NAME + '_archive')
+            mlflow.tracking.MlflowClient().rename_experiment(
+                experiment_id, INITIAL_EXPERIMENT_NAME + "_archive"
+            )
             mlflow.delete_experiment(experiment_id)
         else:
             logger.warning(
