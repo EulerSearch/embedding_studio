@@ -1,7 +1,6 @@
-# This is the first stage, it is named requirements-stage.
-FROM python:3.9 as requirements-stage
+FROM python:3.9
 
-# Set /tmp as the current working directory.
+# Set the working directory
 WORKDIR /tmp
 
 # Install Poetry in this Docker stage.
@@ -11,19 +10,16 @@ RUN pip install poetry
 COPY ./pyproject.toml ./poetry.lock* /tmp/
 
 # Generate the requirements.txt file.
-RUN poetry export --without ml,dev -f requirements.txt --output requirements.txt --without-hashes
-
-# This is the final stage, anything here will be preserved in the final container image.
-FROM python:3.9
+RUN poetry export --without dev --with ml -f requirements.txt --output requirements.txt --without-hashes
 
 # Set the working directory
 WORKDIR /embedding_studio
 
 # Copy the requirements.txt file to the /embedding_studio directory.
-COPY --from=requirements-stage /tmp/requirements.txt /embedding_studio/requirements.txt
+RUN cp -r /tmp/requirements.txt /embedding_studio/requirements.txt
 
 # Install the package dependencies in the requirements file.
-RUN pip install --no-cache-dir --upgrade -r /embedding_studio/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 # Copy the application directory inside the /code directory.
 COPY . /embedding_studio

@@ -61,15 +61,6 @@ def get_fine_tuning_task(
     :param id: ID of the task.
     :return: Task details.
     """
-    """
-    Get details of a specific fine-tuning task.
-
-    Args:
-        id: str - ID of the task.
-
-    Returns:
-        FineTuningTaskResponse - Task details.
-    """
     logger.debug(f"GET /task/{id}")
     task = context.fine_tuning_task.get(id)
     if task is not None:

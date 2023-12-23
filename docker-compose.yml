@@ -8,11 +8,16 @@ services:
     restart: always
     ports:
       - '5000:5000'
+    env_file:
+      - .env
     depends_on:
       mongo:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+        - internal
+        - public
     healthcheck:
       test: curl --fail http://localhost:5000/api/v1/ping || exit 1
       interval: 10s
@@ -25,19 +30,27 @@ services:
       context: .
       dockerfile: worker.fine_tuning.Dockerfile
     restart: always
+    env_file:
+      - .env
     depends_on:
       mongo:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+        - internal
+        - public
 
   redis:
     image: redis:6.2-alpine
     restart: always
-    environment:
-      - REDIS_PASSWORD=redispassword
     ports:
       - '6379:6379'
+    env_file:
+      - .env
+    networks:
+        - internal
+        - public
     healthcheck:
       test: redis-cli ping
       interval: 10s
@@ -47,12 +60,14 @@ services:
   mongo:
     image: mongo:4
     restart: always
-    environment:
-      - MONGO_INITDB_DATABASE=emdegginstudio
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=mongopassword
     ports:
       - '27017:27017'
+    environment:
+      - MONGO_INITDB_DATABASE=${FINETUNING_MONGO_DB_NAME}
+      - MONGO_INITDB_ROOT_USERNAME=${FINETUNING_MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${FINETUNING_MONGO_PASSWORD}
+    networks:
+        - internal
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongo mongo:27017/test --quiet
       interval: 10s
@@ -60,19 +75,115 @@ services:
       retries: 5
       start_period: 40s
 
-
   minio:
-    image: docker.io/bitnami/minio:2022
+    image: docker.io/bitnami/minio:2023
     restart: always
     ports:
       - '9000:9000'
       - '9001:9001'
     environment:
-      - MINIO_ROOT_USER=root
-      - MINIO_ROOT_PASSWORD=miniopassword
-      - MINIO_DEFAULT_BUCKETS=embeddingstudio
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_DEFAULT_BUCKETS=${MINIO_DEFAULT_BUCKETS}
+    networks:
+        - internal
+        - public
     healthcheck:
-      test: curl -f http://localhost:9000/minio/health/live"
+      test: curl -f http://localhost:9000/minio/health/live
       interval: 30s
       timeout: 20s
       retries: 3
+
+  mlflow_db:
+    image: mysql/mysql-server:5.7.28
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    networks:
+        - internal
+
+  mlflow:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM ghcr.io/mlflow/mlflow:v2.7.1
+        RUN pip install mlflow boto3 pymysql
+        ADD . /app
+        WORKDIR /app
+    restart: always
+    ports:
+      - "5001:5001"
+    environment:
+      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      - MLFLOW_S3_ENDPOINT_URL=http://${MINIO_HOST}:${MINIO_PORT}
+      - MLFLOW_TRACKING_URI=http://${MLFLOW_HOST}:${MLFLOW_PORT}
+      - MLFLOW_ARTIFACT_UPLOAD_DOWNLOAD_TIMEOUT=600000
+    networks:
+        - internal
+        - public
+    entrypoint: | 
+      mlflow server --backend-store-uri 
+      mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE} 
+      --default-artifact-root mlflow-artifacts:/ --artifacts-destination s3://${MINIO_DEFAULT_BUCKETS}/ -h 0.0.0.0 
+      --port 5001 --gunicorn-opts="--timeout 6000000"
+    depends_on:
+      wait-for-mlflow-db:
+        condition: service_completed_successfully
+
+  wait-for-mlflow-db:
+    image: atkrad/wait4x
+    depends_on:
+      - mlflow_db
+    networks:
+        - internal
+    command: tcp ${MYSQL_HOST}:${MYSQL_PORT} -t 90s -i 250ms
+
+  clickstream_emulator:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM python:3.9
+        RUN pip install requests boto3 tqdm
+        COPY ./examples/demo/ /app
+        WORKDIR /app
+        CMD ["python", "clickstream_emulator.py"]
+    environment:
+      - ES_URL=http://embedding_studio:5000
+    depends_on:
+      embedding_studio:
+        condition: service_healthy
+    networks:
+        - internal
+    profiles:
+      - demo_stage_clickstream
+
+  fine_tuning_emulator:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM python:3.9
+        RUN pip install requests
+        COPY ./examples/demo/ /app
+        WORKDIR /app
+        CMD ["python", "fine_tuning_emulator.py"]
+    environment:
+      - ES_URL=http://embedding_studio:5000
+      - MLFLOW_TRACKING_URI=http://mlflow:5001
+    depends_on:
+      embedding_studio:
+        condition: service_healthy
+    networks:
+        - internal
+    profiles:
+      - demo_stage_finetuning
+
+networks:
+  internal:
+  public:
+    driver: bridge

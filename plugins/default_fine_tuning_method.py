@@ -1,5 +1,8 @@
 from typing import List
 
+from sentence_transformers import SentenceTransformer
+
+from embedding_studio.core.config import settings
 from embedding_studio.core.plugin import FineTuningMethod
 from embedding_studio.embeddings.data.clickstream.parsers.s3_parser import (
     AWSS3ClickstreamParser,
@@ -29,6 +32,9 @@ from embedding_studio.embeddings.data.utils.fields_normalizer import (
 from embedding_studio.embeddings.losses.prob_cosine_margin_ranking_loss import (
     CosineProbMarginRankingLoss,
 )
+from embedding_studio.embeddings.models.text_to_image.clip import (
+    TextToImageCLIPModel,
+)
 from embedding_studio.models.clickstream.sessions import SessionWithEvents
 from embedding_studio.models.plugin import FineTuningBuilder, PluginMeta
 from embedding_studio.workers.fine_tuning.data.prepare_data import prepare_data
@@ -54,9 +60,16 @@ class DefaultFineTuningMethod(FineTuningMethod):
     )
 
     def __init__(self):
+        # uncomment and pass your credentials to use your own s3 bucket
+        # creds = {
+        #     "role_arn": "arn:aws:iam::123456789012:role/some_data"
+        #     "aws_access_key_id": "TESTACCESSKEIDTEST11",
+        #     "aws_secret_access_key": "QWERTY1232qdsadfasfg5349BBdf30ekp23odk03",
+        # }
+        # self.data_loader = AWSS3DataLoader(**creds)
+
+        # with empty creds, use anonymous session
         creds = {
-            "aws_access_key_id": "short_key",
-            "aws_secret_access_key": "long_key",
         }
         self.data_loader = AWSS3DataLoader(**creds)
 
@@ -82,7 +95,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
         ]
 
         self.manager = ExperimentsManager(
-            tracking_uri="http://mlflow.embeddingstud.io/",
+            tracking_uri=settings.MLFLOW_TRACKING_URI,
             main_metric="test_not_irrelevant_dist_shift",
             accumulators=self.accumulators,
         )
@@ -109,7 +122,13 @@ class DefaultFineTuningMethod(FineTuningMethod):
             num_epochs=3,
         )
 
-    def get_fine_tuning_builder(self, clickstream: List[SessionWithEvents]) -> FineTuningBuilder:
+    def upload_initial_model(self) -> None:
+        model = TextToImageCLIPModel(SentenceTransformer("clip-ViT-B-32"))
+        self.manager.upload_initial_model(model)
+
+    def get_fine_tuning_builder(
+        self, clickstream: List[SessionWithEvents]
+    ) -> FineTuningBuilder:
         ranking_dataset = prepare_data(
             clickstream,
             self.parser,
@@ -130,5 +149,6 @@ class DefaultFineTuningMethod(FineTuningMethod):
             fine_tuning_settings=self.settings,
             initial_params=self.initial_params,
             ranking_data=ranking_dataset,
+            initial_max_evals=5,
         )
         return fine_tuning_builder

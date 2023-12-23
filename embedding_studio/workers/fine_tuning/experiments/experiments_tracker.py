@@ -141,6 +141,11 @@ class ExperimentsManager:
         self._run_params = None
         self._run_id = None
 
+    def _check_artifact_exists(self, run_id, artifact_path):
+        client = mlflow.MlflowClient()
+        artifacts = client.list_artifacts(run_id, path=artifact_path)
+        return any(artifact.path == artifact_path for artifact in artifacts)
+
     @staticmethod
     def _get_default_retry_config() -> RetryConfig:
         default_retry_params = RetryParams(
@@ -279,6 +284,16 @@ class ExperimentsManager:
             logger.info(
                 f"Upload initial model to {INITIAL_EXPERIMENT_NAME} / {INITIAL_RUN_NAME}"
             )
+            if self._check_artifact_exists(
+                get_run_id_by_name(
+                    get_experiment_id_by_name(INITIAL_EXPERIMENT_NAME),
+                    INITIAL_RUN_NAME,
+                ),
+                "model",
+            ):
+                logger.info("Model is already uploaded")
+                return
+
             mlflow.pytorch.log_model(
                 model, "model", pip_requirements=self._requirements
             )

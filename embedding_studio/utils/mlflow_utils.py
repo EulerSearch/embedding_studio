@@ -5,7 +5,7 @@ import mlflow
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_FINE_TUNING_METHOD_NAME = 'Default Fine Tuning Method'
+DEFAULT_FINE_TUNING_METHOD_NAME = "Default Fine Tuning Method"
 
 
 def get_experiment_id_by_name(experiment_name: str) -> str:

@@ -1,18 +1,3 @@
-# This is the first stage, it is named requirements-stage.
-FROM python:3.9 as requirements-stage
-
-# Set /tmp as the current working directory.
-WORKDIR /tmp
-
-# Install Poetry in this Docker stage.
-RUN pip install poetry
-
-# Copy the pyproject.toml and poetry.lock files to the /tmp directory.
-COPY ./pyproject.toml ./poetry.lock* /tmp/
-
-# Generate the requirements.txt file.
-RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
-
 # Use nvidia cuda as base image
 FROM nvidia/cuda:11.7.1-base-ubuntu20.04
 
@@ -38,17 +23,29 @@ RUN apt-get update && apt-get install -y \
 # Upgrade pip to the latest version
 RUN python3.9 -m pip install --upgrade pip
 
+# Set /tmp as the current working directory.
+WORKDIR /tmp
+
+# Install Poetry in this Docker stage.
+RUN pip install poetry
+
+# Copy the pyproject.toml and poetry.lock files to the /tmp directory.
+COPY ./pyproject.toml ./poetry.lock* /tmp/
+
+# Generate the requirements.txt file.
+RUN poetry export --with ml -f requirements.txt --output requirements.txt --without-hashes
+
 # Set the working directory
 WORKDIR /embedding_studio
 
 # Copy the requirements.txt file to the /embedding_studio directory.
-COPY --from=requirements-stage /tmp/requirements.txt /embedding_studio/requirements.txt
+RUN cp -r /tmp/requirements.txt /embedding_studio/requirements.txt
 
 # Install the package dependencies in the requirements file.
-RUN pip3 install --no-cache-dir --upgrade -r /embedding_studio/requirements.txt
+RUN pip3 install --no-cache-dir --upgrade -r requirements.txt
 
 # Copy the application directory inside the /code directory.
 COPY . /embedding_studio
 
 # Set the command to run the uvicorn server.
-CMD ["dramatiq", "embedding_studio.workers.fine_tuning", "--processes", "1", "--threads", "1"]
+CMD ["dramatiq", "embedding_studio.workers.fine_tuning.worker", "--processes", "1", "--threads", "1"]

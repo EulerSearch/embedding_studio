@@ -16,6 +16,17 @@ class FineTuningMethod(ABC):
     meta: PluginMeta
 
     @abstractmethod
+    def upload_initial_model(self) -> None:
+        """Upload the initial model to the storage.
+
+        Method that should be implemented by subclasses to upload the
+        initial model to the storage.
+        """
+        raise NotImplementedError(
+            "Subclasses must implement upload_initial_model"
+        )
+
+    @abstractmethod
     def get_fine_tuning_builder(
         self, clickstream: List[SessionWithEvents]
     ) -> FineTuningBuilder:

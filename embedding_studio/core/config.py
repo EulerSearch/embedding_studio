@@ -19,9 +19,7 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
 
     # MongoDB
-    FINETUNING_MONGO_HOST: str = os.getenv(
-        "FINETUNING_MONGO_HOST", "localhost"
-    )
+    FINETUNING_MONGO_HOST: str = os.getenv("FINETUNING_MONGO_HOST", "mongo")
     FINETUNING_MONGO_PORT: int = os.getenv("FINETUNING_MONGO_PORT", 27017)
     FINETUNING_MONGO_DB_NAME: str = os.getenv(
         "FINETUNING_MONGO_DB_NAME", "embedding_studio"
@@ -38,9 +36,7 @@ class Settings(BaseSettings):
         f"{FINETUNING_MONGO_HOST}:{FINETUNING_MONGO_PORT}"
     )
 
-    CLICKSTREAM_MONGO_HOST: str = os.getenv(
-        "CLICKSTREAM_MONGO_HOST", "localhost"
-    )
+    CLICKSTREAM_MONGO_HOST: str = os.getenv("CLICKSTREAM_MONGO_HOST", "mongo")
     CLICKSTREAM_MONGO_PORT: int = os.getenv("CLICKSTREAM_MONGO_PORT", 27017)
     CLICKSTREAM_MONGO_DB_NAME: str = os.getenv(
         "CLICKSTREAM_MONGO_DB_NAME", "embedding_studio"
@@ -60,16 +56,40 @@ class Settings(BaseSettings):
     # Redis (broker for dramatiq)
     REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
     REDIS_PORT: int = os.getenv("REDIS_PORT", 6379)
+    REDIS_PASSWORD: str = os.getenv("REDIS_PASSWORD", "redispassword")
     REDIS_URL: str = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
 
-    # S3
-    S3_HOST: str = os.getenv("S3_HOST", "localhost")
-    S3_PORT: int = os.getenv("S3_PORT", 9000)
-    S3_ACCESS_KEY_ID: str = os.getenv("S3_ACCESS_KEY_ID", "root")
-    S3_SECRET_ACCESS_KEY: str = os.getenv(
-        "S3_SECRET_ACCESS_KEY", "miniopassword"
+    # minio
+    MINIO_HOST: str = os.getenv("MINIO_HOST", "localhost")
+    MINIO_PORT: int = os.getenv("MINIO_PORT", 9000)
+    MINIO_ROOT_USER: str = os.getenv("MINIO_ROOT_USER", "root")
+    MINIO_ROOT_PASSWORD: str = os.getenv(
+        "MINIO_ROOT_PASSWORD", "miniopassword"
     )
-    S3_BUCKET: str = os.getenv("S3_BUCKET", "embeddingstudio_bucket")
+    MINIO_DEFAULT_BUCKETS: str = os.getenv(
+        "MINIO_DEFAULT_BUCKETS", "embeddingstudio"
+    )
+    MINIO_ACCESS_KEY: str = os.getenv(
+        "MINIO_ACCESS_KEY", "mtGNiEvoTL6C0EXAMPLE"
+    )
+    MINIO_SECRET_KEY: str = os.getenv(
+        "MINIO_SECRET_KEY", "HY5JserXAaWmphNyCpQPEXAMPLEKEYEXAMPLEKEY"
+    )
+
+    # mysql (for mlflow)
+    MYSQL_HOST: str = os.getenv("MYSQL_HOST", "localhost")
+    MYSQL_PORT: int = os.getenv("MYSQL_PORT", 3306)
+    MYSQL_DATABASE: str = os.getenv("MYSQL_DATABASE", "mlflow")
+    MYSQL_USER: str = os.getenv("MYSQL_USER", "mlflow_user")
+    MYSQL_PASSWORD: str = os.getenv("MYSQL_PASSWORD", "Baxp3O5rUvpIxiD77BfZ")
+    MYSQL_ROOT_PASSWORD: str = os.getenv(
+        "MYSQL_ROOT_PASSWORD", "PrK5qmPTDsm2IYKvHVG8"
+    )
+
+    # mlflow
+    MLFLOW_HOST: str = os.getenv("MLFLOW_HOST", "localhost")
+    MLFLOW_PORT: int = os.getenv("MLFLOW_PORT", 5001)
+    MLFLOW_TRACKING_URI: str = f"http://{MLFLOW_HOST}:{MLFLOW_PORT}"
 
     # Plugins
     ES_PLUGINS_PATH: str = os.getenv("ES_PLUGINS_PATH", "plugins")

@@ -37,7 +37,7 @@ def fine_tuning_worker(task_id: str):
 
     :param task_id: The ID of the fine-tuning task.
     """
-    logger.info(f"start fine_tuning_worker: task_id={task_id}")
+    logger.info(f"Start fine-tuning worker with task ID `{task_id}`")
 
     task = context.fine_tuning_task.get(id=task_id)
     if not task:
@@ -49,7 +49,7 @@ def fine_tuning_worker(task_id: str):
 
         if not task.batch_id:
             release_id = uuid.uuid4()
-            logger.info(f"create release with ID `{release_id}`")
+            logger.info(f"Release batch with ID `{release_id}`")
             session_batch = context.clickstream_dao.release_batch(
                 release_id=str(release_id)
             )
@@ -73,14 +73,21 @@ def fine_tuning_worker(task_id: str):
                 f"Fine tuning plugin with name `{task.fine_tuning_method}` "
                 f"not found"
             )
+        logger.info(f"Upload initial model...")
+        fine_tuning_plugin.upload_initial_model()
+        logger.info(f"Upload initial model... OK")
+
+        logger.info("Create fine-tuning builder...")
         builder = fine_tuning_plugin.get_fine_tuning_builder(
             clickstream=clickstream
         )
+        logger.info("Create fine-tuning builder... OK")
+
         iteration = FineTuningIteration(
             batch_id=task.batch_id,
             plugin_name=task.fine_tuning_method,
         )
-        logger.info("start finetune_embedding_model")
+        logger.info("Start fine-tuning the embedding model...")
         finetune_embedding_model(
             iteration=iteration,
             settings=builder.fine_tuning_settings,
@@ -89,6 +96,9 @@ def fine_tuning_worker(task_id: str):
             tracker=builder.experiments_manager,
             initial_params=builder.initial_params,
             initial_max_evals=builder.initial_max_evals,
+        )
+        logger.info(
+            "Fine tuning of the embedding model was completed successfully!"
         )
 
         best_model_url = builder.experiments_manager.get_last_model_url()
