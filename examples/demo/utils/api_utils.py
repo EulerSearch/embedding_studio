@@ -4,7 +4,7 @@ from typing import Optional
 
 import requests
 
-from .constants import DEFAULT_FINE_TUNING_METHOD_NAME
+from demo.utils.constants import DEFAULT_FINE_TUNING_METHOD_NAME
 
 # TODO: Implement separate Python API Client
 
@@ -75,7 +75,7 @@ def create_session_and_push_events(
 
     elif len(events) > 0:
         events_resp = requests.post(
-            f"{connection_url}/api/v1/clickstream/push_events",
+            f"{connection_url}/api/v1/clickstream/session/events",
             json={"session_id": session_id, "events": events},
         )
 

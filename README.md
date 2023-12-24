@@ -3,6 +3,7 @@
 [![version](https://img.shields.io/badge/version-0.0.1-orange.svg)]()
 [![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-360/)
 ![CUDA 11.7.1](https://img.shields.io/badge/CUDA-11.7.1-green.svg)
+![Docker Compose Version](https://img.shields.io/badge/docker--compose-2.17.0-blue.svg)
 
 EmbeddingStudio is an innovative open-source framework designed to seamlessly convert a combined
 "Embedding Model + Vector DB" into a comprehensive search engine. With built-in functionalities for
@@ -31,17 +32,38 @@ EmbeddingStudio is highly customizable, so you can bring your own:
 
 ## Getting Started
 
+### Requirements
+
+* 🖥️ Nvidia GPU with 8GB+ of VRAM
+* 💾 10GB+ of RAM
+* 💽 75GB+ of free disk space
+* 🔥 CUDA 11.7.1
+* 🐍 Python 3.9
+* 🐳 docker-compose 2.17.0
+
+The most suitable EC2 instance is [us-west-2: g3s.xlarge](https://instances.vantage.sh/aws/ec2/g3s.xlarge?region=us-west-2&selected=c4.2xlarge%2Cp2.xlarge%2Cg5.2xlarge%2Cg5.16xlarge&os=linux&cost_duration=hourly&reserved_term=Standard.noUpfront).
+
 ### Hello, Unstructured World!
 
 To try out EmbeddingStudio, you can launch the pre-configured demonstration project. We've prepared a dataset stored in
 a public S3 bucket, an emulator for user clicks, and a basic script for fine-tuning the model. By adapting it to your
 requirements, you can initiate fine-tuning for your model.
 
+
+Ensure that you have the `docker compose version` command working on your system:
+```bash
+Docker Compose version v2.23.3
+```
+You can also try the docker-compose version command. Moving forward, we will use the newer docker compose version command, 
+but the docker-compose version command may also work successfully on your system.
+
 Firstly, bring up all the EmbeddingStudio services by executing the following command:
 
 ```shell
 docker compose up -d
 ```
+
+Warning: EmbeddingStudio is run upon docker-compose v2.17.0, installation manual you can find [here](https://docs.docker.com/compose/install/linux/). 
 
 Upon building and starting, the following services will be launched:
 
@@ -169,6 +191,29 @@ Epoch 2: 100%|██████████| 13/13 [01:17<00:00,  0.17it/s, v_n
 
 **Congratulations! You've successfully improved the model!**
 
+#### How to get best model
+
+To download the best model you can use EmbeddingStudio API:
+```bash
+curl -X GET http://localhost:5000/api/v1/fine-tuning/task/65844c019fa7cf0957d04758
+```
+
+If everything is Ok, you will see following output:
+```json
+{
+  "fine_tuning_method": "Default Fine Tuning Method", 
+  "status": "done", 
+  "best_model_url": "http://localhost:5001/get-artifact?path=model%2Fdata%2Fmodel.pth&run_uuid=571304f0c330448aa8cbce831944cfdd", 
+  ...
+}
+```
+And `best_model_url` field contains HTTP accessible `model.pth` file.
+
+You can download *.pth file by executing following command:
+```bash
+wget http://localhost:5001/get-artifact?path=model%2Fdata%2Fmodel.pth&run_uuid=571304f0c330448aa8cbce831944cfdd
+```
+
 ### Advanced
 
 While we've successfully run the demo project, you'll likely want to run EmbeddingStudio on your own model. For this,
@@ -253,7 +298,6 @@ To do this, you need to build an image with your plugin and start the worker. Yo
 ```shell
 docker compose build --no-cache fine_tuning_worker
 ```
-
 and
 
 ```shell
@@ -529,6 +573,133 @@ and ordering of items within user sessions.
   scientists
   in optimizing their models for better performance in real-world scenarios.
 
+## Iteration emulator
+
+In the section [Hello, unstructured World!](#hello-unstructured-world-) there are two simple emulation steps, 
+just to test that EmbeddingStudio is build and running well. But you also can test EmbeddingStudio on 
+an emulated dataset to check algorithmic correctness. We separated these emulations, because of time limitations.
+
+Worth to mention: by running a full iteration emulator, initial stage of fine-tuning can take hours. 
+
+### What's the difference with [Hello, unstructured World!](#hello-unstructured-world-)
+
+Section [Hello, unstructured World!](#hello-unstructured-world-) serves a purpose of a simple and quick demo, 
+just to check that everything is running ok. The very next step is to actually check 
+whether the service can really improve embedding model. Actual fine-tuning step, especially initial stage is quite long 
+and can take hours.
+
+### What does `emulation` mean here
+
+It's all simple:
+1. We picked the easiest domain and the easiest dataset ([Remote landscapes](https://huggingface.co/datasets/EmbeddingStudio/merged_remote_landscapes_v1)),
+so we definitely can show positive results in the demo;
+2. We generated related text queries using GPT3.5;
+3. And for each generated text query we emulated search sessions and user clicks (with some probability of a mistake);
+4. All data we put into public to read AWS S3 bucket;
+
+More about actual emulation you can [find here](./examples/demo/iteration_emulator.py).
+
+### Emulated data
+
+#### Dataset
+
+As I mentioned before for the demo we use **the easiest domain and dataset as we can**
+- a merged version of following datasets: *torchgeo/ucmerced*, *NWPU-RESISC45*.
+
+This is a union of categories from original datasets: *agricultural, airplane, airport, baseball diamond, basketball
+court,
+beach, bridge, buildings, chaparral, church, circular farmland, cloud, commercial area, desert, forest, freeway, golf
+course,
+ground track field, harbor, industrial area, intersection, island, lake, meadow, mountain, overpass, palace, parking
+lot,
+railway, railway station, rectangular farmland, residential, river, roundabout, runway, sea ice, ship, snowberg,
+stadium,
+storage tanks, tennis court, terrace, thermal power station, wetland*.
+
+More information available on our [HuggingFace page](https://huggingface.co/datasets/EmbeddingStudio/merged_remote_landscapes_v1).
+
+Warning: Synonymous and ambiguous categories were combined (see "Merge method").
+
+For being easily used for the demo we put all items of this dataset into public for reading AWS S3 Bucket:
+* Region name: us-west-2
+* Bucket name: embedding-studio-experiments
+* Path to items: remote-lanscapes/items/
+
+#### Clickstream
+
+We pre-generated a batch of clickstream sessions. To check the algorithm of generation, 
+please visit our [experiments repo](https://github.com/EulerSearch/embedding_studio_experiments/blob/main).
+
+Briefly, the generation method is:
+1. For each category were generated up to 20 queries using GPT-3.5.
+2. Using VIT-B-32 OpenAI CLIP, and Faiss.FlatIndexIP for each query were emulated search sessions.
+3. And then for each search session out of each positive (related to a category of a given query) we pick random set 
+as clicks with some probability of a mistake.
+
+Params of emulation:
+* A count of search results;
+* A range of random picked positives;
+* A probability of a mistake;
+
+
+We put the result of generation into the public reading-available S3 repository:
+* Region name: us-west-2
+* Bucket name: embedding-studio-experiments
+* Path to items: remote-lanscapes/clickstream
+* A result of generation with different conditions were packed into different folders
+* Generation params are available by path: remote-lanscapes/clickstream/{generation-id}/conditions.json
+* Generated clickstreams are available by path: remote-lanscapes/clickstream/{generation-id}/sessions.json
+
+### How to start
+
+Once you've started EmbeddingStudio locally by executing:
+```shell
+docker compose up -d 
+```
+
+To run full iteration you can execute following command:
+```shell
+docker compose --profile demo_stage_full_iteration up -d
+```
+
+It's also beneficial to check the logs of the `fine_tuning_worker` to ensure everything is functioning correctly. To do 
+this, list all services using the command:
+
+```shell
+docker ps
+```
+
+You'll see output similar to:
+```shell
+CONTAINER ID   IMAGE                                         COMMAND                  CREATED          STATUS                 PORTS                               NAMES
+ad3a8321e637   embedding_studio-iteration_emulator           "python demo/iterati…"   25 seconds ago   Up 1 second                                                embedding_studio-iteration_emulator-1
+665eef2e757d   embedding_studio-mlflow                       "mlflow server --bac…"   3 hours ago      Up 3 hours             0.0.0.0:5001->5001/tcp              embedding_studio-mlflow-1
+65043da928d4   embedding_studio-fine_tuning_worker           "dramatiq embedding_…"   3 hours ago      Up 3 hours                                                 embedding_studio-fine_tuning_worker-1
+c930d9ca07c0   embedding_studio-embedding_studio             "uvicorn embedding_s…"   3 hours ago      Up 3 hours (healthy)   0.0.0.0:5000->5000/tcp              embedding_studio-embedding_studio-1
+5e799aaaf17b   redis:6.2-alpine                              "docker-entrypoint.s…"   3 hours ago      Up 3 hours (healthy)   0.0.0.0:6379->6379/tcp              embedding_studio-redis-1
+ba608b022828   bitnami/minio:2023                            "/opt/bitnami/script…"   3 hours ago      Up 3 hours (healthy)   0.0.0.0:9000-9001->9000-9001/tcp    embedding_studio-minio-1
+914cb70ed622   mysql/mysql-server:5.7.28                     "/entrypoint.sh mysq…"   3 hours ago      Up 3 hours (healthy)   0.0.0.0:3306->3306/tcp, 33060/tcp   embedding_studio-mlflow_db-1
+493c45f880c0   mongo:4                                       "docker-entrypoint.s…"   3 hours ago      Up 3 hours (healthy)   0.0.0.0:27017->27017/tcp            embedding_studio-mongo-1
+```
+
+From here, you can access logs for the specific service using its `CONTAINER ID` or `NAME`, e.g., `65043da928d4` or 
+`embedding_studio-fine_tuning_worker-1`, for details check [here](#hello-unstructured-world-).
+
+You can check emulator log by executing:
+```shell
+docker logs embedding_studio-iteration_emulator-1
+```
+
+If everything completes successfully, you'll see logs similar to:
+
+```shell
+Download emulated clickstream sessions from S3 Bucket: embedding-studio-experiments by path remote-lanscapes/clickstream/f6816566-cac3-46ac-b5e4-0d5b76757c93/sessions.json
+No specific AWS credentials, use Anonymous session
+Downloaded 683 emulated clickstream sessions
+Use 600 of 683 for emulation
+100%|██████████| 600/600 [00:05<00:00, 119.88it/s]
+```
+
 ## Plugins
 
 EmbeddingStudio supports plugins for fine-tuning models. A plugin is a script that inherits from the
@@ -662,7 +833,7 @@ def get_fine_tuning_builder(
         fine_tuning_settings=self.settings,
         initial_params=self.initial_params,
         ranking_data=ranking_dataset,
-        initial_max_evals=5,
+        initial_max_evals=2,
     )
     return fine_tuning_builder
 ```

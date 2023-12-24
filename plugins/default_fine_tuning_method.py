@@ -149,6 +149,6 @@ class DefaultFineTuningMethod(FineTuningMethod):
             fine_tuning_settings=self.settings,
             initial_params=self.initial_params,
             ranking_data=ranking_dataset,
-            initial_max_evals=5,
+            initial_max_evals=2,
         )
         return fine_tuning_builder

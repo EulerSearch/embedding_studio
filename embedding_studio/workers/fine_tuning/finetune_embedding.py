@@ -136,7 +136,7 @@ def finetune_embedding_model(
                 logger.info(
                     f"Start hyper parameters optimization process (max evals: {initial_max_evals})"
                 )
-                best = fmin(
+                _ = fmin(
                     lambda params: _finetune_embedding_model_one_step_hyperopt(
                         initial_model_path,
                         settings,

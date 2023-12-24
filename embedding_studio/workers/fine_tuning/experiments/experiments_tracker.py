@@ -107,6 +107,8 @@ class ExperimentsManager:
             )
         mlflow.set_tracking_uri(tracking_uri)
         self._tracking_uri = tracking_uri
+        if self._tracking_uri.endswith("/"):
+            self._tracking_uri = self._tracking_uri[:-1]
 
         self.retry_config = (
             retry_config
@@ -217,7 +219,7 @@ class ExperimentsManager:
         return False
 
     def _get_model_exists_filter(self) -> str:
-        return "params.model_uploaded = '1' AND params.model_deleted != '1'"
+        return "metrics.model_uploaded = 1"
 
     def _get_artifact_url(self, run_id: str, artifact_path: str) -> str:
         return (
@@ -371,10 +373,23 @@ class ExperimentsManager:
         )
         last_session_id: Optional[str] = self.get_previous_iteration_id()
         if initial_id == last_session_id or last_session_id is None:
-            return None, False
+            return None, True
         else:
             run_id, _ = self._get_best_quality(last_session_id)
-            return run_id, True
+            return run_id, False
+
+    def _get_best_current_run_id(self) -> Tuple[Optional[str], bool]:
+        initial_id: Optional[str] = get_experiment_id_by_name(
+            INITIAL_EXPERIMENT_NAME
+        )
+        if (
+            initial_id == self._tuning_iteration_id
+            or self._tuning_iteration_id is None
+        ):
+            return None, True
+        else:
+            run_id, _ = self._get_best_quality(self._tuning_iteration_id)
+            return run_id, False
 
     @retry_method(name="load_model")
     def get_last_model_url(self) -> Optional[str]:
@@ -387,12 +402,30 @@ class ExperimentsManager:
         else:
             if run_id is None:
                 logger.warning(
-                    "Can't get the best model URL, no previous iteration's "
+                    "Can't get the best model URL, no previous iterations "
                     "finished runs with uploaded model in history"
                 )
                 return None
             path = MODEL_ARTIFACT_PATH
             return self._get_artifact_url(run_id, path)
+
+    @retry_method(name="load_model")
+    def get_current_model_url(self) -> Optional[str]:
+        run_id, is_initial = self._get_best_current_run_id()
+        if is_initial:
+            logger.warning(
+                "Can't get the best model URL, current run is initial"
+            )
+            return None
+
+        if run_id is None:
+            logger.warning(
+                "Can't get the best model URL, no iterations "
+                "finished runs with uploaded model in history"
+            )
+            return None
+        path = MODEL_ARTIFACT_PATH
+        return self._get_artifact_url(run_id, path)
 
     @retry_method(name="load_model")
     def get_last_model(self) -> EmbeddingsModelInterface:
@@ -421,8 +454,38 @@ class ExperimentsManager:
                 logger.info("Downloading is finished")
                 return model
 
+    @retry_method(name="load_model")
+    def get_current_model(self) -> Optional[EmbeddingsModelInterface]:
+        """Get current iteration best embedding model.
+
+        :return: best embedding model
+        """
+        if self._tuning_iteration is None:
+            logger.error("No current iteration, can't get any model")
+            return
+
+        if self._tuning_iteration == INITIAL_EXPERIMENT_NAME:
+            logger.info("Download initial model")
+            return self.download_initial_model()
+
+        run_id, is_initial = self._get_best_current_run_id()
+        model_uri: str = f"runs:/{run_id}/model"
+        logger.info(f"Download the model from {model_uri}")
+        model = mlflow.pytorch.load_model(model_uri)
+        logger.info("Downloading is finished")
+        return model
+
     @retry_method(name="search_experiments")
     def get_previous_iteration_id(self) -> Optional[str]:
+        if (
+            self._tuning_iteration == INITIAL_EXPERIMENT_NAME
+            or self._tuning_iteration is None
+        ):
+            logger.warning(
+                f"Can't find previous iteration - no current iteration was setup"
+            )
+            return None
+
         plugin_name = f"{self._tuning_iteration.plugin_name}"
         experiments: List[Experiment] = [
             e
@@ -430,6 +493,7 @@ class ExperimentsManager:
             if (
                 e.name.startswith(EXPERIMENT_PREFIX)
                 and e.name.find(plugin_name) != -1
+                and e.name != str(self._tuning_iteration)
             )
         ]
         if len(experiments) == 0:
@@ -529,6 +593,8 @@ class ExperimentsManager:
             for key, value in dict(self._run_params).items():
                 mlflow.log_param(key, convert_value(value))
 
+            mlflow.log_metric("model_uploaded", 0)
+
             return False
         else:
             return self._run.info.status == "FINISHED"
@@ -586,7 +652,8 @@ class ExperimentsManager:
         with mlflow.start_run(
             run_id=run_id, experiment_id=experiment_id
         ) as run:
-            mlflow.log_param("model_deleted", "1")
+            mlflow.log_metric("model_deleted", 1)
+            mlflow.log_metric("model_uploaded", 0)
 
     @retry_method(name="delete_model")
     def _delete_model(self, run_id: str, experiment_id: str) -> bool:
@@ -663,7 +730,7 @@ class ExperimentsManager:
             mlflow.pytorch.log_model(
                 model, "model", pip_requirements=self._requirements
             )
-            mlflow.log_param("model_uploaded", 1)
+            mlflow.log_metric("model_uploaded", 1)
             logger.info("Upload is finished")
         else:
             current_quality = self.get_quality()
@@ -677,7 +744,7 @@ class ExperimentsManager:
                 mlflow.pytorch.log_model(
                     model, "model", pip_requirements=self._requirements
                 )
-                mlflow.log_param("model_uploaded", 1)
+                mlflow.log_metric("model_uploaded", 1)
                 logger.info("Upload is finished")
 
                 if best_run_id is not None:

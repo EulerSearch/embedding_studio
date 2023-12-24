@@ -9,14 +9,14 @@ from botocore import UNSIGNED
 from botocore.client import Config
 from tqdm.auto import tqdm
 
-from .utils.api_utils import (
+from demo.utils.api_utils import (
     create_session_and_push_events,
     get_task_status,
     release_batch,
     start_fine_tuning,
 )
-from .utils.aws_utils import download_s3_object_to_memory
-from .utils.mlflow_utils import get_mlflow_results_url
+from demo.utils.aws_utils import download_s3_object_to_memory
+from demo.utils.mlflow_utils import get_mlflow_results_url
 
 
 DESCRIPTION = """
@@ -108,7 +108,7 @@ def emulate_clickstream(
     connection_url: str,
     aws_access_key_id: Optional[str] = None,
     aws_secret_access_key: Optional[str] = None,
-    test_sessions_count: int = 50,
+    test_sessions_count: int = 600,
 ):
     """This is a function to run the order of http-requests to the clisktream storage service.
 
@@ -194,7 +194,15 @@ def emulate_fine_tuning(connection_url: str, mlflow_url: str):
         print("Unable to run fine-tuning")
         return
 
-    experiment_id = get_mlflow_results_url(mlflow_url, batch_id)
+    experiment_id = None
+    for attempt in range(100):
+        experiment_id = get_mlflow_results_url(mlflow_url, batch_id)
+        if experiment_id is None:
+            time.sleep(60)
+
+        else:
+            break
+
     if experiment_id is None:
         print(
             "Something went wrong with experiments tracking system, please check logs"
@@ -221,7 +229,7 @@ def parse_args():
     DEFAULT_AWS_SECRET_ACCESS_KEY = None
     DEFAULT_EMBEDDING_STUDIO_URL = "http://localhost:5000"
     DEFAULT_MLFLOW_URL = "http://localhost:5005"
-    DEFAULT_TEST_SESSIONS_COUNT = 50
+    DEFAULT_TEST_SESSIONS_COUNT = 600
 
     parser = argparse.ArgumentParser(
         description="EmbeddingStudio test script: clickstream and fine-tuning emulation"

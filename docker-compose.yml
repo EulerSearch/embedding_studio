@@ -29,6 +29,8 @@ services:
     build:
       context: .
       dockerfile: worker.fine_tuning.Dockerfile
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
     restart: always
     env_file:
       - .env
@@ -40,6 +42,13 @@ services:
     networks:
         - internal
         - public
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
 
   redis:
     image: redis:6.2-alpine
@@ -182,6 +191,27 @@ services:
         - internal
     profiles:
       - demo_stage_finetuning
+
+  iteration_emulator:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM python:3.9
+        RUN pip install boto3 tqdm requests mlflow
+        COPY ./examples/ /app
+        WORKDIR /app
+        ENV PYTHONPATH="."        
+        CMD ["python", "demo/iteration_emulator.py", "-e", "http://embedding_studio:5000", "-m", "http://mlflow:5001"]
+    environment:
+      - ES_URL=http://embedding_studio:5000
+      - MLFLOW_TRACKING_URI=http://mlflow:5001
+    depends_on:
+      embedding_studio:
+        condition: service_healthy
+    networks:
+      - internal
+    profiles:
+      - demo_stage_full_iteration
 
 networks:
   internal:

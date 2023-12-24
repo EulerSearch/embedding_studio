@@ -100,12 +100,13 @@ def fine_tuning_worker(task_id: str):
         logger.info(
             "Fine tuning of the embedding model was completed successfully!"
         )
-
-        best_model_url = builder.experiments_manager.get_last_model_url()
+        builder.experiments_manager.set_iteration(iteration)
+        best_model_url = builder.experiments_manager.get_current_model_url()
         logger.info(
             f"You can download best model using this url: {best_model_url}"
         )
         task.best_model_url = best_model_url
+        builder.experiments_manager.finish_iteration()
 
     except Exception:
         try:

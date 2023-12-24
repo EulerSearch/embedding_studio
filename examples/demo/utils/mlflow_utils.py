@@ -3,7 +3,7 @@ import mlflow
 
 from typing import Optional
 
-from .constants import (
+from demo.utils.constants import (
     DEFAULT_FINE_TUNING_METHOD_NAME
 )
 

@@ -115,7 +115,7 @@ class FineTuningParams(BaseModel):
 
     def __str__(self) -> str:
         vals: List[str] = []
-        for key, value in dict(self).items():
+        for key, value in sorted(dict(self).items()):
             value = (
                 ",".join(map(str, value)) if isinstance(value, list) else value
             )
