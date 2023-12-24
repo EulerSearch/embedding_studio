@@ -1,12 +1,12 @@
 # EmbeddingStudio
 
-[![version](https://img.shields.io/badge/version-0.0.1-orange.svg)]() 
+[![version](https://img.shields.io/badge/version-0.0.1-orange.svg)]()
 [![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-360/)
 ![CUDA 11.7.1](https://img.shields.io/badge/CUDA-11.7.1-green.svg)
 
-EmbeddingStudio is an innovative open-source framework designed to seamlessly convert a combined 
-"Embedding Model + Vector DB" into a comprehensive search engine. With built-in functionalities for 
-clickstream collection, continuous improvement of search experiences, and automatic adaptation of 
+EmbeddingStudio is an innovative open-source framework designed to seamlessly convert a combined
+"Embedding Model + Vector DB" into a comprehensive search engine. With built-in functionalities for
+clickstream collection, continuous improvement of search experiences, and automatic adaptation of
 the embedding model, it offers an out-of-the-box solution for a full-cycle search engine.
 
 ![Embedding Studio Chart](assets/embedding_studio_chart.png)
@@ -23,6 +23,7 @@ the embedding model, it offers an out-of-the-box solution for a full-cycle searc
 (*) - features in development
 
 EmbeddingStudio is highly customizable, so you can bring your own:
+
 1. Data source
 2. Vector database
 3. Clickstream database
@@ -39,14 +40,14 @@ requirements, you can initiate fine-tuning for your model.
 Firstly, bring up all the EmbeddingStudio services by executing the following command:
 
 ```shell
-docker compose up -d 
+docker compose up -d
 ```
 
 Upon building and starting, the following services will be launched:
 
-1. **embedding_studio**: The primary service accessible at http://localhost:5000, responsible for the core engine 
+1. **embedding_studio**: The primary service accessible at http://localhost:5000, responsible for the core engine
    functionality.
-2. **fine_tuning_worker**: A worker service for model fine-tuning based on user feedback, leveraging NVIDIA GPUs for 
+2. **fine_tuning_worker**: A worker service for model fine-tuning based on user feedback, leveraging NVIDIA GPUs for
    the task.
 3. **mlflow**: A service facilitating the tracking of fine-tuning experiments.
 4. **mlflow_db**: A MySQL instance for storing MLflow-related data.
@@ -54,7 +55,7 @@ Upon building and starting, the following services will be launched:
 6. **redis**: A Redis service for task storage during fine-tuning.
 7. **minio**: A MinIO service set up for artifact storage, ensuring a secure location for your data.
 
-Once all services are up, you can start using EmbeddingStudio. Let's simulate a user search session. We'll run a 
+Once all services are up, you can start using EmbeddingStudio. Let's simulate a user search session. We'll run a
 pre-built script that will invoke the EmbeddingStudio API and emulate user behavior:
 
 ```shell
@@ -67,7 +68,7 @@ After the script execution, you can initiate model fine-tuning. Execute the foll
 docker compose --profile demo_stage_finetuning up -d
 ```
 
-This will queue a task processed by the fine-tuning worker. To fetch all tasks in the fine-tuning queue, send a GET 
+This will queue a task processed by the fine-tuning worker. To fetch all tasks in the fine-tuning queue, send a GET
 request to the endpoint `/api/v1/fine-tuning/task`:
 
 ```shell
@@ -75,28 +76,31 @@ curl -X GET http://localhost:5000/api/v1/fine-tuning/task
 ```
 
 The answer will be something like:
+
 ```json
 [
-   {
-      "fine_tuning_method": "Default Fine Tuning Method",
-      "status": "processing",
-      "created_at": "2023-12-21T14:30:25.823000",
-      "updated_at": "2023-12-21T14:32:16.673000",
-      "batch_id": "65844a671089823652b83d43",
-      "id": "65844c019fa7cf0957d04758"
-   }
+  {
+    "fine_tuning_method": "Default Fine Tuning Method",
+    "status": "processing",
+    "created_at": "2023-12-21T14:30:25.823000",
+    "updated_at": "2023-12-21T14:32:16.673000",
+    "batch_id": "65844a671089823652b83d43",
+    "id": "65844c019fa7cf0957d04758"
+  }
 ]
 ```
-where:
-* `fine_tuning_method`: The method used for fine-tuning the model. We'll discuss this further later on.
-* `status`: The status of the task.
-* `created_at`: The task creation date.
-* `updated_at`: The last task update date.
-* `batch_id`: The batch identifier indicating a completed clickstream session.
-* `id`: The task identifier.
 
-Once you have the task ID, you can directly monitor the fine-tuning progress by sending a GET request to the 
-endpoint `/api/v1/fine-tuning/task/{task_id}`:
+where:
+
+* `fine_tuning_method` - method used for fine-tuning the model. We'll discuss this further later on.
+* `status` - status of the task. Possible values: pending, processing, done, canceled, error
+* `created_at` - task creation date.
+* `updated_at` - last task update date.
+* `batch_id` - batch identifier indicating gathered clickstream sessions.
+* `id` - task identifier.
+
+* Once you have the task ID, you can directly monitor the fine-tuning progress by sending a GET request to the
+  endpoint `/api/v1/fine-tuning/task/{task_id}`:
 
 ```shell
 curl -X GET http://localhost:5000/api/v1/fine-tuning/task/65844c019fa7cf0957d04758
@@ -118,7 +122,7 @@ following experiments:
 
 Fine-tuning is a very long process, so **it can take about 30 minutes (if using a GPU)**.
 
-It's also beneficial to check the logs of the `fine_tuning_worker` to ensure everything is functioning correctly. To do 
+It's also beneficial to check the logs of the `fine_tuning_worker` to ensure everything is functioning correctly. To do
 this, list all services using the command:
 
 ```shell
@@ -126,6 +130,7 @@ docker ps
 ```
 
 You'll see output similar to:
+
 ```shell
 CONTAINER ID   IMAGE                                 COMMAND                  CREATED       STATUS                 PORTS                               NAMES
 665eef2e757d   embedding_studio-mlflow               "mlflow server --bac…"   3 hours ago   Up 3 hours             0.0.0.0:5001->5001/tcp              embedding_studio-mlflow-1
@@ -137,7 +142,7 @@ ba608b022828   bitnami/minio:2023                    "/opt/bitnami/script…"   
 493c45f880c0   mongo:4                               "docker-entrypoint.s…"   3 hours ago   Up 3 hours (healthy)   0.0.0.0:27017->27017/tcp            embedding_studio-mongo-1
 ```
 
-From here, you can access logs for the specific service using its `CONTAINER ID` or `NAME`, e.g., `65043da928d4` or 
+From here, you can access logs for the specific service using its `CONTAINER ID` or `NAME`, e.g., `65043da928d4` or
 `embedding_studio-fine_tuning_worker-1`:
 
 ```shell
@@ -166,21 +171,23 @@ Epoch 2: 100%|██████████| 13/13 [01:17<00:00,  0.17it/s, v_n
 
 ### Advanced
 
-While we've successfully run the demo project, you'll likely want to run EmbeddingStudio on your own model. For this, 
-you'll need to prepare the model, upload it to an S3 storage, and write a script for fine-tuning the model. The steps 
+While we've successfully run the demo project, you'll likely want to run EmbeddingStudio on your own model. For this,
+you'll need to prepare the model, upload it to an S3 storage, and write a script for fine-tuning the model. The steps
 include:
+
 - [Configure Environment](#configure-environment)
 - [Prepare Model](#prepare-model)
 - [Prepare Fine-Tuning Method](#prepare-fine-tuning-method)
 - [Run EmbeddingStudio](#run-embeddingstudio)
-- [Clickstream](#clickstream)
-- [Fine-Tuning](#fine-tuning)
+- [Gather clickstream](#gather-clickstream)
+- [Run Fine-Tuning](#run-fine-tuning)
 
 #### Configure Environment
 
 All necessary environment variables can be found in the `.env` file.
 
 We have following groups of variables:
+
 1. **fine-tuning**: Variables for MongoDB for fine-tuning service.
 2. **clickstream**: Variables for MongoDB for clickstream service.
 3. **redis**: Variables for Redis.
@@ -213,10 +220,10 @@ the [AWS documentation]((https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam
 
 #### Prepare Fine-Tuning Method
 
-This is the main part you'll need to implement yourself. You need to write a script that initiates the fine-tuning of 
-the model. This script inherits from the `FineTuningMethod` class and should implement the `upload_initial_model` 
-method (used for uploading your model to Mlflow) and the `get_fine_tuning_builder` method (used for configuring the 
-model's fine-tuning). An example of such a script can be found in the directory 
+This is the main part you'll need to implement yourself. You need to write a script that initiates the fine-tuning of
+the model. This script inherits from the `FineTuningMethod` class and should implement the `upload_initial_model`
+method (used for uploading your model to Mlflow) and the `get_fine_tuning_builder` method (used for configuring the
+model's fine-tuning). An example of such a script can be found in the directory
 [plugins/default_fine_tuning_method.py](plugins/default_fine_tuning_method.py).
 
 You can have multiple fine-tuning scripts. The choice of which script to use occurs when launching the task:
@@ -228,16 +235,17 @@ curl -X POST http://localhost:5000/api/v1/fine-tuning/task \
     "fine_tuning_method": "Default Fine Tuning Method"
 }'
 ```
+
 where, `fine_tuning_method` is the name of your fine-tuning script, taken from the `meta.name` field.
 
-The path to the plugins directory is specified in the `ES_PLUGINS_PATH` environment variable. By default, it points to 
+The path to the plugins directory is specified in the `ES_PLUGINS_PATH` environment variable. By default, it points to
 the `plugins` directory at the project's root. It's easiest to change this in the `.env` file.
 
 For more details on plugins, see the [Plugins](#plugins) section.
 
 #### Run EmbeddingStudio
 
-After writing your plugin (fine-tuning method), you can start the EmbeddingStudio worker - `fine_tuning_worker`. 
+After writing your plugin (fine-tuning method), you can start the EmbeddingStudio worker - `fine_tuning_worker`.
 To do this, you need to build an image with your plugin and start the worker. You can do this in two different ways:
 
 1. Rebuild the `fine_tuning_worker` image with your plugin and start it:
@@ -245,14 +253,16 @@ To do this, you need to build an image with your plugin and start the worker. Yo
 ```shell
 docker compose build --no-cache fine_tuning_worker
 ```
+
 and
+
 ```shell
 docker compose up -d fine_tuning_worker
 ```
 
 It will pick up your plugin and wait for fine-tuning tasks.
 
-2. To avoid rebuilding the image every time, you can mount the `plugins` directory inside the container. To do this, 
+2. To avoid rebuilding the image every time, you can mount the `plugins` directory inside the container. To do this,
    add a `volume` section to the `docker-compose.yml`:
 
 ```yaml
@@ -266,36 +276,182 @@ services:
 ```
 
 and start the container:
+
 ```shell
 docker compose up -d fine_tuning_worker
 ```
 
 All set! It's time to start collecting user clickstreams.
 
-#### Clickstream
+#### Gather clickstream
 
-A clickstream is a sequence of user search sessions. A search session is a series of user clicks on search results. 
+A clickstream is a sequence of user search sessions. A search session is a series of user clicks on search results.
 Clickstreams are used to gather user feedback and improve the model based on it.
 
-To start a new session, send a POST request to the `/api/v1/clickstream/session` endpoint:
+To register a new search session, send a POST request to the `/api/v1/clickstream/session` endpoint:
 
 ```shell
-curl -X POST http://localhost:5000/api/v1/clickstream/session \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "session_id": "session_id",
-    "search_query": "user_1",
-    "search_meta": "search_meta_1",
-    "search_results": "search_results_1"
+curl -X POST 'http://localhost:5000/api/v1/clickstream/session' \
+-H 'Content-Type: application/json' \
+-d '{
+    "session_id": "c327c30bd3db459093e5f5d254bdd144,
+    "search_query": "user search query",    
+    "search_results":[
+        {
+            "object_id": "2f827cbb9fe544cdaca44b2dafd37785",
+            "rank": 0.3
+            "meta": {}
+        },
+        {
+            "object_id": "e000f005dc1343ea8ddf234c557832a5"
+        },
+        {
+            "object_id": "96365929fa5b4286b3a04639cbc7c1d5"
+        }
+    ],
+    "search_meta": {},
+    "user_id" : "b604bbb1a57a418d925ebc9d615de99a",
+    "created_at": 1703376873, 
 }'
 ```
-where:
-* `session_id` - session identifier
-* `search_query` - user's search query
-* `search_meta` - meta-information about the search query
-* `search_results` - search results
 
-#### Fine-Tuning
+where:
+
+* `session_id` - unique search session identifier
+* `search_query` - user's search query
+* `search_results` - list of search result object ids with optional rank and meta
+* `search_meta` -  (optional) meta-information about the search query (any data)
+* `user_id` - (optional) your user identifier
+* `created_at` - (optional) utc timestamp of session start. Value by default: current time on server
+
+To add events (clicks) to registered search session, send a POST request to the `/api/v1/clickstream/session/events`
+endpoint:
+
+```shell
+curl -X POST 'http://localhost:5000/api/v1/clickstream/session/events' \
+-H 'Content-Type: application/json' \
+-d '{
+    "session_id": "search_session_id",    
+    "events": [
+        {
+            "event_id": "472cc4232af2449a97317d0057c9a2cf",
+            "object_id": "2f827cbb9fe544cdaca44b2dafd37785",
+            "meta": {},
+            "event_type": "click",
+            "created_at": 1703376873
+        },
+        {
+            "event_id": "124b6bc39e9f43e7b5be6b992d94f505",
+            "object_id": "2f827cbb9fe544cdaca44b2dafd37785",
+            "meta": {},
+            "created_at": 1703376874
+        },
+        {
+            "event_id": "b0f4adcac63b4a35a02a45f06b0b1cb9",
+            "object_id": "e000f005dc1343ea8ddf234c557832a5",           
+        }  
+    ]
+}'
+```
+
+where
+
+* `session_id` - id of registered search session
+* `events` - list of new session events with:
+    * `event_id` - event identifier (mast be unique for this session)
+    * `object_id` - search result object id
+    * `meta` - (optional) any meta data
+    * `event_type` - (optional) event type. Value by default: `click`
+    * `created_at` - (optional) utc timestamp of event. Value by default: current time on server
+
+After you have gathered the required amount of user feedback, you can release the session batch and use it for
+fine-tuning.
+To do this, send a POST request to the `/api/v1/clickstream/internal/batch/release` endpoint:
+
+```shell
+curl -X POST '127.0.0.1:5000/api/v1/clickstream/internal/batch/release' \
+-H 'Content-Type: application/json' \
+-d '{
+    "release_id": "090bda77a5e048d59a1e310dc20fbd6d"
+}'
+```
+
+where `release_id` - unique identifier of release (idempotency key).
+
+In response, you will receive:
+
+```json
+{
+  "batch_id": "65844a671089823652b83d43"
+}
+```
+
+where `batch_id` - unique identifier of clickstream session batch - it can be used to run fine-tuning
+
+#### Run Fine-Tuning
+
+To run fine-tuning, send a POST request to the `/api/v1/fine-tuning/task` endpoint:
+
+```shell
+curl -X POST http://localhost:5000/api/v1/fine-tuning/task \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "fine_tuning_method": "Default Fine Tuning Method",
+    "batch_id":  "65844a671089823652b83d43",
+    "metadata": {},
+    "idempotency_key": "833fb6b260ff41a88cb75c4280e2e270"
+}'
+```
+
+where
+
+* `fine_tuning_method` - name of your fine-tuning script, taken from the `meta.name` field.
+* `batch_id` - (optional) id of released clickstream session batch. If parameter is not sent,
+  current clickstream batch will be released and used automatically.
+* `metadata` - (optional) any meta data
+* `idempotency_key` - (optional) idempotency key
+
+In response, you will receive task id:
+
+```json
+{
+  "fine_tuning_method": "Default Fine Tuning Method",
+  "status": "processing",
+  "created_at": "2023-12-21T14:30:25.823000",
+  "updated_at": "2023-12-21T14:32:16.673000",
+  "batch_id": "65844a671089823652b83d43",
+  "id": "65844c019fa7cf0957d04758"
+}
+```
+
+Using this task ID, you can directly monitor the fine-tuning progress by sending a GET request to the
+endpoint `/api/v1/fine-tuning/task/{task_id}`:
+
+```shell
+curl -X GET http://localhost:5000/api/v1/fine-tuning/task/task_id
+```
+
+In response, you will receive:
+
+```json
+{
+  "fine_tuning_method": "Default Fine Tuning Method",
+  "status": "processing",
+  "created_at": "2023-12-21T14:30:25.823000",
+  "updated_at": "2023-12-21T14:32:16.673000",
+  "batch_id": "65844a671089823652b83d43",
+  "id": "65844c019fa7cf0957d04758"
+}
+```
+
+where:
+
+* `fine_tuning_method` - method used for fine-tuning the model. We'll discuss this further later on.
+* `status` - status of the task. Possible values: pending, processing, done, canceled, error
+* `created_at` - task creation date.
+* `updated_at` - last task update date.
+* `batch_id` - batch identifier indicating a gathered clickstream sessions.
+* `id` - task identifier.
 
 Here's an overview of what to expect during the fine-tuning process:
 
@@ -312,14 +468,14 @@ Here's an overview of what to expect during the fine-tuning process:
 6. **Iteration Completion**: Upon completing all runs, the previous iteration is removed from the system.
 7. **Model Cleanup**: Finally, the locally saved model is deleted.
 
-Once you've gathered enough data, you can initiate the fine-tuning process. It proceeds similarly to what was 
+Once you've gathered enough data, you can initiate the fine-tuning process. It proceeds similarly to what was
 [described earlier](#hello-world).
 
 ## About fine-tuning tracking
 
 If you want to check results: http://localhost:5001/#/experiments/{experiment_id}
-Upon accessing the main page of MLFlow, you will notice the initial iteration listed among the experiments, labeled as 
-iteration / initial.When you explore a run named initial_model, it will display the artifacts associated with the 
+Upon accessing the main page of MLFlow, you will notice the initial iteration listed among the experiments, labeled as
+iteration / initial.When you explore a run named initial_model, it will display the artifacts associated with the
 initial model.
 
 ### Iteration data
@@ -365,20 +521,22 @@ and ordering of items within user sessions.
   in a clickstream session, especially after adjustments or fine-tuning. It's essential in systems where the order of
   items (like search results or product recommendations) is critical for user satisfaction.
 
-* **Understanding Relevance**: In clickstream analysis, determining the relevance of items to a user’s query or behavior is
+* **Understanding Relevance**: In clickstream analysis, determining the relevance of items to a user’s query or behavior
+  is
   crucial.
   The distance shift metric provides insights into how changes in the model affect this relevance.
-* **Model Optimization**: By quantifying the impact of model adjustments, this metric guides developers and data scientists
+* **Model Optimization**: By quantifying the impact of model adjustments, this metric guides developers and data
+  scientists
   in optimizing their models for better performance in real-world scenarios.
 
 ## Plugins
 
-EmbeddingStudio supports plugins for fine-tuning models. A plugin is a script that inherits from the 
-[`FineTuningMethod`](embedding_studio/core/plugin.py) class and implements the `upload_initial_model` and 
-`get_fine_tuning_builder` methods. Plugins can be of any type; you can use any libraries and frameworks for model 
+EmbeddingStudio supports plugins for fine-tuning models. A plugin is a script that inherits from the
+[`FineTuningMethod`](embedding_studio/core/plugin.py) class and implements the `upload_initial_model` and
+`get_fine_tuning_builder` methods. Plugins can be of any type; you can use any libraries and frameworks for model
 fine-tuning.
 
-The path to the plugins directory is specified in the `ES_PLUGINS_PATH` environment variable. By default, it points 
+The path to the plugins directory is specified in the `ES_PLUGINS_PATH` environment variable. By default, it points
 to the `plugins` directory at the project's root. You can easily change this in the `.env` file.
 
 We provide a demonstration plugin named [`Default Fine Tuning Method`](plugins/default_fine_tuning_method.py).
@@ -394,8 +552,9 @@ class DefaultFineTuningMethod(FineTuningMethod):
     )
     ...
 ```
-The class name can be arbitrary, but it must inherit from `FineTuningMethod`. In the `meta` field, you specify metadata 
-about the plugin. This is used by EmbeddingStudio to determine which plugin to use for fine-tuning. The `meta.name` 
+
+The class name can be arbitrary, but it must inherit from `FineTuningMethod`. In the `meta` field, you specify metadata
+about the plugin. This is used by EmbeddingStudio to determine which plugin to use for fine-tuning. The `meta.name`
 field is essential because it's used to create tasks for `fine_tuning_worker`.
 
 Next, let's look at the `upload_initial_model` method:
@@ -406,8 +565,8 @@ def upload_initial_model(self) -> None:
     self.manager.upload_initial_model(model)
 ```
 
-In this function, we define the initial model for fine-tuning. In our case, it's the `TextToImageCLIPModel` model 
-composed of the `SentenceTransformer` model named `clip-ViT-B-32`. We upload it to Mlflow for future use in fine-tuning. 
+In this function, we define the initial model for fine-tuning. In our case, it's the `TextToImageCLIPModel` model
+composed of the `SentenceTransformer` model named `clip-ViT-B-32`. We upload it to Mlflow for future use in fine-tuning.
 The call to `self.manager.upload_initial_model(model)` is mandatory.
 
 Now, let's examine the plugin initialization method. We've tried to describe what each line does in the comments:
@@ -481,7 +640,7 @@ Finally, let's look at the `get_fine_tuning_builder` method:
 
 ```python
 def get_fine_tuning_builder(
-    self, clickstream: List[SessionWithEvents]
+        self, clickstream: List[SessionWithEvents]
 ) -> FineTuningBuilder:
     ranking_dataset = prepare_data(
         clickstream,
@@ -508,10 +667,10 @@ def get_fine_tuning_builder(
     return fine_tuning_builder
 ```
 
-In this method, we describe how the model fine-tuning will take place. In our case, we use the 
-[`prepare_data`](embedding_studio/workers/fine_tuning/data/prepare_data.py) function to transform the clickstream into 
-a dataset suitable for fine-tuning. Then, we create an instance of the `FineTuningBuilder` class, which will perform 
-the fine-tuning. In the constructor, we pass all the necessary components that will be used during the fine-tuning 
+In this method, we describe how the model fine-tuning will take place. In our case, we use the
+[`prepare_data`](embedding_studio/workers/fine_tuning/data/prepare_data.py) function to transform the clickstream into
+a dataset suitable for fine-tuning. Then, we create an instance of the `FineTuningBuilder` class, which will perform
+the fine-tuning. In the constructor, we pass all the necessary components that will be used during the fine-tuning
 process.
 
 ## Contributing

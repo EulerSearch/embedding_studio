@@ -48,7 +48,7 @@ def fine_tuning_worker(task_id: str):
         context.fine_tuning_task.update(obj=task)
 
         if not task.batch_id:
-            release_id = uuid.uuid4()
+            release_id = task.idempotency_key or task.id or uuid.uuid4()
             logger.info(f"Release batch with ID `{release_id}`")
             session_batch = context.clickstream_dao.release_batch(
                 release_id=str(release_id)
