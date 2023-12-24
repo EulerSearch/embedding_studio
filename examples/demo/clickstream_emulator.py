@@ -6,6 +6,8 @@ from io import BytesIO
 
 import boto3
 import requests
+from botocore import UNSIGNED
+from botocore.config import Config
 from tqdm.auto import tqdm
 
 # TODO: clean up sessions before running.
@@ -17,12 +19,8 @@ print(
     "First, we will load the click sessions from S3. "
     "Let's proceed with the necessary setup..."
 )
-s3_client = boto3.client(
-    "s3",
-    aws_access_key_id="AKIAZLXAM4OIP2BWLOKM",
-    aws_secret_access_key="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",
-    region_name="us-west-2",
-)
+
+s3_client = boto3.client("s3", config=Config(signature_version=UNSIGNED))
 
 BUCKET_NAME = "embedding-studio-experiments"
 CLICKSTREAM_INFO_KEY = (
