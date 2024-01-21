@@ -1,0 +1,121 @@
+{% extends "main.html" %}
+{% block tabs %}
+{{ super() }}
+
+<section class="es-container">
+    <div class="md-grid md-typeset">
+      <div class="es-product">
+        <div class="es-product__image">
+          <img src="images/embedding_studio_product.png" draggable="false">
+        </div>
+        <div class="es-product__content">
+          <h1> EMBEDDING STUDIO </h1>
+          <p class="es-logo-slogan">TURNING YOUR EMBEDDING MODEL INTO A SEARCH ENGINE</p>
+          <a href="{{ page.next_page.url | url }}" title="{{ page.next_page.title | striptags }}" class="md-button md-button--primary">
+            Get started
+          </a>
+          <a href="{{ config.repo_url }}" title="{{ lang.t('source.link.title') }}" class="md-button">
+            Go to GitHub
+          </a>
+        </div>
+      </div>
+    </div>
+</section>
+
+<div class="top-hr">
+    <div class="feature-item">
+        <h2>
+            <img src="images/loop.svg" />
+            Embeddings-in-the-loop
+        </h2>
+        <p>EmbeddingStudio adapts search results nearly online and runs automatic fine-tuning procedure.</p>
+    </div>
+    <div class="feature-item">
+        <h2>
+            <img src="images/python_logo.svg" />
+            Python ecosystem
+        </h2>
+        <p>Use EmbeddingStudio together with your preferred Python libraries. </p>
+    </div>
+    <div class="feature-item">
+        <h2>
+            <img src="images/data_model.svg" />
+            Use your models
+        </h2>
+        <p>Import embeddings model for your data type.</p>
+    </div>
+</div>
+
+<div class="top-hr">
+    <div class="feature-item">
+        <h2>
+            <img src="images/click.svg" />
+            Collect user search sessions
+        </h2>
+        <p>Use collected clicks for resource saving and accuracy effective fine-tuning procedure.</p>
+    </div>
+    <div class="feature-item">
+        <h2>
+            <img src="images/github.svg" />
+            Open Source
+        </h2>
+        <p>All our code is open sourced under the Apache 2.0 license.</p>
+    </div>
+    <div class="feature-item">
+        <h2>
+            <img src="images/docker.svg" />
+            Easy deployment
+        </h2>
+        <p>Our goal is to make it simple for customers. You can deploy it and calibrate it without much effort.</p>
+    </div>
+</div>
+
+<div class="top-hr">
+    <div class="hr">
+    </div>
+</div>
+
+<div class="text-center">
+    <h2>Challenges and tasks solved with EmbeddingStudio</h2>
+</div>
+
+<div class="top-hr">
+    <div class="feature-item">
+        <h2>
+            <img src="images/data_unstructured.svg" />
+            Search through unstructured data
+        </h2>
+        <p>
+            The product addresses a common challenge faced by companies - the need for efficient search in unstructured
+            data. Unstructured data, ranging from text documents to multimedia files, often proves challenging for
+            traditional search methods. Our solution not only allows for fast and precise searches across various data
+            types but also supports ongoing fine-tuning of the model.
+            The benefits include maximized data utilization, integration of various data formats, and ease of
+            integration with existing systems, providing companies with a powerful tool for comprehensive data
+            exploration.
+        </p>
+    </div>
+    <div class="feature-item">
+        <h2>
+            <img src="images/clock_realtime.svg" />
+            Clickstream storage
+        </h2>
+        <p>
+            Customers aim to continuously enhance the search process based on user preferences and behavior. We
+            understand that for a successful business, it's crucial to shape the search system to be as relevant and
+            intuitive as possible for end-users. Our product enables clients to gather valuable data on how users
+            interact with the search system, what they are precisely looking for, and what choices they make.
+        </p>
+        <p>
+            Through automated update pipelines driven by this feedback, we provide clients with the ability to adapt
+            their search models in real-time. This allows them to promptly and efficiently respond to changing user
+            needs and optimize search results. Our product offers tools for the continuous improvement of the user
+            experience, a key factor for success in the dynamic and competitive online search landscape for products
+            and services.
+        </p>
+    </div>
+</div>
+
+{% endblock %}
+{% block content %}{% endblock %}
+{% block footer %}{{ super() }}{% endblock %}

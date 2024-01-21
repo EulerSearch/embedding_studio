@@ -1,0 +1,53 @@
+site_name: Embedding Studio
+repo_url: https://github.com/EulerSearch/embedding_studio
+repo_name: embedding_studio
+theme:
+  name: material
+  palette:
+    primary: indigo
+  logo: images/logo.svg
+  favicon: images/logo.svg
+  custom_dir: docs/overrides
+  features:
+    - navigation.tabs
+    - navigation.path
+    - navigation.indexes
+    - navigation.expand
+markdown_extensions:
+  - admonition
+  - tables
+  - pymdownx.details
+  - pymdownx.superfences
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: true
+extra_css:
+  - stylesheets/extra.css
+nav:
+  - Home: index.md
+  - Overview: overview.md
+  - Tutorial:
+      - Getting Started: tutorial/getting_started.md
+      - Basic:
+        - Hello, Unstructured World!: tutorial/hello_unstructured_world.md
+        - How to get best model?: tutorial/how_to_get_best_model.md
+        - Iteration emulator: tutorial/iteration_emulator.md
+      - Advanced:
+        - Overview: tutorial/advanced_overview.md
+        - Configure Environment: tutorial/configure_environment.md
+        - Data source: tutorial/data_source.md
+        - Fine-Tuning Method: tutorial/fine_tuning_method.md
+        - Fine-Tuning Worker: tutorial/fine_tuning_worker.md
+        - Collect clickstream: tutorial/collect_clickstream.md
+        - Run Fine-Tuning: tutorial/run_fine_tuning.md
+      - Fine-tuning tracking: tutorial/fine_tuning_tracking.md
+      - Plugins: tutorial/plugins.md
+extra:
+  generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/EulerSearch/embedding_studio
+copyright: © 2024 EulerSearch. All Rights Reserved.
