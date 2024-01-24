@@ -87,14 +87,14 @@
   font-family: 'Lato', sans-serif;
   font-weight: 300;
   box-sizing: border-box;
-  padding: 0.1rem 2rem;
+  padding: 0.1rem 1rem;
   word-break: break-word
 }
 
 .feature-item h2 {
   color: #333;
   font-weight: 300;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -112,7 +112,7 @@
 }
 
 .feature-item p {
-  font-size: 1rem;
+  font-size: 0.75rem;
   line-height: 1.5em;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
