@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/embedding_studio_logo.svg" alt="EmbeddingStudio" />
+  <img src="docs/images/embedding_studio_logo.svg" alt="Embedding Studio" />
 </p>
 
 <p align="center">
@@ -15,7 +15,7 @@
     <a href="https://embeddingstud.io/overview/">Overview</a>
 </p>
 
-**EmbeddingStudio** is an innovative open-source framework designed to seamlessly convert a combined
+**Embedding Studio** is an innovative open-source framework designed to seamlessly convert a combined
 embedding model and vector database into a comprehensive search engine. With built-in functionalities for
 clickstream collection, continuous improvement of search experiences, and automatic adaptation of
 the embedding model, it offers an out-of-the-box solution for a full-cycle search engine.
@@ -28,15 +28,43 @@ the embedding model, it offers an out-of-the-box solution for a full-cycle searc
 4. 📊 (*) Monitor your search quality
 5. 🎯 Improve your embedding model through an iterative metric fine-tuning procedure
 6. 🆕 (*) Use the new version of the embedding model for inference
+7. 🛠️ (*) Priorly fine-tune your Embedding on your catalogue data. 
+8. 🔍 (*) Use and improve the Zero-Shot Query Parser to mix your structured database with unstructured search.
 
 (*) - features in development
 
-EmbeddingStudio is highly customizable, so you can bring your own:
+Embedding Studio is highly customizable, so you can bring your own:
 
 1. Data source
 2. Vector database
 3. Clickstream database
 4. Embedding model
+
+## When is Embedding Studio the best fit?
+
+More about it [here](docs/when-to-use-the-embeddingstudio.md).
+
+- 📚💼 Businesses with extensive catalogs and rich unstructured data.
+- 🛍️🤝 Customer-centric platforms prioritizing personalized experiences.
+- 🔄📊 Dynamic content platforms with evolving content and user preferences.
+- 🔍🧠 Platforms handling nuanced and multifaceted search queries.
+- 🔄📊 Integration of mixed data types in search processes.
+- 🔄🚀 Platforms seeking ongoing optimization through user interactions.
+- 💵💡 Budget-conscious organizations seeking powerful yet affordable solutions.
+
+### Challenges can be solved
+
+**Disclaimer:** Embedding Studio is not a yet another Vector Database, it's a framework which allows you transform your Vector Database into a Search Engine with all nuances.  
+
+- Nothing but a catalogue, but you want a quick demo
+- Static search quality, but you want it to be improved with time
+- User experience improvement takes too long, and your users feel themselves frustrated
+- Slow and resource exhausted index updating
+- Mix of structured and unstructured search, and you don't know how to combine them
+- Structured search with unstructured queries, and you want to parse them properly
+- Fresh items are getting lost
+
+More about challenges and solutions [here](https://embeddingstud.io/challenges/)
 
 ## Overview
 
@@ -65,7 +93,7 @@ View our [official documentation](https://embeddingstud.io/tutorial/getting_star
 
 ### Hello, Unstructured World!
 
-To try out EmbeddingStudio, you can launch the pre-configured demonstration project. We've prepared a dataset stored in
+To try out Embedding Studio, you can launch the pre-configured demonstration project. We've prepared a dataset stored in
 a public S3 bucket, an emulator for user clicks, and a basic script for fine-tuning the model. By adapting it to your
 requirements, you can initiate fine-tuning for your model.
 
@@ -77,14 +105,14 @@ Docker Compose version v2.23.3
 You can also try the docker-compose version command. Moving forward, we will use the newer docker compose version command, 
 but the docker-compose version command may also work successfully on your system.
 
-Firstly, bring up all the EmbeddingStudio services by executing the following command:
+Firstly, bring up all the Embedding Studio services by executing the following command:
 
 ```shell
 docker compose up -d
 ```
 
-Once all services are up, you can start using EmbeddingStudio. Let's simulate a user search session. We'll run a
-pre-built script that will invoke the EmbeddingStudio API and emulate user behavior:
+Once all services are up, you can start using Embedding Studio. Let's simulate a user search session. We'll run a
+pre-built script that will invoke the Embedding Studio API and emulate user behavior:
 
 ```shell
 docker compose --profile demo_stage_clickstream up -d
@@ -155,7 +183,7 @@ Epoch 2: 100%|██████████| 13/13 [01:17<00:00,  0.17it/s, v_n
 
 **Congratulations! You've successfully improved the model!**
 
-To download the best model you can use EmbeddingStudio API:
+To download the best model you can use Embedding Studio API:
 ```bash
 curl -X GET http://localhost:5000/api/v1/fine-tuning/task/65844c019fa7cf0957d04758
 ```
@@ -178,8 +206,8 @@ wget http://localhost:5001/get-artifact?path=model%2Fdata%2Fmodel.pth&run_uuid=5
 
 ## Contributing
 
-We welcome contributions to EmbeddingStudio!
+We welcome contributions to Embedding Studio!
 
 ## License
 
-EmbeddingStudio is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.
+Embedding Studio is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full license text.

@@ -1,7 +1,7 @@
 # Iteration emulator
 
 In the section [Hello, unstructured World!](hello_unstructured_world.md) there are two simple emulation steps,
-just to test that EmbeddingStudio is build and running well. But you also can test EmbeddingStudio on
+just to test that Embedding Studio is build and running well. But you also can test Embedding Studio on
 an emulated dataset to check algorithmic correctness. We have separated these emulations to show how they work.
 
 !!! warning
@@ -84,7 +84,7 @@ We put the result of generation into the public reading-available S3 repository:
 
 ## How to start
 
-Once you've started EmbeddingStudio locally by executing:
+Once you've started Embedding Studio locally by executing:
 ```shell
 docker compose up -d 
 ```

@@ -7,7 +7,7 @@ that, currently, our system is compatible **exclusively with Nvidia GPUs**. This
 efficiency
 in the fine-tuning process.
 
-After writing your plugin ([fine-tuning method](fine_tuning_method.md)), you can start the EmbeddingStudio
+After writing your plugin ([fine-tuning method](fine_tuning_method.md)), you can start the Embedding Studio
 worker - `fine_tuning_worker`.
 To do this, you need to build an image with your plugin and start the worker:
 

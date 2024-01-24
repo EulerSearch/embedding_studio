@@ -1,6 +1,6 @@
 # Plugins
 
-EmbeddingStudio supports plugins for fine-tuning models. A plugin is a script that inherits from the
+Embedding Studio supports plugins for fine-tuning models. A plugin is a script that inherits from the
 [`FineTuningMethod`](https://github.com/EulerSearch/embedding_studio/blob/v0.0.1/embedding_studio/core/plugin.py#L10) 
 class and implements the `upload_initial_model` and `get_fine_tuning_builder` methods. Plugins can be of any type; you 
 can use any libraries and frameworks for model fine-tuning.
@@ -24,7 +24,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
 ```
 
 The class name can be arbitrary, but it must inherit from `FineTuningMethod`. In the `meta` field, you specify metadata
-about the plugin. This is used by EmbeddingStudio to determine which plugin to use for fine-tuning. The `meta.name`
+about the plugin. This is used by Embedding Studio to determine which plugin to use for fine-tuning. The `meta.name`
 field is essential because it's used to create tasks for `fine_tuning_worker`.
 
 Next, let's look at the `upload_initial_model` method:

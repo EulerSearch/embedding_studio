@@ -1,4 +1,4 @@
-![EmbeddingStudio](images/embedding_studio_logo.svg){ .center }
+![Embedding Studio](images/embedding_studio_logo.svg){ .center }
 
 <p align="center">
     <a href="#"><img src="https://img.shields.io/badge/version-0.0.1-orange.svg" alt="version"></a>
@@ -13,7 +13,7 @@
     <a href="https://embeddingstud.io/overview/">Overview</a>
 </p>
 
-**EmbeddingStudio** is an innovative open-source framework designed to seamlessly convert a combined
+**Embedding Studio** is an innovative open-source framework designed to seamlessly convert a combined
 embedding model and vector database into a comprehensive search engine. With built-in functionalities for
 clickstream collection, continuous improvement of search experiences, and automatic adaptation of
 the embedding model, it offers an out-of-the-box solution for a full-cycle search engine.
@@ -46,7 +46,7 @@ the old and new versions. This enables a smoother and more relevant search quali
 
 (*) - features in development
 
-EmbeddingStudio is highly customizable, so you can bring your own:
+Embedding Studio is highly customizable, so you can bring your own:
 
 * :simple-googlecloudstorage:{ .es-color } Data source
 * :material-database:{ .es-color } Vector database

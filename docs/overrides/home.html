@@ -32,10 +32,35 @@
     </div>
     <div class="feature-item">
         <h2>
+            <img src="images/search.svg" />
+            Smart search query parser
+        </h2>
+        <p>Combine structured and unstructured search with our <a class="es-color" href="https://huggingface.co/EmbeddingStudio/query-parser-falcon-7b-instruct">LLM for natural query search parsing</a>.</p>
+    </div>
+    <div class="feature-item">
+        <h2>
+            <img src="images/click.svg" />
+            Collect user search sessions
+        </h2>
+        <p>Use collected clicks for resource saving and accuracy effective fine-tuning procedure.</p>
+    </div>
+
+</div>
+
+<div class="top-hr">
+    <div class="feature-item">
+        <h2>
             <img src="images/python_logo.svg" />
             Python ecosystem
         </h2>
         <p>Use Embedding Studio together with your preferred Python libraries. </p>
+    </div>
+    <div class="feature-item">
+        <h2>
+            <img src="images/plugin.svg" />
+            Plugin-based system
+        </h2>
+        <p>Connect your own Vector DB, Data Source and Embedding model by implementing a Python plugin.</p>
     </div>
     <div class="feature-item">
         <h2>
@@ -47,13 +72,6 @@
 </div>
 
 <div class="top-hr">
-    <div class="feature-item">
-        <h2>
-            <img src="images/click.svg" />
-            Collect user feedback
-        </h2>
-        <p>Use collected clicks for resource saving and accuracy effective fine-tuning procedure.</p>
-    </div>
     <div class="feature-item">
         <h2>
             <img src="images/github.svg" />
@@ -68,51 +86,106 @@
         </h2>
         <p>Our goal is to make it simple for customers. You can deploy it and calibrate it without much effort.</p>
     </div>
+    <div class="feature-item">
+        <h2>
+            <img src="images/mlflow.png" />
+            MLflow Native
+        </h2>
+        <p>We use MLflow as a fine-tuning progress tracking system by default.</p>
+    </div>
 </div>
 
 <div class="top-hr">
     <div class="hr">
+
     </div>
 </div>
 
 <div class="text-center">
-    <h2>Challenges and tasks solved with Embedding Studio</h2>
+    <h2>Tasks solved with Embedding Studio</h2>
+    <center><div class="disclaimer"><p>Embedding Studio is not a yet another Vector Database, it's a framework which allows you transform your Vector Database into a Search Engine with all nuances.</p></div></center>
 </div>
 
-<div class="top-hr">
-    <div class="feature-item">
-        <h2>
-            <img src="images/data_unstructured.svg" />
-            Search through unstructured data
-        </h2>
-        <p>
-            The product addresses a common challenge faced by companies - the need for efficient search in unstructured
-            data. Unstructured data, ranging from text documents to multimedia files, often proves challenging for
-            traditional search methods. Our solution not only allows for fast and precise searches across various data
-            types but also supports ongoing fine-tuning of the model.
-            The benefits include maximized data utilization, integration of various data formats, and ease of
-            integration with existing systems, providing companies with a powerful tool for comprehensive data
-            exploration.
-        </p>
+<div class="top-hr cards">
+    <div class="card">
+        <div class="card-image">
+            <img src="./images/semantic-search.png" alt="Semantic Search">
+        </div>
+        <div class="card-content">
+            <div class="card-header">
+                <h2>
+                    <img src="images/logo3.svg" />
+                    Semantic search engine
+                </h2>
+            </div>
+            <div class="card-text">
+                <p class="feature-item-text">Your users look into some images inspired by <i>True Detective</i> or <i>Breaking Bad</i> series, or some blogposts related to the <i>vector search topic</i>.</p>
+                <p class="feature-item-text">Using multimodal embeddings like <i>CLIP</i> or <i>BLIP</i>, a vector database like <i>QDrant</i> or <i>Milivus</i>, and Embedding Studio you can easily allow your users to do it, without using a hashtags, classifiers and classic text indexes.</p>
+            </div>
+        </div>
     </div>
-    <div class="feature-item">
-        <h2>
-            <img src="images/clock_realtime.svg" />
-            Clickstream storage
-        </h2>
-        <p>
-            Customers aim to continuously enhance the search process based on user preferences and behavior. We
-            understand that for a successful business, it's crucial to shape the search system to be as relevant and
-            intuitive as possible for end-users. Our product enables clients to gather valuable data on how users
-            interact with the search system, what they are precisely looking for, and what choices they make.
-        </p>
-        <p>
-            Through automated update pipelines driven by this feedback, we provide clients with the ability to adapt
-            their search models in real-time. This allows them to promptly and efficiently respond to changing user
-            needs and optimize search results. Our product offers tools for the continuous improvement of the user
-            experience, a key factor for success in the dynamic and competitive online search landscape for products
-            and services.
-        </p>
+</div>
+
+<div class="top-hr cards">
+    <div class="card">
+        <div class="card-image">
+            <img src="./images/similarity-search.png" alt="Similarity Search">
+        </div>
+        <div class="card-content">
+            <div class="card-header">
+                <h2>
+                    <img src="images/logo4.svg" />
+                    Similarity search engine
+                </h2>
+            </div>
+            <div class="card-text">
+                <p>Your IT company is at the stage, when users pushing tons of support tickets, bug reports and customer requests, and your support is looking into tons of logs and messages to find similar cases and a solution.</p>
+                <p>Using embedding like <a href="https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2"><i>sentence-transformers/all-MiniLM-L6-v2</i></a>, a vector database and Embedding Studio, you can easily implement internal tickets search and grouping, which will be fine-tuned with your specific domain.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="top-hr cards">
+    <div class="card">
+        <div class="card-image">
+            <img src="./images/structured-unstructured.png" alt="Structured and Unstructured">
+        </div>
+        <div class="card-content">
+            <div class="card-header">
+                <h2>
+                    <img src="images/logo7.svg" />
+                    Structured and unstructured search
+                </h2>
+            </div>
+            <div class="card-text">
+                <p>It's a highly rare case when a company will use unstructured search as is. And by searching <i>brick red houses san francisco area for april</i> user definitely wants to find some houses in San Francisco for a month-long rent in April, and then maybe brick-red houses. So, companies need to mix structured and unstructured search.</p>
+                <p>Embedding Studio team decided to dive into <i>LLM instruct fine-tuning</i> for <i>Zero-Shot query parsing task</i> to close the first gap while a company doesn't have any rules and data being collected, or even eliminate exhausted rules implementation, but in the future.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="top-hr cards">
+    <div class="card">
+        <div class="card-image">
+            <img src="./images/structured-unstructured-queries.png" alt="Structured search with Unstructured queries">
+        </div>
+        <div class="card-content">
+            <div class="card-header">
+                <h2>
+                    <img src="images/logo6.svg" />
+                    Structured search / unstructured queries
+                </h2>
+            </div>
+            <div class="card-text">
+                <p>You don't need any unstructured search underneath you search system, that's ok, especially if you're a service like taxi or booking, because your customers usually want to arrive exactly to <i>221B Baker Street, London</i>, and nothing <i>very similar</i>. You'll probably try to implement search queries parser.</p>
+                <p>So, Embedding Studio can help you too in two ways:</p>
+                <p> 1. <a href="https://huggingface.co/EmbeddingStudio/query-parser-falcon-7b-instruct">Zero-Shot queries parser</a>, which doesn't need anything except filters schema.<br/>
+                    2. With capability of vector databases and Embedding Studio you can implement query to filters mapper, which will improve session by session.
+                </p>
+            </div>
+        </div>
     </div>
 </div>
 

@@ -1,6 +1,6 @@
 # Hello, Unstructured World!
 
-To try out EmbeddingStudio, you can launch the pre-configured demonstration project. We've prepared a dataset stored in
+To try out Embedding Studio, you can launch the pre-configured demonstration project. We've prepared a dataset stored in
 a public S3 bucket, an emulator for user clicks, and a basic script for fine-tuning the model. By adapting it to your
 requirements, you can initiate fine-tuning for your model.
 
@@ -19,7 +19,7 @@ Docker Compose version v2.23.3
 
 ## Start services
 
-Firstly, bring up all the EmbeddingStudio services by executing the following command:
+Firstly, bring up all the Embedding Studio services by executing the following command:
 
 ```shell
 docker compose up -d
@@ -27,7 +27,7 @@ docker compose up -d
 
 !!! Warning 
 
-    EmbeddingStudio is run upon docker-compose v2.17.0 and never, installation manual you can
+    Embedding Studio is run upon docker-compose v2.17.0 and never, installation manual you can
     find [here](https://docs.docker.com/compose/install/linux/).
 
 Upon building and starting, the following services will be launched:
@@ -44,8 +44,8 @@ Upon building and starting, the following services will be launched:
 
 ## Сlickstream emulation
 
-Once all services are up, you can start using EmbeddingStudio. Let's simulate a user search session. We'll run a
-pre-built script that will invoke the EmbeddingStudio API and emulate user behavior:
+Once all services are up, you can start using Embedding Studio. Let's simulate a user search session. We'll run a
+pre-built script that will invoke the Embedding Studio API and emulate user behavior:
 
 ```shell
 docker compose --profile demo_stage_clickstream up -d

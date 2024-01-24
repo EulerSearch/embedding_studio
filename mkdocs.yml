@@ -29,6 +29,19 @@ extra_css:
 nav:
   - Home: index.md
   - Overview: overview.md
+  - Challenges & Solutions:
+      - Challenges: challenges.md
+      - Solutions:
+        - Semantic search engines: solutions/semantic_search_engine.md
+        - Similarity search: solutions/similarity_search.md
+        - Semi-unstructured search engines: solutions/semi_unstructured_search.md
+  - Use Cases:
+      - When is EmbeddingStudio the Best Fit?:
+          - Ideal scenarios 🎯: use_cases/ideal_scenarios.md
+          - Optimal Moments 🚀: use_cases/optimal_moments.md
+          - Examples 💼:
+              - Online-store: use_cases/online_store.md
+              - Legal firm: use_cases/legal_firm.md
   - Tutorial:
       - Getting Started: tutorial/getting_started.md
       - Basic:

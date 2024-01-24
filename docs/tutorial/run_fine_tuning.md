@@ -1,7 +1,7 @@
 # Run Fine-Tuning
 
 Fine-tuning is like giving your smart model a bit of extra training on a specific set of examples. Imagine it as a way
-to teach your model to become even better at a particular task. In EmbeddingStudio, we use fine-tuning to make our
+to teach your model to become even better at a particular task. In Embedding Studio, we use fine-tuning to make our
 search experience sharper and more accurate.
 
 Think of it this way: you've got this smart model that's learned a lot of things (we call it pre-trained), and now you

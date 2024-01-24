@@ -87,7 +87,7 @@
   font-family: 'Lato', sans-serif;
   font-weight: 300;
   box-sizing: border-box;
-  padding: 0.1rem 1rem;
+  padding: 0.1rem 2rem;
   word-break: break-word
 }
 
@@ -113,7 +113,7 @@
 
 .feature-item p {
   font-size: 1rem;
-  line-height: 1.8em;
+  line-height: 1.5em;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   color: #111;
@@ -176,7 +176,7 @@
     padding: 0 .2rem;
   }
 
-  .feature-item {
+.feature-item {
     flex: 1;
     min-width: 0;
   }
@@ -199,4 +199,68 @@
   font-size: 23px;
   font-weight: 300;
   padding-bottom: 10px;
+}
+
+.disclaimer {
+    font-size: 0.75em;
+    max-width: 50%;
+}
+
+.top-hr.cards {
+  display: flex; /* Flex container to center the image */
+  align-items: center; /* Vertical alignment */
+  justify-content: center; /* Horizontal alignment */
+}
+
+.card {
+    display: flex;
+    width: 80%;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    margin: 10px;
+    font-size: 0.75rem;
+    line-height: 1.4em;
+    font-family: 'Lato', sans-serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    color: #111;
+    border-radius: 10px; /* Rounded corners for the card */
+    transition: transform 0.3s ease; /* Animation for card scaling */
+}
+
+.card:hover {
+    transform: scale(1.05); /* Slightly increase size on hover */
+}
+
+.card-image {
+    width: 30%;
+    display: flex; /* Flex container to center the image */
+    align-items: center; /* Vertical alignment */
+    justify-content: center; /* Horizontal alignment */
+}
+
+.card-image img {
+    width: 80%;
+    height: auto;
+    display: block;
+}
+
+.card-content {
+    width: 50%;
+    padding: 20px;
+}
+
+.card-header h2 {
+    margin: 0;
+    color: #333;
+}
+
+.card-header img {
+    width: 15px;
+}
+
+.card-text {
+    margin-top: 15px;
+    color: #111;
 }
