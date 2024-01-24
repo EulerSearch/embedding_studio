@@ -138,7 +138,7 @@ def get_fine_tuning_builder(
 ```
 
 In this method, we describe **how the model fine-tuning will take place**. In our case, we use the
-[`prepare_data`](embedding_studio/workers/fine_tuning/data/prepare_data.py) function to transform the clickstream into
-a dataset suitable for fine-tuning. Then, we create an instance of the `FineTuningBuilder` class, which will perform
-the fine-tuning. In the constructor, we pass all the necessary components that will be used during the fine-tuning
-process.
+[`prepare_data`](https://github.com/EulerSearch/embedding_studio/blob/v0.0.1/embedding_studio/workers/fine_tuning/data/prepare_data.py#L32) 
+function to transform the clickstream into a dataset suitable for fine-tuning. Then, we create an instance of the 
+`FineTuningBuilder` class, which will perform the fine-tuning. In the constructor, we pass all the necessary components 
+that will be used during the fine-tuning process.

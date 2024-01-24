@@ -24,6 +24,11 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - toc:
       permalink: true
+plugins:
+  - minify:
+      cache_safe: true
+      css_files:
+        - stylesheets/extra.css
 extra_css:
   - stylesheets/extra.css
 nav:
