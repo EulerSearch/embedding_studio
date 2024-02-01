@@ -68,4 +68,7 @@ extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/EulerSearch/embedding_studio
+  analytics:
+    provider: google
+    property: G-9CJ7KGX34N
 copyright: © 2024 EulerSearch. All Rights Reserved.
