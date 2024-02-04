@@ -8,9 +8,10 @@
 </p>
 
 <p align="center">
-    <a href="https://embeddingstud.io/tutorial/hello_unstructured_world/">Tutorial</a> •
-    <a href="https://embeddingstud.io/tutorial/getting_started/">Documentation</a> •    
-    <a href="https://embeddingstud.io/overview/">Overview</a>
+    <a href="https://embeddingstud.io/">Website</a> •
+    <a href="https://embeddingstud.io/tutorial/getting_started/">Documentation</a> •
+    <a href="https://embeddingstud.io/challenges/">Challenges & Solutions</a> •
+    <a href="https://embeddingstud.io/challenges/">Use Cases</a>
 </p>
 
 **Embedding Studio** is an innovative open-source framework designed to seamlessly convert a combined

@@ -10,15 +10,29 @@
 </p>
 
 <p align="center">
-    <a href="https://embeddingstud.io/tutorial/hello_unstructured_world/">Tutorial</a> •
-    <a href="https://embeddingstud.io/tutorial/getting_started/">Documentation</a> •    
-    <a href="https://embeddingstud.io/overview/">Overview</a>
+    <a href="https://embeddingstud.io/">Website</a> •
+    <a href="https://embeddingstud.io/tutorial/getting_started/">Documentation</a> •
+    <a href="https://embeddingstud.io/challenges/">Challenges & Solutions</a> •
+    <a href="https://embeddingstud.io/challenges/">Use Cases</a>
 </p>
 
 **Embedding Studio** is an innovative open-source framework designed to seamlessly convert a combined
 embedding model and vector database into a comprehensive search engine. With built-in functionalities for
 clickstream collection, continuous improvement of search experiences, and automatic adaptation of
 the embedding model, it offers an out-of-the-box solution for a full-cycle search engine.
+
+<table style="margin-left: auto; margin-right: auto">
+    <tr align="center"><td>Community Support</td></tr>
+    <tr align="center">
+        <td>
+            Embedding Studio grows with our team's enthusiasm. Your <b>star on the repository</b> helps us keep developing. <br>
+            Join us in reaching our goal:
+            <p align="center">
+                <a href="#"><img src="https://embeddingstud.io/badge?title=Stars%20Goal&scale=300&width=200&color=5d5d5d" alt="Progress"/></a>
+            </p>
+        </td>
+    </tr>
+</table>
 
 ## Features
 
