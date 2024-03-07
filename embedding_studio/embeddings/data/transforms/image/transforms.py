@@ -17,7 +17,17 @@ def image_transforms(
     image_field_name: Optional[str] = "item",
     pixel_values_name: Optional[str] = "pixel_values",
     del_images: Optional[bool] = False,
-):
+) -> Dataset:
+    """
+
+    :param examples:
+    :param transform:
+    :param n_pixels:
+    :param image_field_name:
+    :param pixel_values_name:
+    :param del_images:
+    :return:
+    """
     if not isinstance(n_pixels, int) or n_pixels <= 0:
         raise ValueError(
             f"Num of pixels {n_pixels} should be a positive integer"

@@ -6,9 +6,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from torch.utils.data import DataLoader
 
-from embedding_studio.embeddings.data.clickstream.query_retriever import (
-    QueryRetriever,
-)
+from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
 from embedding_studio.embeddings.data.ranking_data import RankingData
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,

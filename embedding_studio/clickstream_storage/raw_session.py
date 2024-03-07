@@ -2,13 +2,9 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from embedding_studio.embeddings.data.clickstream.query_item import QueryItem
-from embedding_studio.embeddings.data.clickstream.search_event import (
-    SearchResult,
-)
-from embedding_studio.embeddings.data.clickstream.session import (
-    ClickstreamSession,
-)
+from embedding_studio.clickstream_storage.query_item import QueryItem
+from embedding_studio.clickstream_storage.search_event import SearchResult
+from embedding_studio.clickstream_storage.session import ClickstreamSession
 from embedding_studio.models.clickstream.sessions import SessionWithEvents
 
 

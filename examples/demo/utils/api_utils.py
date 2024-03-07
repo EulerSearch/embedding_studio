@@ -62,7 +62,7 @@ def create_session_and_push_events(
         f"{connection_url}/api/v1/clickstream/session",
         json={
             "session_id": session_id,
-            "search_query": session_info["query"]["text"],
+            "search_query": session_info["query"]["dict"],
             "search_meta": session_info["query"],
             "search_results": search_results,
         },

@@ -1,4 +1,4 @@
-from embedding_studio.embeddings.data.clickstream.query_item import QueryItem
+from embedding_studio.clickstream_storage.query_item import QueryItem
 
 
 class TextQueryItem(QueryItem):

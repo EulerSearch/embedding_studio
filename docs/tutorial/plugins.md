@@ -49,7 +49,7 @@ def __init__(self):
     #     "aws_access_key_id": "TESTACCESSKEIDTEST11",
     #     "aws_secret_access_key": "QWERTY1232qdsadfasfg5349BBdf30ekp23odk03",
     # }
-    # self.data_loader = AWSS3DataLoader(**creds)
+    # self.data_loader = AwsS3DataLoader(**creds)
 
     # with empty creds, use anonymous session
     creds = {

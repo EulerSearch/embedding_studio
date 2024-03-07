@@ -3,16 +3,12 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
-from embedding_studio.embeddings.data.clickstream.parsers.parser import (
-    ClickstreamParser,
-)
-from embedding_studio.embeddings.data.clickstream.query_retriever import (
-    QueryRetriever,
-)
+from embedding_studio.clickstream_storage.parsers import ClickstreamParser
+from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
+from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.embeddings.data.clickstream.splitter import (
     ClickstreamSessionsSplitter,
 )
-from embedding_studio.embeddings.data.loaders.data_loader import DataLoader
 from embedding_studio.embeddings.data.ranking_data import RankingData
 from embedding_studio.embeddings.data.storages.producer import (
     ItemStorageProducer,

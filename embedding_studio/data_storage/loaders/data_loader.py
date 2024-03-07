@@ -3,7 +3,7 @@ from typing import List
 
 from datasets import Dataset
 
-from embedding_studio.embeddings.data.loaders.item_meta import ItemMeta
+from embedding_studio.data_storage.loaders.item_meta import ItemMeta
 
 
 class DataLoader(ABC):

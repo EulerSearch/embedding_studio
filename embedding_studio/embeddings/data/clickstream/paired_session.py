@@ -5,9 +5,7 @@ from typing import Any, Dict, List, Set, Tuple, Union
 
 from torch.utils.data import Dataset
 
-from embedding_studio.embeddings.data.clickstream.raw_session import (
-    ClickstreamSession,
-)
+from embedding_studio.clickstream_storage.raw_session import ClickstreamSession
 
 logger = logging.getLogger(__name__)
 

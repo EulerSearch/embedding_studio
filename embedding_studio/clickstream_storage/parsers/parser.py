@@ -1,6 +1,6 @@
 from typing import Dict
 
-from embedding_studio.embeddings.data.clickstream.raw_session import (
+from embedding_studio.clickstream_storage.raw_session import (
     RawClickstreamSession,
 )
 from embedding_studio.models.clickstream.sessions import SessionWithEvents

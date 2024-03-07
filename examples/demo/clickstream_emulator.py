@@ -78,7 +78,7 @@ for session_id, session in enumerate(tqdm(clickstream[:FIRST_N_SESSIONS])):
         ES_CREATE_SESSION_URL,
         json=dict(
             session_id=session_id,
-            search_query=session["query"]["text"],
+            search_query=session["query"]["dict"],
             search_meta=session["query"],
             search_results=search_results,
         ),

@@ -5,11 +5,9 @@ from typing import List, Optional, Set
 from datasets import DatasetDict
 from sklearn.model_selection import train_test_split
 
+from embedding_studio.clickstream_storage.raw_session import ClickstreamSession
 from embedding_studio.embeddings.data.clickstream.paired_session import (
     PairedClickstreamDataset,
-)
-from embedding_studio.embeddings.data.clickstream.raw_session import (
-    ClickstreamSession,
 )
 
 logger = logging.getLogger(__name__)

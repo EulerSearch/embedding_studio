@@ -6,12 +6,8 @@ import pytorch_lightning as pl
 import torch
 from torch import FloatTensor, Tensor
 
-from embedding_studio.embeddings.data.clickstream.query_retriever import (
-    QueryRetriever,
-)
-from embedding_studio.embeddings.data.clickstream.raw_session import (
-    ClickstreamSession,
-)
+from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
+from embedding_studio.clickstream_storage.raw_session import ClickstreamSession
 from embedding_studio.embeddings.data.storages.storage import ItemsStorage
 from embedding_studio.embeddings.features.event_confidences import (
     dummy_confidences,
@@ -98,7 +94,7 @@ class FeaturesExtractor(pl.LightningModule):
             raise ValueError(
                 "negative downsampling factor should be un range (0.0, 1.0)"
             )
-        self.negative_donwsampling_factor = negative_downsampling_factor
+        self.negative_downsampling_factor = negative_downsampling_factor
 
         if (
             not isinstance(min_abs_difference_threshold, float)
@@ -221,7 +217,7 @@ class FeaturesExtractor(pl.LightningModule):
 
         # For keep balance between results and not-results, we decrease a number of not-results
         not_events_count: int = int(
-            self.negative_donwsampling_factor * len(session.not_events)
+            self.negative_downsampling_factor * len(session.not_events)
         )
         not_events_indexes: List[int] = random.choices(
             list(range(len(session.not_events))), k=not_events_count

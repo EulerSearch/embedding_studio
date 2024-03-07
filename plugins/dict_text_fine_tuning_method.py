@@ -20,11 +20,11 @@ from embedding_studio.clickstream_storage.text_query_item import (
 from embedding_studio.clickstream_storage.text_query_retriever import (
     TextQueryRetriever,
 )
-from embedding_studio.data_storage.loaders.s3.s3_image_loader import (
-    AwsS3ImageLoader,
+from embedding_studio.data_storage.loaders.s3.s3_json_loader import (
+    AwsS3JSONLoader,
 )
-from embedding_studio.embeddings.data.storages.producers.clip import (
-    CLIPItemStorageProducer,
+from embedding_studio.embeddings.data.storages.producers.dict import (
+    DictItemStorageProducer,
 )
 from embedding_studio.embeddings.data.utils.fields_normalizer import (
     DatasetFieldsNormalizer,
@@ -32,8 +32,8 @@ from embedding_studio.embeddings.data.utils.fields_normalizer import (
 from embedding_studio.embeddings.losses.prob_cosine_margin_ranking_loss import (
     CosineProbMarginRankingLoss,
 )
-from embedding_studio.embeddings.models.text_to_image.clip import (
-    TextToImageCLIPModel,
+from embedding_studio.embeddings.models.text_to_text.e5 import (
+    TextToTextE5Model,
 )
 from embedding_studio.models.clickstream.sessions import SessionWithEvents
 from embedding_studio.models.plugin import FineTuningBuilder, PluginMeta
@@ -54,9 +54,9 @@ from embedding_studio.workers.fine_tuning.experiments.metrics_accumulator import
 
 class DefaultFineTuningMethod(FineTuningMethod):
     meta = PluginMeta(
-        name="Default Fine Tuning Method",
+        name="Default Fine Tuning Method For Dict Objects (Text Only)",
         version="0.0.1",
-        description="A default fine-tuning plugin",
+        description="A default fine-tuning text plugin",
     )
 
     def __init__(self):
@@ -71,7 +71,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
         # with empty creds, use anonymous session
         creds = {
         }
-        self.data_loader = AwsS3ImageLoader(**creds)
+        self.data_loader = AwsS3JSONLoader(**creds)
 
         self.retriever = TextQueryRetriever()
         self.parser = AWSS3ClickstreamParser(
@@ -79,7 +79,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
         )
         self.splitter = ClickstreamSessionsSplitter()
         self.normalizer = DatasetFieldsNormalizer("item", "item_id")
-        self.storage_producer = CLIPItemStorageProducer(self.normalizer)
+        self.storage_producer = DictItemStorageProducer(self.normalizer)
 
         self.accumulators = [
             MetricsAccumulator(
@@ -137,7 +137,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
         )
 
     def upload_initial_model(self) -> None:
-        model = TextToImageCLIPModel(SentenceTransformer("clip-ViT-B-32"))
+        model = TextToTextE5Model(SentenceTransformer("intfloat/multilingual-e5-large"))
         self.manager.upload_initial_model(model)
 
     def get_fine_tuning_builder(

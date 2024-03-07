@@ -1,6 +1,6 @@
 import hashlib
 
-from embedding_studio.embeddings.data.loaders.item_meta import ItemMeta
+from embedding_studio.data_storage.loaders.item_meta import ItemMeta
 
 
 class S3FileMeta(ItemMeta):

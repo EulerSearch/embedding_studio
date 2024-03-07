@@ -3,7 +3,7 @@ from typing import Dict, Optional, Set
 
 from pydantic import BaseModel, validator
 
-from embedding_studio.embeddings.data.loaders.item_meta import ItemMeta
+from embedding_studio.data_storage.loaders.item_meta import ItemMeta
 from embedding_studio.models.clickstream.sessions import SearchResultItem
 
 

@@ -21,6 +21,14 @@ def convert_image_to_rgb(image: Image) -> Image:
 
 
 def center_crop_transform(n_px: int):
+    """Original CLIP image normalization.
+    1. Resize an image without saving a ratio.
+    2. Do a center crop
+    3. Normalize an image color.
+
+    :param n_px: the size of the target side.
+    :return: normalized image.
+    """
     return Compose(
         [
             Resize(n_px, interpolation=InterpolationMode.BICUBIC),

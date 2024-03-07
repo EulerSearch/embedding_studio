@@ -41,6 +41,14 @@ def _resize_and_pad(n_px: int):
 
 
 def resize_by_longest_and_pad_transform(n_px: int):
+    """1. Resize and place in a center an image be the longest size to keep ratio.
+           In other words to not convert a rectangle into a square.
+        2. Pad it with zeros.
+        3. Normalize colors.
+
+    :param n_px: the size of the target side.
+    :return: normalized image.
+    """
     return Compose(
         [
             _resize_and_pad(n_px),

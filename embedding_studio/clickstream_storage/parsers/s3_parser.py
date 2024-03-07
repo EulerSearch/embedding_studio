@@ -1,7 +1,7 @@
-from embedding_studio.embeddings.data.clickstream.parsers.parser import (
+from embedding_studio.clickstream_storage.parsers.parser import (
     ClickstreamParser,
 )
-from embedding_studio.embeddings.data.loaders.s3.item_meta import S3FileMeta
+from embedding_studio.data_storage.loaders.s3.item_meta import S3FileMeta
 
 
 class AWSS3ClickstreamParser(ClickstreamParser):

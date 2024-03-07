@@ -40,8 +40,8 @@ when we emulate **user clickstream** and run **fine-tuning procedure**. We expec
 It's all simple:
 1. We picked the easiest domain and the easiest dataset ([Remote landscapes](https://huggingface.co/datasets/EmbeddingStudio/merged_remote_landscapes_v1)),
 so we definitely can show positive results in the demo;
-2. We generated related text queries using GPT3.5;
-3. And for each generated text query we emulated search sessions and user clicks (with some probability of a mistake);
+2. We generated related dict queries using GPT3.5;
+3. And for each generated dict query we emulated search sessions and user clicks (with some probability of a mistake);
 4. All data we put into public to read AWS S3 bucket;
 
 

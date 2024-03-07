@@ -10,12 +10,8 @@ from torch import FloatTensor, Tensor
 from torch.optim import SGD, Optimizer
 from torch.optim.lr_scheduler import LRScheduler, StepLR
 
-from embedding_studio.embeddings.data.clickstream.query_retriever import (
-    QueryRetriever,
-)
-from embedding_studio.embeddings.data.clickstream.raw_session import (
-    ClickstreamSession,
-)
+from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
+from embedding_studio.clickstream_storage.raw_session import ClickstreamSession
 from embedding_studio.embeddings.features.event_confidences import (
     dummy_confidences,
 )

@@ -8,9 +8,7 @@ from typing import Any, Dict, List, Optional
 import torch
 from hyperopt import Trials, fmin, hp, tpe
 
-from embedding_studio.embeddings.data.clickstream.query_retriever import (
-    QueryRetriever,
-)
+from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
 from embedding_studio.embeddings.data.ranking_data import RankingData
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,

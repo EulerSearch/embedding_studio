@@ -1,22 +1,21 @@
 import io
 import logging
 import uuid
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
 from botocore.exceptions import ClientError, EndpointConnectionError
-from datasets import Dataset
-from PIL import Image
+from datasets import Dataset, Features
 from pydantic import BaseModel
 
 from embedding_studio.core.config import settings
-from embedding_studio.embeddings.data.loaders.data_loader import DataLoader
-from embedding_studio.embeddings.data.loaders.s3.exceptions.failed_to_load_anything_from_s3 import (
+from embedding_studio.data_storage.loaders.data_loader import DataLoader
+from embedding_studio.data_storage.loaders.s3.exceptions.failed_to_load_anything_from_s3 import (
     FailedToLoadAnythingFromAWSS3,
 )
-from embedding_studio.embeddings.data.loaders.s3.item_meta import S3FileMeta
+from embedding_studio.data_storage.loaders.s3.item_meta import S3FileMeta
 from embedding_studio.workers.fine_tuning.utils.config import (
     RetryConfig,
     RetryParams,
@@ -26,7 +25,7 @@ from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 logger = logging.getLogger(__name__)
 
 
-class AWSS3Credentials(BaseModel):
+class AwsS3Credentials(BaseModel):
     role_arn: Optional[str] = None
     aws_access_key_id: Optional[str] = None
     aws_secret_access_key: Optional[str] = None
@@ -34,7 +33,7 @@ class AWSS3Credentials(BaseModel):
     use_system_info: bool = False
 
 
-def read_from_s3(client, bucket: str, file: str) -> Image:
+def read_from_s3(client, bucket: str, file: str) -> io.BytesIO:
     if not isinstance(bucket, str) or len(bucket) == 0:
         raise ValueError("bucket value should be not empty string")
 
@@ -45,7 +44,7 @@ def read_from_s3(client, bucket: str, file: str) -> Image:
     try:
         client.download_fileobj(bucket, file, outfile)
         outfile.seek(0)
-        return Image.open(outfile)
+        return outfile
 
     except ClientError as e:
         if e.response["Error"]["Code"] == "404":
@@ -56,21 +55,27 @@ def read_from_s3(client, bucket: str, file: str) -> Image:
             raise e
 
 
-class AWSS3DataLoader(DataLoader):
-    def __init__(self, retry_config: Optional[RetryConfig] = None, **kwargs):
+class AwsS3DataLoader(DataLoader):
+    def __init__(
+        self,
+        retry_config: Optional[RetryConfig] = None,
+        features: Optional[Features] = None,
+        **kwargs,
+    ):
         """Items loader from AWS S3.
 
-        :param max_attempts: maximum number of attempts (default: 10)
-        :param wait_time_seconds: time to wait between (default: 10)
-        :param kwargs: dict data for AWSS3Credentials
+        :param retry_config: retry strategy (default: None)
+        :param features: expected features (default: None)
+        :param kwargs: dict data for AwsS3Credentials
         """
-        super(AWSS3DataLoader, self).__init__(**kwargs)
+        super(AwsS3DataLoader, self).__init__(**kwargs)
         self.retry_config = (
             retry_config
             if retry_config
-            else AWSS3DataLoader._get_default_retry_config()
+            else AwsS3DataLoader._get_default_retry_config()
         )
-        self.credentials = AWSS3Credentials(**kwargs)
+        self.features = features
+        self.credentials = AwsS3Credentials(**kwargs)
         self.attempt_exception_types = [EndpointConnectionError]
 
     @staticmethod
@@ -92,7 +97,7 @@ class AWSS3DataLoader(DataLoader):
         return config
 
     @retry_method(name="download_data")
-    def _read_from_s3(self, client, bucket: str, file: str) -> Image:
+    def _read_from_s3(self, client, bucket: str, file: str) -> Any:
         return read_from_s3(client, bucket, file)
 
     @retry_method(name="credentials")
@@ -133,6 +138,9 @@ class AWSS3DataLoader(DataLoader):
             )
         return s3_client
 
+    def _get_item(self, file: io.BytesIO) -> Any:
+        return file
+
     def _generate_dataset_from_s3(
         self, files: List[S3FileMeta]
     ) -> Iterable[Dict]:
@@ -146,23 +154,40 @@ class AWSS3DataLoader(DataLoader):
                 logger.info("Start downloading data from S3...")
                 bad_items_count = 0
                 for val in files:
-                    image = None
+                    item = None
                     try:
-                        image: Image = read_from_s3(
-                            s3_client, val.bucket, val.file
+                        item: Any = self._get_item(
+                            self._read_from_s3(s3_client, val.bucket, val.file)
                         )
                     except Exception as e:
                         logger.exception(
                             f"Unable to download an item: {val.bucket}/{val.file} Exception: {str(e)}"
                         )
 
-                    if image is None:
+                    if item is None:
                         logger.error(
                             f"Unable to download {val.file} from {val.bucket}"
                         )
                         bad_items_count += 1
                         continue
-                    yield {"item": image, "item_id": val.id}
+
+                    if isinstance(item, list):
+                        for i, subitem in enumerate(item):
+                            item_object = {"item_id": f"{val.id}:{i}"}
+                            if self.features is None or not isinstance(
+                                subitem, dict
+                            ):
+                                item_object["item"] = subitem
+                            else:
+                                item_object.update(subitem)
+                            yield item_object
+                    else:
+                        item_object = {"item_id": val.id}
+                        if self.features is None or not isinstance(item, dict):
+                            item_object["item"] = item
+                        else:
+                            item_object.update(item)
+                        yield item
 
                 if bad_items_count == len(files):
                     raise FailedToLoadAnythingFromAWSS3()
@@ -173,5 +198,6 @@ class AWSS3DataLoader(DataLoader):
 
     def load(self, items_data: List[S3FileMeta]) -> Dataset:
         return Dataset.from_generator(
-            lambda: self._generate_dataset_from_s3(items_data)
+            lambda: self._generate_dataset_from_s3(items_data),
+            features=self.features,
         )

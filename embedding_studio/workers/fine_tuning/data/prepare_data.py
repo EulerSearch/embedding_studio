@@ -3,23 +3,17 @@ from typing import Dict, List, Set, Union
 
 from datasets import DatasetDict
 
-from embedding_studio.embeddings.data.clickstream.parsers.parser import (
-    ClickstreamParser,
-)
-from embedding_studio.embeddings.data.clickstream.query_retriever import (
-    QueryRetriever,
-)
-from embedding_studio.embeddings.data.clickstream.raw_session import (
+from embedding_studio.clickstream_storage.parsers import ClickstreamParser
+from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
+from embedding_studio.clickstream_storage.raw_session import (
     RawClickstreamSession,
 )
-from embedding_studio.embeddings.data.clickstream.session import (
-    ClickstreamSession,
-)
+from embedding_studio.clickstream_storage.session import ClickstreamSession
+from embedding_studio.data_storage.loaders.data_loader import DataLoader
+from embedding_studio.data_storage.loaders.item_meta import ItemMeta
 from embedding_studio.embeddings.data.clickstream.splitter import (
     ClickstreamSessionsSplitter,
 )
-from embedding_studio.embeddings.data.loaders.data_loader import DataLoader
-from embedding_studio.embeddings.data.loaders.item_meta import ItemMeta
 from embedding_studio.embeddings.data.ranking_data import RankingData
 from embedding_studio.embeddings.data.storages.producer import (
     ItemStorageProducer,
