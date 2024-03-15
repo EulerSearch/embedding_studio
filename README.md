@@ -28,7 +28,7 @@ the embedding model, it offers an out-of-the-box solution for a full-cycle searc
             Embedding Studio grows with our team's enthusiasm. Your <b>star on the repository</b> helps us keep developing. <br>
             Join us in reaching our goal:
             <p align="center">
-                <a href="#"><img src="https://embeddingstud.io/badge?title=Stars%20Goal&scale=300&width=200&color=5d5d5d" alt="Progress"/></a>
+                <a href="#"><img src="https://embeddingstud.io/badge?title=Stars%20Goal&scale=500&width=200&color=5d5d5d" alt="Progress"/></a>
             </p>
         </td>
     </tr>

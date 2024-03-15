@@ -5,7 +5,9 @@ from dramatiq_abort import abort as dramatiq_abort
 from fastapi import APIRouter, HTTPException, status
 
 from embedding_studio.api.api_v1.schemas.fine_tuning import (
-    FineTuningTaskCreate,
+    FineTuningTaskCancelResponse,
+    FineTuningTaskCreateRequest,
+    FineTuningTaskDeleteResponse,
     FineTuningTaskResponse,
 )
 from embedding_studio.context.app_context import context
@@ -24,7 +26,7 @@ router = APIRouter()
     response_model_exclude_none=True,
 )
 def create_fine_tuning_task(
-    body: FineTuningTaskCreate,
+    body: FineTuningTaskCreateRequest,
 ) -> Any:
     """Create a new fine-tuning task.
 
@@ -101,9 +103,9 @@ def get_fine_tuning_tasks(
 
 @router.put(
     "/task/{id}/restart",
-    response_model=FineTuningTaskResponse,
+    response_model=FineTuningTaskDeleteResponse,
     response_model_by_alias=False,
-    response_model_include={"id", "status"},
+    response_model_exclude_none=True,
 )
 def restart_fine_tuning_task(
     id: str,
@@ -133,9 +135,9 @@ def restart_fine_tuning_task(
 
 @router.put(
     "/task/{id}/cancel",
-    response_model=FineTuningTaskResponse,
+    response_model=FineTuningTaskCancelResponse,
     response_model_by_alias=False,
-    response_model_include={"id", "status"},
+    response_model_exclude_none=True,
 )
 def cancel_fine_tuning_task(
     id: str,

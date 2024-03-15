@@ -4,13 +4,13 @@ from typing import Optional
 
 def current_time() -> datetime:
     """
-    Returns the current UTC time.
+    Returns the current UTC time with timezone.
 
     Used for passing it to Pydantic models
     for proper handling with the `freeze_time` function from the `freezegun`
     module.
     """
-    return datetime.utcnow()
+    return datetime.now(timezone.utc)
 
 
 def unaware_utc_to_aware_utc(stamp: datetime):

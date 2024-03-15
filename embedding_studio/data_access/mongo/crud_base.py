@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 from typing import (
     Any,
     Dict,
@@ -15,6 +14,8 @@ from typing import (
 from bson import ObjectId
 from pydantic import BaseModel
 from pymongo.collection import Collection
+
+from embedding_studio.utils.datetime_utils import current_time
 
 SchemaInDbType = TypeVar("SchemaInDbType", bound=BaseModel)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -181,7 +182,7 @@ class CRUDBase(Generic[SchemaInDbType, CreateSchemaType, UpdateSchemaType]):
             new_values = obj.model_dump(exclude={"id"})
 
         if self._UPDATED_AT in new_values:
-            new_values[self._UPDATED_AT] = datetime.utcnow()
+            new_values[self._UPDATED_AT] = current_time()
 
         result = self.collection.update_one(
             {self._MONGODB_ID: obj_id},

@@ -1,3 +1,4 @@
+import os
 from collections.abc import Iterable
 from typing import Any, Dict, Generic, List, Optional, Set, Type, TypeVar
 
@@ -29,9 +30,11 @@ class MongoDao(Generic[ModelT]):
             self.collection.create_index(
                 self.model_id, unique=True, background=True
             )
-        if additional_indexes:
-            for index in additional_indexes:
-                self.collection.create_index(**index, background=True)
+        # TODO: remove this when we have a better way to run unit tests
+        if os.getenv("ES_UNIT_TESTS") != "1":
+            if additional_indexes:
+                for index in additional_indexes:
+                    self.collection.create_index(**index, background=True)
 
     def bson_to_model(self, bson: Any) -> ModelT:
         bson = dict(bson)

@@ -27,7 +27,7 @@ class Params(NamedTuple):
     ]
 
 
-@freeze_time("2023-12-15T11:15:00")
+@freeze_time("2023-12-15T08:15:00", tz_offset=3)
 def test_fine_tuning_base(client: TestClient):
     response = client.post(
         url="/api/v1/fine-tuning/task",
@@ -44,8 +44,8 @@ def test_fine_tuning_base(client: TestClient):
         "fine_tuning_method": "Test Method",
         "id": task_id,
         "status": "pending",
-        "created_at": "2023-12-15T11:15:00",
-        "updated_at": "2023-12-15T11:15:00",
+        "created_at": "2023-12-15T11:15:00Z",
+        "updated_at": "2023-12-15T11:15:00Z",
     }
 
     response = client.get(url="/api/v1/fine-tuning/task")
@@ -55,14 +55,14 @@ def test_fine_tuning_base(client: TestClient):
             "fine_tuning_method": "Test Method",
             "id": task_id,
             "status": "pending",
-            "created_at": "2023-12-15T11:15:00",
-            "updated_at": "2023-12-15T11:15:00",
+            "created_at": "2023-12-15T11:15:00Z",
+            "updated_at": "2023-12-15T11:15:00Z",
         }
     ]
 
 
 # TODO: need to add more tests
-@freeze_time("2023-12-15T11:15:00")
+@freeze_time("2023-12-15T08:15:00", tz_offset=3)
 @pytest.mark.parametrize(
     "params",
     [
@@ -84,8 +84,8 @@ def test_fine_tuning_base(client: TestClient):
                         "json": {
                             "fine_tuning_method": "Test Method",
                             "status": "pending",
-                            "created_at": "2023-12-15T11:15:00",
-                            "updated_at": "2023-12-15T11:15:00",
+                            "created_at": "2023-12-15T11:15:00Z",
+                            "updated_at": "2023-12-15T11:15:00Z",
                         },
                     }
                 ],
@@ -117,15 +117,15 @@ def test_fine_tuning_base(client: TestClient):
                             {
                                 "fine_tuning_method": "Test Method 1",
                                 "status": "pending",
-                                "created_at": "2023-12-15T11:15:00",
-                                "updated_at": "2023-12-15T11:15:00",
+                                "created_at": "2023-12-15T11:15:00Z",
+                                "updated_at": "2023-12-15T11:15:00Z",
                             },
                             {
                                 "fine_tuning_method": "Test Method 2",
                                 "metadata": {"some": "testmetadata"},
                                 "status": "pending",
-                                "created_at": "2023-12-15T11:15:00",
-                                "updated_at": "2023-12-15T11:15:00",
+                                "created_at": "2023-12-15T11:15:00Z",
+                                "updated_at": "2023-12-15T11:15:00Z",
                             },
                         ],
                     },
@@ -134,8 +134,8 @@ def test_fine_tuning_base(client: TestClient):
                         "json": {
                             "fine_tuning_method": "Test Method 1",
                             "status": "pending",
-                            "created_at": "2023-12-15T11:15:00",
-                            "updated_at": "2023-12-15T11:15:00",
+                            "created_at": "2023-12-15T11:15:00Z",
+                            "updated_at": "2023-12-15T11:15:00Z",
                         },
                     },
                     {
@@ -144,8 +144,8 @@ def test_fine_tuning_base(client: TestClient):
                             "fine_tuning_method": "Test Method 2",
                             "metadata": {"some": "testmetadata"},
                             "status": "pending",
-                            "created_at": "2023-12-15T11:15:00",
-                            "updated_at": "2023-12-15T11:15:00",
+                            "created_at": "2023-12-15T11:15:00Z",
+                            "updated_at": "2023-12-15T11:15:00Z",
                         },
                     },
                 ],
@@ -167,15 +167,15 @@ def test_fine_tuning_base(client: TestClient):
                             {
                                 "fine_tuning_method": "Test Method 1",
                                 "status": "pending",
-                                "created_at": "2023-12-15T11:15:00",
-                                "updated_at": "2023-12-15T11:15:00",
+                                "created_at": "2023-12-15T11:15:00Z",
+                                "updated_at": "2023-12-15T11:15:00Z",
                             },
                             {
                                 "fine_tuning_method": "Test Method 2",
                                 "metadata": {"some": "testmetadata"},
                                 "status": "pending",
-                                "created_at": "2023-12-15T11:15:00",
-                                "updated_at": "2023-12-15T11:15:00",
+                                "created_at": "2023-12-15T11:15:00Z",
+                                "updated_at": "2023-12-15T11:15:00Z",
                             },
                         ],
                     },
