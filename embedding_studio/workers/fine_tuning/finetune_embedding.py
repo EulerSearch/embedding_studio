@@ -13,18 +13,12 @@ from embedding_studio.embeddings.data.ranking_data import RankingData
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
-from embedding_studio.workers.fine_tuning.experiments.experiments_tracker import (
-    ExperimentsManager,
-)
-from embedding_studio.workers.fine_tuning.experiments.finetuning_iteration import (
+from embedding_studio.experiments.experiments_tracker import ExperimentsManager
+from embedding_studio.experiments.finetuning_iteration import (
     FineTuningIteration,
 )
-from embedding_studio.workers.fine_tuning.experiments.finetuning_params import (
-    FineTuningParams,
-)
-from embedding_studio.workers.fine_tuning.experiments.finetuning_settings import (
-    FineTuningSettings,
-)
+from embedding_studio.experiments.finetuning_params import FineTuningParams
+from embedding_studio.experiments.finetuning_settings import FineTuningSettings
 from embedding_studio.workers.fine_tuning.finetune_embedding_one_param import (
     fine_tune_embedding_model_one_param,
 )

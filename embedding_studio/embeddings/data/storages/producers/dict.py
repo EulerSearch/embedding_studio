@@ -29,14 +29,17 @@ class DictItemStorageProducer(ItemStorageProducer):
                None value means that every column except ID will be used to format a solid string,
                fields will be sorted by names in descending order.
         """
+        self.transform = (
+            transform
+            if transform
+            else lambda v: get_text_line_from_dict(
+                v, order_fields=True, ascending=False
+            )
+        )
         super(DictItemStorageProducer, self).__init__(
             DictItemsDatasetDictPreprocessor(
                 field_normalizer,
-                lambda v: transform(v)
-                if transform
-                else get_text_line_from_dict(
-                    v, order_fields=True, ascending=False
-                ),
+                self.transform,
             ),
             id_field_name,
         )

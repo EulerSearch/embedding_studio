@@ -6,12 +6,8 @@ import mlflow
 from botocore.exceptions import EndpointConnectionError
 from pydantic import BaseModel
 
-from embedding_studio.workers.fine_tuning.experiments.experiments_tracker import (
-    ExperimentsManager,
-)
-from embedding_studio.workers.fine_tuning.experiments.metrics_accumulator import (
-    MetricsAccumulator,
-)
+from embedding_studio.experiments.experiments_tracker import ExperimentsManager
+from embedding_studio.experiments.metrics_accumulator import MetricsAccumulator
 from embedding_studio.workers.fine_tuning.utils.config import RetryConfig
 from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 
@@ -39,6 +35,7 @@ class ExperimentsManagerWithAmazonS3Backend(ExperimentsManager):
         tracking_uri: str,
         s3_credentials: S3Credentials,
         main_metric: str,
+        plugin_name: str,
         accumulators: List[MetricsAccumulator],
         is_loss: bool = False,
         n_top_runs: int = 10,
@@ -50,15 +47,17 @@ class ExperimentsManagerWithAmazonS3Backend(ExperimentsManager):
         :param tracking_uri: url of MLFlow server
         :param s3_credentials: credentials to connect to Amazon S3
         :param main_metric: name of the main metric that will be used to find models
+        :param plugin_name: name of fine-tuning method being used
         :param accumulators: accumulators of metrics to be logged
         :param is_loss: is the main metric loss (if True, then the best quality is minimal) (default: False)
         :param n_top_runs: how many hyper params groups to consider for following tuning steps (default: 10)
         :param requirements: extra requirements to be passed to mlflow.pytorch.log_model (default: None)
         :param retry_config: retry policy (default: None)
         """
-        super(ExperimentsManagerWithAmazonS3Backend, self).init(
+        super(ExperimentsManagerWithAmazonS3Backend, self).__init__(
             tracking_uri,
             main_metric,
+            plugin_name,
             accumulators,
             is_loss,
             n_top_runs,

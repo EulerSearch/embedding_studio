@@ -35,26 +35,27 @@ from embedding_studio.embeddings.losses.prob_cosine_margin_ranking_loss import (
 from embedding_studio.embeddings.models.text_to_text.e5 import (
     TextToTextE5Model,
 )
+from embedding_studio.embeddings.inference.triton.text_to_text.e5 import TextToTextE5TritonClientFactory
 from embedding_studio.models.clickstream.sessions import SessionWithEvents
 from embedding_studio.models.plugin import FineTuningBuilder, PluginMeta
 from embedding_studio.workers.fine_tuning.data.prepare_data import prepare_data
-from embedding_studio.workers.fine_tuning.experiments.experiments_tracker import (
+from embedding_studio.experiments.experiments_tracker import (
     ExperimentsManager,
 )
-from embedding_studio.workers.fine_tuning.experiments.finetuning_settings import (
+from embedding_studio.experiments.finetuning_settings import (
     FineTuningSettings,
 )
-from embedding_studio.workers.fine_tuning.experiments.initial_params.clip import (
+from embedding_studio.experiments.initial_params.clip import (
     INITIAL_PARAMS,
 )
-from embedding_studio.workers.fine_tuning.experiments.metrics_accumulator import (
+from embedding_studio.experiments.metrics_accumulator import (
     MetricsAccumulator,
 )
 
 
 class DefaultFineTuningMethod(FineTuningMethod):
     meta = PluginMeta(
-        name="Default Fine Tuning Method For Text",
+        name="DefaultFineTuningMethodForText", # Should be a python-like naming
         version="0.0.1",
         description="A default fine-tuning text plugin",
     )
@@ -68,6 +69,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
         # }
         # self.data_loader = AwsS3DataLoader(**creds)
 
+        self.model_name = 'intfloat/multilingual-e5-large'
         # with empty creds, use anonymous session
         creds = {
         }
@@ -111,6 +113,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
         self.manager = ExperimentsManager(
             tracking_uri=settings.MLFLOW_TRACKING_URI,
             main_metric="test_not_irrelevant_dist_shift",
+            plugin_name=self.meta.name,
             accumulators=self.accumulators,
         )
 
@@ -135,9 +138,15 @@ class DefaultFineTuningMethod(FineTuningMethod):
             test_each_n_sessions=0.5,
             num_epochs=3,
         )
+        self.inference_client_factory = TextToTextE5TritonClientFactory(
+            f'{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}',
+            plugin_name=self.meta.name,
+            preprocessor=self.storage_producer.preprocessor,
+            model_name=self.model_name
+        )
 
     def upload_initial_model(self) -> None:
-        model = TextToTextE5Model(SentenceTransformer("intfloat/multilingual-e5-large"))
+        model = TextToTextE5Model(SentenceTransformer(self.model_name))
         self.manager.upload_initial_model(model)
 
     def get_fine_tuning_builder(

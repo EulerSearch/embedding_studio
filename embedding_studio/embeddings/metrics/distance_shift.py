@@ -9,9 +9,7 @@ from embedding_studio.clickstream_storage.raw_session import ClickstreamSession
 from embedding_studio.embeddings.data.storages.storage import ItemsStorage
 from embedding_studio.embeddings.features.extractor import FeaturesExtractor
 from embedding_studio.embeddings.metrics.metric import MetricCalculator
-from embedding_studio.workers.fine_tuning.experiments.metrics_accumulator import (
-    MetricValue,
-)
+from embedding_studio.experiments.metrics_accumulator import MetricValue
 
 
 class DistanceShift(MetricCalculator):

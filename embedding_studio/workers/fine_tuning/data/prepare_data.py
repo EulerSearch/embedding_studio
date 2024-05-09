@@ -3,7 +3,9 @@ from typing import Dict, List, Set, Union
 
 from datasets import DatasetDict
 
-from embedding_studio.clickstream_storage.parsers import ClickstreamParser
+from embedding_studio.clickstream_storage.parsers.parser import (
+    ClickstreamParser,
+)
 from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
 from embedding_studio.clickstream_storage.raw_session import (
     RawClickstreamSession,

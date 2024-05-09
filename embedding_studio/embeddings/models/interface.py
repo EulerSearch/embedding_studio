@@ -1,9 +1,13 @@
 from abc import abstractmethod
-from typing import Any, Iterator, List
+from typing import Any, Iterator, List, Tuple, Type
 
 import pytorch_lightning as pl
-from torch import FloatTensor
+from torch import FloatTensor, Tensor
 from torch.nn import Parameter
+
+from embedding_studio.inference_management.triton.manager import (
+    TritonModelStorageManager,
+)
 
 
 class EmbeddingsModelInterface(pl.LightningModule):
@@ -22,6 +26,26 @@ class EmbeddingsModelInterface(pl.LightningModule):
 
     @abstractmethod
     def get_items_model_params(self) -> Iterator[Parameter]:
+        pass
+
+    @abstractmethod
+    def get_query_model_input(self) -> Tuple[str, Tensor]:
+        pass
+
+    @abstractmethod
+    def get_items_model_input(self) -> Tuple[str, Tensor]:
+        pass
+
+    @abstractmethod
+    def get_query_model_inference_manager_class(
+        self,
+    ) -> Type[TritonModelStorageManager]:
+        pass
+
+    @abstractmethod
+    def get_items_model_inference_manager_class(
+        self,
+    ) -> Type[TritonModelStorageManager]:
         pass
 
     @abstractmethod

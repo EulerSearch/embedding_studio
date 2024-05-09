@@ -1,0 +1,179 @@
+import os
+from abc import ABC, abstractmethod
+from typing import List
+
+import torch
+from torch import nn
+
+from embedding_studio.inference_management.triton.model_storage_info import (
+    ModelStorageInfo,
+)
+from embedding_studio.inference_management.triton.utils.types_mapping import (
+    pytorch_dtype_to_triton_dtype,
+)
+
+
+class TritonModelStorageManager(ABC):
+    def __init__(
+        self, storage_info: ModelStorageInfo, do_dynamic_batching: bool = True
+    ):
+        self._storage_info = storage_info
+        self._kind_gpu = torch.cuda.is_available()
+        self.do_dynamic_batching = do_dynamic_batching
+
+    def _setup_folder_directory(self):
+        os.makedirs(self._storage_info.model_version_path, exist_ok=True)
+
+    @abstractmethod
+    def _generate_triton_config_model_info(self) -> List[str]:
+        raise NotImplemented()
+
+    def _generate_triton_config_model_input(
+        self, example_input: torch.Tensor, input_name: str
+    ) -> List[str]:
+        # Determine the data types for input and output
+        input_dtype = pytorch_dtype_to_triton_dtype(example_input.dtype)
+
+        # TODO: use google.protobuf
+        return [
+            "input [",
+            "  {",
+            '    name: "{}"'.format(input_name),
+            "    data_type: {}".format(input_dtype),
+            "    dims: [{}]".format(
+                ", ".join(map(str, example_input.shape[1:]))
+            ),
+            "  }",
+            "]",
+        ]
+
+    def _generate_triton_config_model_output(
+        self,
+        model: nn.Module,
+        example_input: torch.Tensor,
+    ) -> List[str]:
+        with torch.no_grad():
+            output = model(example_input)
+        # TODO: use google.protobuf
+        config_lines = [
+            "output [",
+        ]
+        # Handle models that return multiple outputs or a single output
+        if isinstance(output, tuple):  # Check if output is a tuple
+            for idx, out_tensor in enumerate(output):
+                out_dtype = pytorch_dtype_to_triton_dtype(out_tensor.dtype)
+                config_lines.extend(
+                    [
+                        "  {",
+                        '    name: "output{}"'.format(idx),
+                        "    data_type: {}".format(out_dtype),
+                        "    dims: [{}]".format(
+                            ", ".join(map(str, out_tensor.shape[1:]))
+                        ),
+                        "  }",
+                    ]
+                )
+        else:
+            out_dtype = pytorch_dtype_to_triton_dtype(output.dtype)
+            config_lines.extend(
+                [
+                    "  {",
+                    '    name: "output"',
+                    "    data_type: {}".format(out_dtype),
+                    "    dims: [{}]".format(
+                        ", ".join(map(str, output.shape[1:]))
+                    ),
+                    "  }",
+                ]
+            )
+        config_lines.append("]")
+        return config_lines
+
+    def _generate_triton_config_inference_mode(self) -> List[str]:
+        # Determine configuration parameters
+        kind = "KIND_GPU" if self._kind_gpu else "KIND_CPU"
+        gpus = (
+            list(range(torch.cuda.device_count())) if self._kind_gpu else None
+        )
+
+        # TODO: use google.protobuf
+        # Define template
+        template = """
+instance_group [
+  {{
+    count: 1
+    kind: {kind}{gpu_line}
+  }}
+]"""
+
+        # Format the GPU line if necessary
+        gpu_line = f"\n    gpus: {gpus}" if gpus is not None else ""
+
+        # Use the template to generate the configuration
+        config = template.format(kind=kind, gpu_line=gpu_line)
+        return config.strip().splitlines()
+
+    def _generate_triton_config_dynamic_batching(self) -> List[str]:
+        config_lines = []
+        # TODO: use google.protobuf
+        if self.do_dynamic_batching:
+            config_lines.append("")
+            config_lines.append(
+                """dynamic_batching {
+  preferred_batch_size: [1, 2, 4, 8]
+  max_queue_delay_microseconds: 100
+}
+"""
+            )
+        return config_lines
+
+    def _generate_triton_config_model_versions(self) -> List[str]:
+        # TODO: use google.protobuf
+        return [
+            """version_policy {
+  latest {
+    num_versions: 2
+  }
+}"""
+        ]
+
+    def _generate_triton_config(
+        self, model: nn.Module, example_input: torch.Tensor, input_name: str
+    ) -> str:
+        config_lines = self._generate_triton_config_model_info()
+        config_lines += self._generate_triton_config_model_input(
+            example_input, input_name
+        )
+        config_lines += self._generate_triton_config_model_output(
+            model, example_input
+        )
+        config_lines += self._generate_triton_config_inference_mode()
+        config_lines += self._generate_triton_config_dynamic_batching()
+        config_lines += self._generate_triton_config_model_versions()
+
+        return "\n".join(config_lines)
+
+    def _setup_triton_config(
+        self, model: nn.Module, example_input: torch.Tensor, input_name: str
+    ):
+        # Setup config.pbtxt file
+        model_config = self._generate_triton_config(
+            model, example_input, input_name
+        )
+        with open(
+            os.path.join(self._storage_info.model_path, "config.pbtxt"), "w"
+        ) as f:
+            f.write(model_config)
+
+    @abstractmethod
+    def _save_model(
+        self, model: nn.Module, example_input: torch.Tensor, input_name: str
+    ):
+        raise NotImplemented()
+
+    def save_model(
+        self, model: nn.Module, example_input: torch.Tensor, input_name: str
+    ):
+        self._setup_folder_directory()
+        self._setup_triton_config(model, example_input, input_name)
+        self._save_model(model, example_input, input_name)

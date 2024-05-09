@@ -4,7 +4,7 @@
 
 <p align="center">
     <a href="#"><img src="https://img.shields.io/badge/version-0.0.1-orange.svg" alt="version"></a>
-    <a href="https://www.python.org/downloads/release/python-3918/"><img src="https://img.shields.io/badge/python-3.9-blue.svg" alt="Python 3.9"></a>
+    <a href="https://www.python.org/downloads/release/python-31014/"><img src="https://img.shields.io/badge/python-3.10-blue.svg" alt="Python 3.10"></a>
     <a href="#"><img src="https://img.shields.io/badge/CUDA-11.7.1-green.svg" alt="CUDA 11.7.1"></a>
     <a href="#"><img src="https://img.shields.io/badge/docker--compose-2.17.0-blue.svg" alt="Docker Compose Version"></a>
 </p>
@@ -41,7 +41,7 @@ the embedding model, it offers an out-of-the-box solution for a full-cycle searc
 3. 🚀 (*) Improve search experience on-the-fly without frustrating wait times
 4. 📊 (*) Monitor your search quality
 5. 🎯 Improve your embedding model through an iterative metric fine-tuning procedure
-6. 🆕 (*) Use the new version of the embedding model for inference
+6. 🆕 Use the new version of the embedding model for inference
 7. 🛠️ (*) Priorly fine-tune your Embedding on your catalogue data. 
 8. 🔍 (*) Use and improve the Zero-Shot Query Parser to mix your structured database with unstructured search.
 

@@ -1,14 +1,21 @@
 import logging
-from typing import Dict, Iterator, List, Optional, Union
+from typing import Dict, Iterator, List, Optional, Tuple, Type, Union
 
+import torch
 from sentence_transformers import SentenceTransformer
 from torch import FloatTensor, Tensor
-from torch.nn import Parameter
+from torch.nn import Module, Parameter
 from transformers import AutoModel, AutoTokenizer
 
 from embedding_studio.embeddings.models.average_pool import average_pool
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
+)
+from embedding_studio.inference_management.triton.jit_trace_manager import (
+    JitTraceTritonModelStorageManager,
+)
+from embedding_studio.inference_management.triton.manager import (
+    TritonModelStorageManager,
 )
 
 logger = logging.getLogger(__name__)
@@ -16,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class TextToTextE5Model(EmbeddingsModelInterface):
     """Wrapper to AutoModel or SentenceTransformer E5 model.
-    Usage: model = TextToImageCLIPModel(SentenceTransformer('intfloat/multilingual-e5-large'))
+    Usage: model = TextToTextE5Model(SentenceTransformer('intfloat/multilingual-e5-large'))
 
     :param e5_model: E5 type model, either AutoModel, either SentenceTransformer.
     :param e5_tokenizer: E5 tokenizer. If None, will upload it by name. Don't need to speсify for SentenceTransformer version.
@@ -38,16 +45,59 @@ class TextToTextE5Model(EmbeddingsModelInterface):
                 )
             else:
                 self.e5_tokenizer = e5_tokenizer
-        else:
-            pass
+
+        elif isinstance(e5_model, SentenceTransformer):
+            self.e5_model = e5_model
+            self.e5_tokenizer = self.e5_model.tokenizer
+
+        elif isinstance(e5_model, str):
+            self.e5_model = SentenceTransformer(e5_model)
+            self.e5_tokenizer = self.e5_model.tokenizer
 
         self.max_length = max_length
+
+    def get_query_model(self) -> Module:
+        return self.e5_model
+
+    def get_items_model(self) -> Module:
+        return self.e5_model
 
     def get_query_model_params(self) -> Iterator[Parameter]:
         return self.e5_model.parameters()
 
     def get_items_model_params(self) -> Iterator[Parameter]:
         return self.get_query_model_params()
+
+    @torch.no_grad()
+    def get_query_model_input(self) -> Tuple[str, Tensor]:
+        # Define an example text
+        text = "Example text to be tokenized and input into the model."
+
+        # Tokenize the text
+        inputs = self.e5_tokenizer(
+            text,
+            return_tensors="pt",
+            max_length=self.max_length,
+            padding="max_length",
+            truncation=True,
+        )
+
+        # Extract the input_ids tensor which will be used as the input to the model
+        return "input_ids", inputs["input_ids"]
+
+    @torch.no_grad()
+    def get_items_model_input(self) -> Tuple[str, Tensor]:
+        return self.get_query_model_input()
+
+    def get_query_model_inference_manager_class(
+        self,
+    ) -> Type[TritonModelStorageManager]:
+        return JitTraceTritonModelStorageManager
+
+    def get_items_model_inference_manager_class(
+        self,
+    ) -> Type[TritonModelStorageManager]:
+        return JitTraceTritonModelStorageManager
 
     def fix_query_model(self, num_fixed_layers: int):
         if len(self.e5_model._modules["encoder"].layer) <= num_fixed_layers:

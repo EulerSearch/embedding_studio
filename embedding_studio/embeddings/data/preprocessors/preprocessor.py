@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from datasets import DatasetDict
 
@@ -8,6 +9,10 @@ class ItemsDatasetDictPreprocessor(ABC):
 
     @abstractmethod
     def convert(self, dataset: DatasetDict) -> DatasetDict:
+        raise NotImplemented()
+
+    @abstractmethod
+    def __call__(self, item: Any) -> Any:
         raise NotImplemented()
 
     @abstractmethod

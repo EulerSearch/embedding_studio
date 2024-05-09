@@ -7,10 +7,10 @@ from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
 from embedding_studio.core.plugin import PluginManager
 from embedding_studio.db.redis import redis_broker  # noqa
-from embedding_studio.models.fine_tuning import FineTuningStatus
-from embedding_studio.workers.fine_tuning.experiments.finetuning_iteration import (
+from embedding_studio.experiments.finetuning_iteration import (
     FineTuningIteration,
 )
+from embedding_studio.models.fine_tuning import FineTuningStatus
 from embedding_studio.workers.fine_tuning.finetune_embedding import (
     finetune_embedding_model,
 )
@@ -73,9 +73,11 @@ def fine_tuning_worker(task_id: str):
                 f"Fine tuning plugin with name `{task.fine_tuning_method}` "
                 f"not found"
             )
-        logger.info(f"Upload initial model...")
-        fine_tuning_plugin.upload_initial_model()
-        logger.info(f"Upload initial model... OK")
+        if not fine_tuning_plugin.experiments_manager.has_initial_model():
+            logger.info("No initial model found, uploading.")
+            logger.info(f"Upload initial model...")
+            fine_tuning_plugin.upload_initial_model()
+            logger.info(f"Upload initial model... OK")
 
         logger.info("Create fine-tuning builder...")
         builder = fine_tuning_plugin.get_fine_tuning_builder(
@@ -118,3 +120,7 @@ def fine_tuning_worker(task_id: str):
 
     task.status = FineTuningStatus.done
     context.fine_tuning_task.update(obj=task)
+
+
+if settings.OPEN_MOCKED_ENDPOINTS:
+    pass

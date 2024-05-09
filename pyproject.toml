@@ -12,16 +12,18 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.dependencies]
-python = "~3.9.0"
+python = "~3.10.0"
 pydantic = "2.5.2"
 pydantic-settings = "2.1.0"
 fastapi = "0.104.1"
 uvicorn = "0.23.2"
 dramatiq = "1.15.0"
 dramatiq-abort = "1.1.0"
+periodiq = "0.12.1"
 pymongo = "4.6.1"
 redis = "5.0.1"
 python-dotenv = "1.0.0"
+tritonclient = { version = "2.30.0", extras = ["all"] }
 PyYAML = "6.0.1"
 
 [tool.poetry.group.dev.dependencies]
@@ -38,6 +40,7 @@ mkdocs-minify-plugin = "0.7.2"
 
 [tool.poetry.group.ml.dependencies]
 boto3 = "1.26.67"
+urllib3 = "1.26.7"
 datasets = "2.15.0"
 hyperopt = "0.2.7"
 mlflow = "2.7.1"

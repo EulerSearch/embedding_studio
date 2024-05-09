@@ -5,7 +5,7 @@ EXPERIMENT_PREFIX = "iteration"
 
 
 class FineTuningIteration(BaseModel):
-    """Fine tuning iteration.
+    """Fine-tuning iteration.
 
     :param batch_id: session batch id
     :param plugin_name: name of tuned embedding (default: "")
@@ -19,5 +19,5 @@ class FineTuningIteration(BaseModel):
 
     def __str__(self) -> str:
         return (
-            f"{EXPERIMENT_PREFIX} / {self.plugin_name} / " + f"{self.batch_id}"
+            f"{self.plugin_name} / {EXPERIMENT_PREFIX} /" + f"{self.batch_id}"
         )

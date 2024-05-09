@@ -18,9 +18,7 @@ from embedding_studio.embeddings.features.session_features import (
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
-from embedding_studio.workers.fine_tuning.experiments.finetuning_params import (
-    ExamplesType,
-)
+from embedding_studio.experiments.finetuning_params import ExamplesType
 
 COSINE_SIMILARITY = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
 

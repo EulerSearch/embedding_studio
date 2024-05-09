@@ -12,6 +12,9 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8"
     )
 
+    OPEN_TEST_ENDPOINTS: bool = os.getenv("OPEN_TEST_ENDPOINTS", True)
+    OPEN_MOCKED_ENDPOINTS: bool = os.getenv("OPEN_MOCKED_ENDPOINTS", False)
+
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = secrets.token_urlsafe(32)
     # 60 minutes * 24 hours * 8 days = 8 days
@@ -52,6 +55,25 @@ class Settings(BaseSettings):
         f"mongodb://{CLICKSTREAM_MONGO_USERNAME}:{CLICKSTREAM_MONGO_PASSWORD}@"
         f"{CLICKSTREAM_MONGO_HOST}:{CLICKSTREAM_MONGO_PORT}"
     )
+
+    # Inference
+    INFERENCE_USED_PLUGINS: List[str] = [
+        "DefaultFineTuningMethod",
+    ]
+    INFERENCE_WORKER_MAX_RETRIES: int = os.getenv(
+        "INFERENCE_WORKER_MAX_RETRIES", 3
+    )
+    INFERENCE_WORKER_TIME_LIMIT: int = os.getenv(
+        "INFERENCE_WORKER_TIME_LIMIT", 18000000
+    )
+    # When deploying a new model after reindexing, we switch from "green" to "blue".
+    # There are two options:
+    #   a) Archive the current "blue" version.
+    #   b) Delete the current "blue" version.
+    # Option b) enables a quick revert in case something goes wrong with the new "blue" version.
+    INFERENCE_ARCHIVE_BLUE: bool = True
+    INFERENCE_HOST: str = os.getenv("INFERENCE_HOST", "triton")
+    INFERENCE_GRPC_PORT: int = os.getenv("INFERENCE_GRPC_PORT", 8002)
 
     # Redis (broker for dramatiq)
     REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
@@ -217,5 +239,19 @@ class Settings(BaseSettings):
         "CLICKSTREAM_TIME_MAX_DELTA_PLUS_SEC", 5 * 60
     )
 
+    # Inference
+    INFERENCE_QUERY_EMBEDDING_ATTEMPTS: int = os.getenv(
+        "INFERENCE_QUERY_EMBEDDING_ATTEMPTS", DEFAULT_MAX_ATTEMPTS
+    )
+    INFERENCE_QUERY_EMBEDDING_WAIT_TIME_SECONDS: float = os.getenv(
+        "INFERENCE_QUERY_EMBEDDING_WAIT_TIME_SECONDS", DEFAULT_WAIT_TIME_SECONDS
+    )
+
+    INFERENCE_ITEMS_EMBEDDING_ATTEMPTS: int = os.getenv(
+        "INFERENCE_ITEMS_EMBEDDING_ATTEMPTS", DEFAULT_MAX_ATTEMPTS
+    )
+    INFERENCE_ITEMS_EMBEDDING_WAIT_TIME_SECONDS: float = os.getenv(
+        "INFERENCE_ITEMS_EMBEDDING_WAIT_TIME_SECONDS", DEFAULT_WAIT_TIME_SECONDS
+    )
 
 settings = Settings()

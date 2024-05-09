@@ -1,7 +1,10 @@
-FROM python:3.9
+FROM python:3.10
 
 # Set the working directory
 WORKDIR /tmp
+# OTherwise we'll get: ImportError: libGL.so.1: cannot open shared object file: No such file or directory
+RUN apt-get -y update &&  \
+    apt-get install ffmpeg libsm6 libxext6 -y;
 
 # Install Poetry in this Docker stage.
 RUN pip install poetry

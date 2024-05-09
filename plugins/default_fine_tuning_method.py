@@ -38,23 +38,24 @@ from embedding_studio.embeddings.models.text_to_image.clip import (
 from embedding_studio.models.clickstream.sessions import SessionWithEvents
 from embedding_studio.models.plugin import FineTuningBuilder, PluginMeta
 from embedding_studio.workers.fine_tuning.data.prepare_data import prepare_data
-from embedding_studio.workers.fine_tuning.experiments.experiments_tracker import (
+from embedding_studio.experiments.experiments_tracker import (
     ExperimentsManager,
 )
-from embedding_studio.workers.fine_tuning.experiments.finetuning_settings import (
+from embedding_studio.experiments.finetuning_settings import (
     FineTuningSettings,
 )
-from embedding_studio.workers.fine_tuning.experiments.initial_params.clip import (
+from embedding_studio.experiments.initial_params.clip import (
     INITIAL_PARAMS,
 )
-from embedding_studio.workers.fine_tuning.experiments.metrics_accumulator import (
+from embedding_studio.experiments.metrics_accumulator import (
     MetricsAccumulator,
 )
+from embedding_studio.embeddings.inference.triton.text_to_image.clip import CLIPModelTritonClientFactory
 
 
 class DefaultFineTuningMethod(FineTuningMethod):
     meta = PluginMeta(
-        name="Default Fine Tuning Method",
+        name="DefaultFineTuningMethod", # Should be a python-like naming
         version="0.0.1",
         description="A default fine-tuning plugin",
     )
@@ -67,7 +68,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
         #     "aws_secret_access_key": "QWERTY1232qdsadfasfg5349BBdf30ekp23odk03",
         # }
         # self.data_loader = AwsS3DataLoader(**creds)
-
+        self.model_name = 'clip-ViT-B-32'
         # with empty creds, use anonymous session
         creds = {
         }
@@ -111,6 +112,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
         self.manager = ExperimentsManager(
             tracking_uri=settings.MLFLOW_TRACKING_URI,
             main_metric="test_not_irrelevant_dist_shift",
+            plugin_name=self.meta.name,
             accumulators=self.accumulators,
         )
 
@@ -136,8 +138,15 @@ class DefaultFineTuningMethod(FineTuningMethod):
             num_epochs=3,
         )
 
+        self.inference_client_factory = CLIPModelTritonClientFactory(
+            f'{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}',
+            plugin_name=self.meta.name,
+            transform=self.storage_producer.preprocessor,
+            model_name=self.model_name,
+        )
+
     def upload_initial_model(self) -> None:
-        model = TextToImageCLIPModel(SentenceTransformer("clip-ViT-B-32"))
+        model = TextToImageCLIPModel(SentenceTransformer(self.model_name))
         self.manager.upload_initial_model(model)
 
     def get_fine_tuning_builder(

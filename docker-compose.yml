@@ -50,6 +50,35 @@ services:
               count: 1
               capabilities: [ gpu ]
 
+  inference_worker:
+    build:
+      context: .
+      dockerfile: worker.inference.Dockerfile
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    restart: always
+    ports:
+      - '8000:8000'
+      - '8001:8001'
+      - '8002:8002'
+    env_file:
+      - .env
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+      - public
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+
   redis:
     image: redis:6.2-alpine
     restart: always

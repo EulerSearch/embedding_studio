@@ -1,6 +1,8 @@
 from typing import Callable, Dict, Optional
 
+import numpy as np
 from datasets import DatasetDict
+from PIL.Image import Image
 
 from embedding_studio.embeddings.data.preprocessors.preprocessor import (
     ItemsDatasetDictPreprocessor,
@@ -41,6 +43,9 @@ class ImageItemsDatasetDictPreprocessor(ItemsDatasetDictPreprocessor):
         self._n_pixels = n_pixels
 
         self._transform = transform
+
+    def __call__(self, item: Image) -> np.ndarray:
+        return self._transform(self._n_pixels)(item)
 
     def get_id_field_name(self) -> str:
         return self._field_normalizer.id_field_name

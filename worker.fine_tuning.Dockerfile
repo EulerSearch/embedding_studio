@@ -16,12 +16,13 @@ RUN apt-get update && apt-get install -y \
     apt-get update && \
     apt-get install -yq software-properties-common && \
     add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get install -yq python3.9 python3.9-distutils && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1 && \
-    apt install -yq python3.9-venv python3.9-dev python3-pip;
+    apt-get install -yq python3.10 python3.10-distutils && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 && \
+    apt install -yq python3.10-venv python3.10-dev python3-pip; \
+    curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10;
 
-# Upgrade pip to the latest version
-RUN python3.9 -m pip install --upgrade pip
+RUN python3 -m pip install --upgrade pip
+
 
 # Set /tmp as the current working directory.
 WORKDIR /tmp

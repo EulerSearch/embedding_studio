@@ -8,12 +8,8 @@ from azure.storage.blob import (  # Import for Azure Blob Storage
 )
 from pydantic import BaseModel
 
-from embedding_studio.workers.fine_tuning.experiments.experiments_tracker import (
-    ExperimentsManager,
-)
-from embedding_studio.workers.fine_tuning.experiments.metrics_accumulator import (
-    MetricsAccumulator,
-)
+from embedding_studio.experiments.experiments_tracker import ExperimentsManager
+from embedding_studio.experiments.metrics_accumulator import MetricsAccumulator
 from embedding_studio.workers.fine_tuning.utils.config import RetryConfig
 from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 
@@ -38,6 +34,7 @@ class ExperimentsManagerWithAzureBlobBackend(ExperimentsManager):
         tracking_uri: str,
         azure_blob_credentials: AzureBlobCredentials,
         main_metric: str,
+        plugin_name: str,
         accumulators: List[MetricsAccumulator],
         is_loss: bool = False,
         n_top_runs: int = 10,
@@ -49,6 +46,7 @@ class ExperimentsManagerWithAzureBlobBackend(ExperimentsManager):
         :param tracking_uri: url of MLFlow server
         :param azure_blob_credentials: credentials to connect to Azure Blob Storage
         :param main_metric: name of the main metric that will be used to find models
+        :param plugin_name: name of fine-tuning method being used
         :param accumulators: accumulators of metrics to be logged
         :param is_loss: is the main metric loss (if True, then the best quality is minimal) (default: False)
         :param n_top_runs: how many hyper params groups to consider for following tuning steps (default: 10)
@@ -58,6 +56,7 @@ class ExperimentsManagerWithAzureBlobBackend(ExperimentsManager):
         super(ExperimentsManagerWithAzureBlobBackend, self).__init__(
             tracking_uri,
             main_metric,
+            plugin_name,
             accumulators,
             is_loss,
             n_top_runs,

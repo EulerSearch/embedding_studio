@@ -34,6 +34,9 @@ class TextItemsDatasetDictPreprocessor(ItemsDatasetDictPreprocessor):
     def get_id_field_name(self) -> str:
         return self._field_normalizer.id_field_name
 
+    def __call__(self, item: str) -> str:
+        return self._transform(item)
+
     def convert(self, dataset: DatasetDict) -> DatasetDict:
         """Normalize fields, apply text transforms and create text items storages.
 

@@ -30,18 +30,10 @@ from embedding_studio.embeddings.metrics.metric import MetricCalculator
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
-from embedding_studio.workers.fine_tuning.experiments.experiments_tracker import (
-    ExperimentsManager,
-)
-from embedding_studio.workers.fine_tuning.experiments.finetuning_params import (
-    FineTuningParams,
-)
-from embedding_studio.workers.fine_tuning.experiments.finetuning_settings import (
-    FineTuningSettings,
-)
-from embedding_studio.workers.fine_tuning.experiments.metrics_accumulator import (
-    MetricValue,
-)
+from embedding_studio.experiments.experiments_tracker import ExperimentsManager
+from embedding_studio.experiments.finetuning_params import FineTuningParams
+from embedding_studio.experiments.finetuning_settings import FineTuningSettings
+from embedding_studio.experiments.metrics_accumulator import MetricValue
 
 logger = logging.getLogger(__name__)
 

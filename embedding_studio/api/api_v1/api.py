@@ -6,6 +6,7 @@ from embedding_studio.api.api_v1.endpoints import (
     fine_tuning,
     ping,
 )
+from embedding_studio.core.config import settings
 
 api_router = APIRouter()
 api_router.include_router(ping.router, tags=["ping"])
@@ -20,3 +21,22 @@ api_router.include_router(
     prefix="/clickstream/internal",
     tags=["clickstream"],
 )
+
+
+if settings.OPEN_TEST_ENDPOINTS:
+    from embedding_studio.api.api_v1.test_endpoints import inference_deployment
+
+    api_router.include_router(
+        inference_deployment.router,
+        prefix="/inference-deployment",
+        tags=["inference-deployment"],
+    )
+
+if settings.OPEN_MOCKED_ENDPOINTS:
+    from embedding_studio.api.api_v1.mocked_endpoints import mocked_fine_tuning
+
+    api_router.include_router(
+        mocked_fine_tuning.router,
+        prefix="/mocked-fine-tuning",
+        tags=["mocked-fine-tuning"],
+    )
