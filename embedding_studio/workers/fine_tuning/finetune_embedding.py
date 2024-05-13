@@ -22,6 +22,11 @@ from embedding_studio.experiments.finetuning_settings import FineTuningSettings
 from embedding_studio.workers.fine_tuning.finetune_embedding_one_param import (
     fine_tune_embedding_model_one_param,
 )
+from embedding_studio.workers.fine_tuning.worker_exceptions import (
+    BestParamsNotFoundError,
+    ModelNotFoundError,
+    ParamsNotFoundError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -105,11 +110,43 @@ def finetune_embedding_model(
     tracker.set_iteration(iteration)
     logger.info("Start fine-tuning iteration")
 
-    best_params: Optional[List[FineTuningParams]] = tracker.get_top_params()
+    best_params = None
+    if not tracker.is_initial_run(iteration.run_id):
+        starting_run_param: Optional[
+            FineTuningParams
+        ] = tracker.get_params_by_run_id(iteration.run_id)
+        if starting_run_param is None:
+            logger.error(
+                f"Cannot get fine-tuning params for starting run with ID {iteration.run_id}."
+            )
+            raise ParamsNotFoundError(iteration.run_id)
+
+        starting_run_experiment_id: str = tracker.get_experiment_id(
+            iteration.run_id
+        )
+        best_params: Optional[
+            List[FineTuningParams]
+        ] = tracker.get_top_params_by_experiment_id(starting_run_experiment_id)
+        if best_params is None:
+            logger.error(
+                f"Cannot get fine-tuning params for starting experiment with ID: {starting_run_experiment_id}"
+            )
+            raise BestParamsNotFoundError(starting_run_experiment_id)
+
+        best_params = [starting_run_param] + best_params
+
     with tempfile.TemporaryDirectory() as tmpdirname:
         initial_model_path: str = os.path.join(tmpdirname, "initial_model.pth")
         try:
-            initial_model: EmbeddingsModelInterface = tracker.get_last_model()
+            initial_model: EmbeddingsModelInterface = (
+                tracker.download_model_by_run_id(iteration.run_id)
+            )
+            if initial_model is None:
+                logger.error(
+                    f"Cannot find a model with run ID: {iteration.run_id}"
+                )
+                raise ModelNotFoundError(iteration.run_id)
+
             logger.info(f"Save model to {initial_model_path}")
             torch.save(initial_model, initial_model_path)
             del initial_model

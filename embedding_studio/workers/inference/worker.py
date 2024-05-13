@@ -61,7 +61,7 @@ def init_model_repo_for_plugin(model_repo: str, plugin_name: str):
     model = (
         plugin.manager.download_initial_model()
         if last_finished_iteration is None
-        else plugin.manager.get_best_model(last_finished_iteration)
+        else plugin.manager.download_best_model(last_finished_iteration)
     )
     convert_for_triton(model, plugin_name, model_repo, 1, experiment_id)
     del model

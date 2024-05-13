@@ -63,6 +63,7 @@ def fine_tuning_mocked_worker(task_id: str):
 
         iteration = FineTuningIteration(
             batch_id="mocked-batch",
+            run_id=fine_tuning_plugin.manager.get_initial_run_id(),
             plugin_name="DefaultFineTuningMethod",
         )
 
@@ -84,6 +85,13 @@ def fine_tuning_mocked_worker(task_id: str):
 
         inital_model = fine_tuning_plugin.manager.download_initial_model()
         fine_tuning_plugin.manager.save_model(inital_model, True)
+
+        best_run_id = fine_tuning_plugin.manager.get_best_current_run_id()
+        best_model_url = fine_tuning_plugin.manager.get_current_model_url()
+
+        task.best_model_id = best_run_id
+        task.best_model_url = best_model_url
+
         fine_tuning_plugin.manager.finish_run()
 
     except Exception:

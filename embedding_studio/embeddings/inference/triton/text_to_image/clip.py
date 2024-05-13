@@ -13,9 +13,7 @@ from embedding_studio.embeddings.inference.triton.client import (
     TritonClient,
     TritonClientFactory,
 )
-from embedding_studio.workers.fine_tuning.utils.config import (
-    RetryConfig,
-)
+from embedding_studio.workers.fine_tuning.utils.config import RetryConfig
 
 
 class CLIPModelTritonClient(TritonClient):
@@ -44,7 +42,11 @@ class CLIPModelTritonClient(TritonClient):
         :param retry_config: retry policy (default: None).
         """
         super().__init__(
-            url, plugin_name, model_version, same_query_and_items=False, retry_config=retry_config
+            url,
+            plugin_name,
+            model_version,
+            same_query_and_items=False,
+            retry_config=retry_config,
         )
 
         try:
@@ -120,7 +122,7 @@ class CLIPModelTritonClientFactory(TritonClientFactory):
         plugin_name: str,
         transform: Callable[[Image.Image], torch.Tensor] = None,
         model_name: str = "clip-ViT-B-32",
-        retry_config: Optional[RetryConfig] = None
+        retry_config: Optional[RetryConfig] = None,
     ):
         """
         Initialize the factory with common configuration parameters.
@@ -132,7 +134,10 @@ class CLIPModelTritonClientFactory(TritonClientFactory):
         :param retry_config: retry policy (default: None).
         """
         super(CLIPModelTritonClientFactory, self).__init__(
-            url=url, plugin_name=plugin_name, same_query_and_items=True, retry_config=retry_config
+            url=url,
+            plugin_name=plugin_name,
+            same_query_and_items=True,
+            retry_config=retry_config,
         )
         self.transform = transform
         self.model_name = model_name
@@ -151,5 +156,5 @@ class CLIPModelTritonClientFactory(TritonClientFactory):
             model_version=model_version,
             transform=self.transform,
             model_name=self.model_name,
-            retry_config=self.retry_config
+            retry_config=self.retry_config,
         )

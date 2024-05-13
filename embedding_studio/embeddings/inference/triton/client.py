@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Optional, List
+from typing import Any, List, Optional
 
 import numpy as np
 import tritonclient.grpc as grpcclient
@@ -12,7 +12,6 @@ from embedding_studio.workers.fine_tuning.utils.config import (
     RetryParams,
 )
 from embedding_studio.workers.fine_tuning.utils.retry import retry_method
-
 
 logger = logging.getLogger(__name__)
 
@@ -61,11 +60,11 @@ class TritonClient(ABC):
         )
 
         config = RetryConfig(default_params=default_retry_params)
-        config['query_inference'] = RetryParams(
+        config["query_inference"] = RetryParams(
             max_attempts=settings.INFERENCE_QUERY_EMBEDDING_ATTEMPTS,
             wait_time_seconds=settings.INFERENCE_QUERY_EMBEDDING_WAIT_TIME_SECONDS,
         )
-        config['items_inference'] = RetryParams(
+        config["items_inference"] = RetryParams(
             max_attempts=settings.INFERENCE_ITEMS_EMBEDDING_ATTEMPTS,
             wait_time_seconds=settings.INFERENCE_ITEMS_EMBEDDING_WAIT_TIME_SECONDS,
         )
@@ -77,7 +76,6 @@ class TritonClient(ABC):
         Prepare input for the Triton server.
         Must be implemented to handle different data types (e.g., images, text).
         """
-        pass
 
     @abstractmethod
     def _prepare_items(self, data: Any) -> grpcclient.InferInput:
@@ -85,7 +83,6 @@ class TritonClient(ABC):
         Prepare input for the Triton server.
         Must be implemented to handle different data types (e.g., images, text).
         """
-        pass
 
     def forward_query(self, query: Any) -> np.ndarray:
         """Send a query to the Triton server and receive the output."""
@@ -138,17 +135,17 @@ class TritonClient(ABC):
         return
 
 
-
 class TritonClientFactory:
     """
     Factory for creating instances of TritonClient with common configurations but different model versions.
     """
 
     def __init__(
-        self, url: str,
-            plugin_name: str,
-            same_query_and_items: bool = False,
-            retry_config: Optional[RetryConfig] = None,
+        self,
+        url: str,
+        plugin_name: str,
+        same_query_and_items: bool = False,
+        retry_config: Optional[RetryConfig] = None,
     ):
         """
         Initialize the factory with common configuration parameters.

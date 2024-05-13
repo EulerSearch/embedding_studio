@@ -5,6 +5,7 @@ from torch import nn
 
 # TODO: All code generation needs to be transferred directly into the template.
 
+
 def get_imports_from_modules(sequential_model) -> List[str]:
     """
     Extract necessary imports from the modules used in the sequential model.

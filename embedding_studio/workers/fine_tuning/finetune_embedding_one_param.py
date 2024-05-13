@@ -56,8 +56,8 @@ def fine_tune_embedding_model_one_param(
     try:
         # Start run
         is_finished = tracker.set_run(fine_tuning_params)
-    except Exception as e:
-        logger.exception('Something went wring during run start.')
+    except Exception:
+        logger.exception("Something went wring during run start.")
         return 0.0
 
     try:
@@ -82,8 +82,8 @@ def fine_tune_embedding_model_one_param(
                     logger.info(
                         f"Do not retry Run with params {str(fine_tuning_params)} has already had a model being uploaded."
                     )
-    except Exception as e:
-        logger.exception('Something went wring during run checking.')
+    except Exception:
+        logger.exception("Something went wring during run checking.")
         tracker.finish_run(as_failed=True)
         return 0.0
 
@@ -164,8 +164,7 @@ def fine_tune_embedding_model_one_param(
 
         return quality
 
-    except Exception as e:
-        logger.exception('Something went wrong during fine-tuning stage.')
+    except Exception:
+        logger.exception("Something went wrong during fine-tuning stage.")
         tracker.finish_run(as_failed=True)
         return 0.0
-

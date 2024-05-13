@@ -7,8 +7,8 @@ from embedding_studio.api.api_v1.schemas.inference_deployment import (
     DeploymentInfo,
     DeploymentRequest,
     DeploymentResponse,
-    GreenDeploymentRequest,
     GreenDeploymentAfterFineTuningRequest,
+    GreenDeploymentRequest,
 )
 from embedding_studio.context.app_context import context
 from embedding_studio.workers.inference.worker import deployment_worker
@@ -32,7 +32,6 @@ def green_deployment(
     :return: The result of the deployment process.
     """
     logger.debug(f"POST /deploy/green: {body}")
-
 
     info = DeploymentInfo(
         fine_tuning_method=body.fine_tuning_method,
@@ -123,14 +122,15 @@ def blue_deployment(
     :return: The result of the deployment process.
     """
     logger.debug(f"POST /deploy/blue: {body}")
-    deployment_task = context.deployment_task.get(
-        body.task_id
-    )
+    deployment_task = context.deployment_task.get(body.task_id)
     if deployment_task is not None:
         if deployment_task.stage == "blue":
             return deployment_task
 
-        elif deployment_task.stage == "green" and deployment_task.status != "done":
+        elif (
+            deployment_task.stage == "green"
+            and deployment_task.status != "done"
+        ):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Task with ID `{body.task_id}` is on green stage, but not done.",
@@ -196,9 +196,7 @@ def revert_deployment(
     :return: The result of the deployment process.
     """
     logger.debug(f"POST /deploy/revert: {body}")
-    deployment_task = context.deployment_task.get(
-        body.task_id
-    )
+    deployment_task = context.deployment_task.get(body.task_id)
     if deployment_task is not None:
         if deployment_task.stage == "revert":
             return deployment_task
@@ -209,7 +207,10 @@ def revert_deployment(
                 detail=f"Task with ID `{body.task_id}` is on green stage.",
             )
 
-        elif deployment_task.stage == "blue" and deployment_task.status != "done":
+        elif (
+            deployment_task.stage == "blue"
+            and deployment_task.status != "done"
+        ):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Task with ID `{body.task_id}` is on blue stage, but not done.",

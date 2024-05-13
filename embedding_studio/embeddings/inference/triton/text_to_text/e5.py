@@ -8,9 +8,7 @@ from embedding_studio.embeddings.inference.triton.client import (
     TritonClient,
     TritonClientFactory,
 )
-from embedding_studio.workers.fine_tuning.utils.config import (
-    RetryConfig,
-)
+from embedding_studio.workers.fine_tuning.utils.config import RetryConfig
 
 
 class TextToTextE5TritonClient(TritonClient):
@@ -39,7 +37,11 @@ class TextToTextE5TritonClient(TritonClient):
         :param retry_config: retry policy (default: None).
         """
         super().__init__(
-            url, plugin_name, model_version, same_query_and_items=True, retry_config=retry_config
+            url,
+            plugin_name,
+            model_version,
+            same_query_and_items=True,
+            retry_config=retry_config,
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name, use_fast=True
@@ -132,7 +134,10 @@ class TextToTextE5TritonClientFactory(TritonClientFactory):
         :param retry_config: retry policy (default: None).
         """
         super(TextToTextE5TritonClientFactory, self).__init__(
-            url=url, plugin_name=plugin_name, same_query_and_items=True, retry_config=retry_config
+            url=url,
+            plugin_name=plugin_name,
+            same_query_and_items=True,
+            retry_config=retry_config,
         )
         self.preprocessor = preprocessor
         self.model_name = model_name
@@ -151,5 +156,5 @@ class TextToTextE5TritonClientFactory(TritonClientFactory):
             model_version=model_version,
             preprocessor=self.preprocessor,
             model_name=self.model_name,
-            retry_config=self.retry_config
+            retry_config=self.retry_config,
         )

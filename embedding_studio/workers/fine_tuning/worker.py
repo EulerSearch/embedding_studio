@@ -87,6 +87,7 @@ def fine_tuning_worker(task_id: str):
 
         iteration = FineTuningIteration(
             batch_id=task.batch_id,
+            run_id=task.model_id,
             plugin_name=task.fine_tuning_method,
         )
         logger.info("Start fine-tuning the embedding model...")
@@ -103,10 +104,12 @@ def fine_tuning_worker(task_id: str):
             "Fine tuning of the embedding model was completed successfully!"
         )
         builder.experiments_manager.set_iteration(iteration)
+        best_run_id = builder.experiments_manager.get_best_current_run_id()
         best_model_url = builder.experiments_manager.get_current_model_url()
         logger.info(
             f"You can download best model using this url: {best_model_url}"
         )
+        task.best_model_id = best_run_id
         task.best_model_url = best_model_url
         builder.experiments_manager.finish_iteration()
 

@@ -95,7 +95,9 @@ class TextToImageCLIPModel(EmbeddingsModelInterface):
             # Supplying irrelevant input data, like a black square, poses the risk of creating a suboptimal or erroneous model.
             # Consequently, the inclusion of a real image guarantees the precise representation of pertinent paths and
             # dependencies within the computation graph, thereby bolstering the fidelity and performance of the resultant model.
-            image_path = os.path.join(os.path.dirname(__file__), "image-for-tracing.png")
+            image_path = os.path.join(
+                os.path.dirname(__file__), "image-for-tracing.png"
+            )
             image = Image.open(image_path).convert("RGB")
 
         # Resize the image and prepare for model input
