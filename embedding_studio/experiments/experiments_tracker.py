@@ -514,7 +514,7 @@ class ExperimentsManager(MLflowClientWrapper):
             accumulator.clear()
 
         if as_failed:
-            mlflow.end_run(status=MLflowStatus.FAILED.value)
+            mlflow.end_run(status='FAILED')
         else:
             mlflow.end_run()
 
@@ -621,14 +621,14 @@ class ExperimentsManager(MLflowClientWrapper):
 
         return self._download_model_by_run_id(run_id)
 
-    def download_current_model(self) -> Optional[EmbeddingsModelInterface]:
-        """Get current iteration best embedding model.
 
-        :return: best embedding model
-        """
-        if self._tuning_iteration is None:
-            self.logger.error("No current iteration, can't get any model")
-            return
+    @retry_method(name="log_param")
+    def _set_model_as_deleted(self, run_id: str, experiment_id: str):
+        with mlflow.start_run(
+            run_id=run_id, experiment_id=experiment_id
+        ) as run:
+            mlflow.log_metric("model_deleted", 1)
+            mlflow.log_metric("model_uploaded", 0)
 
         if self._tuning_iteration == self.initial_experiment_name:
             self.logger.info("Download initial model")

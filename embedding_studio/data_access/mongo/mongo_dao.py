@@ -149,3 +149,23 @@ class MongoDao(Generic[ModelT]):
             **kwargs, projection=projection
         )
         return self.bson_to_model_opt(result_bson)
+
+    def delete_one(
+        self, obj_id: Optional[Any] = None, **kwargs
+    ) -> pymongo.results.DeleteResult:
+        if obj_id is not None:
+            id_name, id_value = self.model_id_to_db_id(obj_id)
+            kwargs["filter"] = {id_name: id_value}
+        return self.collection.delete_one(**kwargs)
+
+    def find_one_and_delete(
+        self, obj_id: Optional[Any] = None, **kwargs
+    ) -> Optional[ModelT]:
+        if obj_id is not None:
+            id_name, id_value = self.model_id_to_db_id(obj_id)
+            kwargs["filter"] = {id_name: id_value}
+        projection = self.get_model_projection()
+        result_bson = self.collection.find_one_and_delete(
+            **kwargs, projection=projection
+        )
+        return self.bson_to_model_opt(result_bson)

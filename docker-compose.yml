@@ -248,9 +248,12 @@ services:
     env_file:
       - .env
     ports:
-      - "54320:5432"
+      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [
+        "CMD-SHELL",
+        "pg_isready -U postgres"
+      ]
       interval: 10s
       timeout: 5s
       retries: 5

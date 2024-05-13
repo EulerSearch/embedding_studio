@@ -56,6 +56,23 @@ class Settings(BaseSettings):
         f"{CLICKSTREAM_MONGO_HOST}:{CLICKSTREAM_MONGO_PORT}"
     )
 
+    EMBEDDINGS_MONGO_HOST: str = os.getenv("EMBEDDINGS_MONGO_HOST", "mongo")
+    EMBEDDINGS_MONGO_PORT: int = os.getenv("EMBEDDINGS_MONGO_PORT", 27017)
+    EMBEDDINGS_MONGO_DB_NAME: str = os.getenv(
+        "EMBEDDINGS_MONGO_DB_NAME", "embedding_studio"
+    )
+
+    EMBEDDINGS_MONGO_USERNAME: str = os.getenv(
+        "EMBEDDINGS_MONGO_USERNAME", "root"
+    )
+    EMBEDDINGS_MONGO_PASSWORD: str = os.getenv(
+        "EMBEDDINGS_MONGO_PASSWORD", "mongopassword"
+    )
+    EMBEDDINGS_MONGO_URL: str = (
+        f"mongodb://{EMBEDDINGS_MONGO_USERNAME}:{EMBEDDINGS_MONGO_PASSWORD}@"
+        f"{EMBEDDINGS_MONGO_HOST}:{EMBEDDINGS_MONGO_PORT}"
+    )
+
     # Inference
     INFERENCE_USED_PLUGINS: List[str] = [
         "DefaultFineTuningMethod",
@@ -251,6 +268,26 @@ class Settings(BaseSettings):
     )
     CLICKSTREAM_TIME_MAX_DELTA_PLUS_SEC: int = os.getenv(
         "CLICKSTREAM_TIME_MAX_DELTA_PLUS_SEC", 5 * 60
+    )
+
+    # postgres
+    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
+    POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", 5432)
+    POSTGRES_USER: str = os.getenv(
+        "POSTGRES_USER",
+        "embedding_studio",
+    )
+    POSTGRES_PASSWORD: str = os.getenv(
+        "POSTGRES_PASSWORD",
+        "123456789",
+    )
+    POSTGRES_DB: str = os.getenv(
+        "POSTGRES_DB",
+        "embedding_studio",
+    )
+    POSTGRES_DB_URI: str = (
+        f"postgresql+psycopg://"
+        f"{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
     )
 
     # Inference

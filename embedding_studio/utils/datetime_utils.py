@@ -21,14 +21,9 @@ def unaware_utc_to_aware_utc(stamp: datetime):
     return stamp.replace(tzinfo=timezone.utc)
 
 
-def utc_with_tz() -> datetime:
-    """Return datetime with tz in utc"""
-    return unaware_utc_to_aware_utc(datetime.utcnow())
-
-
 def utc_timestamp() -> int:
     """Return timestamp in utc"""
-    return int(utc_with_tz().timestamp())
+    return int(current_time().timestamp())
 
 
 def check_utc_timestamp(

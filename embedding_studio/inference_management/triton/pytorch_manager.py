@@ -25,7 +25,6 @@ class PytorchTritonModelStorageManager(TritonModelStorageManager):
     def _save_model(
         self, model: nn.Module, example_input: torch.Tensor, input_name: str
     ):
-
         torch.save(
             model.state_dict(),
             os.path.join(self._storage_info.model_version_path, "model.pt"),
