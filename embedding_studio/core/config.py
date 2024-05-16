@@ -77,6 +77,9 @@ class Settings(BaseSettings):
     INFERENCE_USED_PLUGINS: List[str] = [
         "DefaultFineTuningMethod",
     ]
+
+    INFERENCE_MODEL_REPO: str = os.getenv("INFERENCE_MODEL_REPO", os.getcwd())
+
     INFERENCE_WORKER_MAX_RETRIES: int = os.getenv(
         "INFERENCE_WORKER_MAX_RETRIES", 3
     )

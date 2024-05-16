@@ -11,7 +11,7 @@ class FineTuningTaskBaseResponse(BaseModel):
     created_at: AwareDatetime = Field(...)
     updated_at: AwareDatetime = Field(...)
     batch_id: Optional[str] = None
-    run_id: Optional[str] = None
+    embedding_model_id: Optional[str] = None
     best_model_url: Optional[str] = None
     best_model_id: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
@@ -28,7 +28,7 @@ class FineTuningTaskResponse(FineTuningTaskBaseResponse):
 class FineTuningTaskCreateRequest(BaseModel):
     fine_tuning_method: str = Field(...)
     batch_id: Optional[str] = None
-    model_id: Optional[str] = None
+    embedding_model_id: Optional[str] = None
     metadata: Optional[Dict] = None
     idempotency_key: Optional[str] = None
 

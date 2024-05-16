@@ -1,32 +1,30 @@
+import logging
 import os
 import subprocess
 import urllib.parse
-import logging
 from socket import setdefaulttimeout
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
 
 import mlflow
-import pandas as pd
 import numpy as np
-
-from mlflow.entities import RunStatus
+import pandas as pd
 from mlflow.exceptions import RestException
 
 from embedding_studio.core.config import settings
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
+from embedding_studio.experiments.finetuning_params import FineTuningParams
 from embedding_studio.experiments.status import MLflowStatus
 from embedding_studio.utils.mlflow_utils import (
     get_experiment_id_by_name,
     get_run_id_by_name,
 )
-from embedding_studio.experiments.finetuning_params import FineTuningParams
-from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 from embedding_studio.workers.fine_tuning.utils.config import (
     RetryConfig,
     RetryParams,
 )
+from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 
 MODEL_ARTIFACT_PATH = "model/data/model.pth"
 DEFAULT_TIMEOUT: int = 120000
@@ -35,12 +33,15 @@ DEFAULT_TIMEOUT: int = 120000
 # That's why increase it here. TODO: check from time to time whether this issue is resolved by MLFlow
 setdefaulttimeout(DEFAULT_TIMEOUT)
 
+logger = logging.getLogger(__name__)
+
 
 class MLflowClientWrapper:
-    def __init__(self,
-                 tracking_uri: str,
-                 requirements: Optional[str] = None,
-                 retry_config: Optional[RetryConfig] = None,
+    def __init__(
+        self,
+        tracking_uri: str,
+        requirements: Optional[str] = None,
+        retry_config: Optional[RetryConfig] = None,
     ):
         if not isinstance(tracking_uri, str) or len(tracking_uri) == 0:
             raise ValueError(
@@ -59,10 +60,11 @@ class MLflowClientWrapper:
         self.attempt_exception_types = [RestException]
 
         self.client = mlflow.tracking.MlflowClient()
-        self.logger = logging.getLogger(__name__)
 
         self._requirements: List[str] = (
-            self._get_base_requirements() if requirements is None else requirements
+            self._get_base_requirements()
+            if requirements is None
+            else requirements
         )
 
     @staticmethod
@@ -134,7 +136,7 @@ class MLflowClientWrapper:
 
     def _get_base_requirements(self):
         try:
-            self.logger.info("Generate requirements with poetry")
+            logger.info("Generate requirements with poetry")
             # Run the poetry export command
             result = subprocess.run(
                 [
@@ -206,17 +208,17 @@ class MLflowClientWrapper:
 
     @retry_method(name="load_model")
     def _download_model_by_run_id(
-            self, run_id: str
+        self, run_id: str
     ) -> EmbeddingsModelInterface:
         model_uri: str = f"runs:/{run_id}/model"
-        self.logger.info(f"Download the model from {model_uri}")
+        logger.info(f"Download the model from {model_uri}")
         model = mlflow.pytorch.load_model(model_uri)
-        self.logger.info("Downloading is finished")
+        logger.info("Downloading is finished")
         return model
 
     @retry_method(name="delete_model")
     def _delete_model(self, run_id: str, experiment_id: str) -> bool:
-        self.logger.warning(
+        logger.warning(
             f"Unable to delete a model for run {run_id}, "
             f"MLFlow has no such functionality, please implement on your own."
         )
@@ -229,7 +231,7 @@ class MLflowClientWrapper:
             run_info = mlflow.get_run(run_id=run_id)
         except RestException as e:
             if e.get_http_status_code() == 404:
-                self.logger.exception(f"Run with ID {run_id} doesn't exist.")
+                logger.exception(f"Run with ID {run_id} doesn't exist.")
             else:
                 raise e
 
@@ -238,7 +240,7 @@ class MLflowClientWrapper:
     @retry_method(name="log_param")
     def _set_model_as_deleted(self, run_id: str, experiment_id: str):
         with mlflow.start_run(
-                run_id=run_id, experiment_id=experiment_id
+            run_id=run_id, experiment_id=experiment_id
         ) as run:
             mlflow.log_metric("model_deleted", 1)
             mlflow.log_metric("model_uploaded", 0)
@@ -251,10 +253,10 @@ class MLflowClientWrapper:
         runs = runs[
             runs.status == MLflowStatus.FINISHED
         ]  # and only finished ones
-        specific_run = runs[runs["run_id"] == run_id]
+        specific_run = runs[runs["embedding_model_id"] == run_id]
 
         if specific_run.empty:
-            self.logger.error(
+            logger.error(
                 f"No run with ID {run_id} which contains a model was found."
             )
             return None
@@ -279,10 +281,10 @@ class MLflowClientWrapper:
         :return: fine-tuning params.
         """
         runs: pd.DataFrame = mlflow.search_runs()
-        specific_run = runs[runs["run_id"] == run_id]
+        specific_run = runs[runs["embedding_model_id"] == run_id]
 
         if specific_run.empty:
-            self.logger.error(f"No run with ID {run_id} was found.")
+            logger.error(f"No run with ID {run_id} was found.")
             return None
 
         # Define a mapping dictionary to remove the "params." prefix
@@ -305,10 +307,10 @@ class MLflowClientWrapper:
         :return: experiment ID.
         """
         runs: pd.DataFrame = mlflow.search_runs()
-        specific_run = runs[runs["run_id"] == run_id]
+        specific_run = runs[runs["embedding_model_id"] == run_id]
 
         if specific_run.empty:
-            self.logger.error(f"No run with ID {run_id} was found.")
+            logger.error(f"No run with ID {run_id} was found.")
             return None
 
         return specific_run["experiment_id"].iloc[0]

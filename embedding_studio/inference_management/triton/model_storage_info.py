@@ -1,17 +1,30 @@
 import os
 import re
+from typing import Optional
 
 from pydantic import BaseModel, FieldValidationInfo, field_validator
 
 ARCHIVED_VERSION = "_archived"
 
 
+class DeployedModelInfo(BaseModel):
+    plugin_name: str = "BasePlugin"
+    model_type: str = "query"
+    embedding_model_id: Optional[str] = None
+    version: str = "1"
+
+    @property
+    def name(self) -> str:
+        if self.embedding_model_id is None:
+            return f"{self.plugin_name}_{self.model_type}"
+        else:
+            return f"{self.plugin_name}_{self.embedding_model_id}_{self.model_type}"
+
+
 class ModelStorageInfo(BaseModel):
     model_repo: str = "/models"
     embedding_studio_path: str = "/embedding_studio"
-    plugin_name: str = "BasePlugin"
-    model_type: str = "query"
-    version: str = "1"
+    deployed_model_info: DeployedModelInfo = DeployedModelInfo()
 
     @classmethod
     def archived_version_name(self) -> str:
@@ -19,7 +32,7 @@ class ModelStorageInfo(BaseModel):
 
     @property
     def model_name(self) -> str:
-        return f"{self.plugin_name}_{self.model_type}"
+        return self.deployed_model_info.name
 
     @property
     def model_path(self) -> str:
@@ -27,7 +40,7 @@ class ModelStorageInfo(BaseModel):
 
     @property
     def model_version_path(self) -> str:
-        return os.path.join(self.model_path, self.version)
+        return os.path.join(self.model_path, self.deployed_model_info.version)
 
     @field_validator("plugin_name")
     def validate_plugin_name(

@@ -22,7 +22,7 @@ class FineTuningTask(BaseModel):
     created_at: AwareDatetime = Field(default_factory=current_time)
     updated_at: AwareDatetime = Field(default_factory=current_time)
     batch_id: Optional[str] = None
-    model_id: Optional[str] = None
+    embedding_model_id: Optional[str] = None
     best_run_id: Optional[str] = None
     best_model_url: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None

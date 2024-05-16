@@ -24,10 +24,7 @@ api_router.include_router(
 
 
 if settings.OPEN_TEST_ENDPOINTS:
-    from embedding_studio.api.api_v1.test_endpoints import (
-        inference_deployment,
-        vectordb,
-    )
+    from embedding_studio.api.api_v1.test_endpoints import vectordb
 
     api_router.include_router(
         inference_deployment.router,

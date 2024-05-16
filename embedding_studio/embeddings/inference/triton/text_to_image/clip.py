@@ -26,7 +26,7 @@ class CLIPModelTritonClient(TritonClient):
         self,
         url: str,
         plugin_name: str,
-        model_version: str = "blue",
+        embedding_model_id: str,
         transform: Callable[[Image.Image], torch.Tensor] = None,
         model_name: str = "clip-ViT-B-32",
         retry_config: Optional[RetryConfig] = None,
@@ -36,7 +36,7 @@ class CLIPModelTritonClient(TritonClient):
 
         :param url: The URL of the Triton Inference Server.
         :param plugin_name: The name of the plugin/model used for inference tasks.
-        :param model_version: The deployment version of the model ('blue' or 'green').
+        :param embedding_model_id: deployed model ID.
         :param transform: A function to preprocess images before sending them to the server.
         :param model_name: The name of the model for which the tokenizer is tailored (default is 'clip-ViT-B-32').
         :param retry_config: retry policy (default: None).
@@ -44,7 +44,7 @@ class CLIPModelTritonClient(TritonClient):
         super().__init__(
             url,
             plugin_name,
-            model_version,
+            embedding_model_id,
             same_query_and_items=False,
             retry_config=retry_config,
         )
@@ -142,18 +142,18 @@ class CLIPModelTritonClientFactory(TritonClientFactory):
         self.transform = transform
         self.model_name = model_name
 
-    def get_client(self, model_version: str = "blue", **kwargs):
+    def get_client(self, embedding_model_id: str, **kwargs):
         """
         Create an instance of a specified TritonClient subclass with a specific model version.
 
-        :param model_version: The deployment version of the model ('blue' or 'green').
+        :param embedding_model_id: The deployed ID of the model.
         :param kwargs: Additional keyword arguments to pass to the client class constructor.
         :return: An instance of the specified TritonClient subclass.
         """
         return CLIPModelTritonClient(
             url=self.url,
             plugin_name=self.plugin_name,
-            model_version=model_version,
+            embedding_model_id=embedding_model_id,
             transform=self.transform,
             model_name=self.model_name,
             retry_config=self.retry_config,

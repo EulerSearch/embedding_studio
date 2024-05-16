@@ -14,6 +14,9 @@ from embedding_studio.inference_management.triton.utils.generate_model_file impo
 
 
 class PytorchTritonModelStorageManager(TritonModelStorageManager):
+    def _get_model_artifacts(self) -> List[str]:
+        return ["model.pt", "model.py"]
+
     def _generate_triton_config_model_info(self) -> List[str]:
         return [
             'name: "{}"'.format(self._storage_info.model_name),

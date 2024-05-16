@@ -21,6 +21,22 @@ class TritonModelStorageManager(ABC):
         self._kind_gpu = torch.cuda.is_available()
         self.do_dynamic_batching = do_dynamic_batching
 
+    @abstractmethod
+    def _get_model_artifacts(self) -> List[str]:
+        return []
+
+    def is_model_deployed(self) -> bool:
+        return all(
+            [
+                os.path.exists(
+                    os.path.join(
+                        self._storage_info.model_version_path, artifact
+                    )
+                )
+                for artifact in self._get_model_artifacts()
+            ]
+        )
+
     def _setup_folder_directory(self):
         os.makedirs(self._storage_info.model_version_path, exist_ok=True)
 
@@ -174,6 +190,7 @@ instance_group [
     def save_model(
         self, model: nn.Module, example_input: torch.Tensor, input_name: str
     ):
-        self._setup_folder_directory()
-        self._setup_triton_config(model, example_input, input_name)
-        self._save_model(model, example_input, input_name)
+        if not self.is_model_deployed():
+            self._setup_folder_directory()
+            self._setup_triton_config(model, example_input, input_name)
+            self._save_model(model, example_input, input_name)

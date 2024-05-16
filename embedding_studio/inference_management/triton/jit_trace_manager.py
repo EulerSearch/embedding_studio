@@ -10,6 +10,9 @@ from embedding_studio.inference_management.triton.manager import (
 
 
 class JitTraceTritonModelStorageManager(TritonModelStorageManager):
+    def _get_model_artifacts(self) -> List[str]:
+        return ["model.pt"]
+
     def _generate_triton_config_model_info(self) -> List[str]:
         return [
             'name: "{}"'.format(self._storage_info.model_name),

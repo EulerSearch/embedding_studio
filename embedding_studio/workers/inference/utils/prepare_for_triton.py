@@ -14,32 +14,13 @@ from embedding_studio.utils.gpu_monitoring import select_device
 logger = logging.getLogger(__name__)
 
 
-def write_experiment_data(
-    model_path: str, experiment_id: str, deployment_flag: str
-):
-    """
-    Writes experiment ID and deployment flag to the model directory.
-
-    :param model_path: Path to the model directory.
-    :param experiment_id: The experiment identifier.
-    :param deployment_flag: Flag indicating if the deployment should be marked green.
-    """
-    with open(os.path.join(model_path, "experiment_id"), "w") as f:
-        f.write(experiment_id)
-    with open(os.path.join(model_path, "green_deployment.flag"), "w") as f:
-        f.write(deployment_flag)
-
-
-def mark_same_query_and_items(model_repo: str, plugin_name: str):
+def mark_same_query_and_items(query_model_path: str):
     """
     Marks that the query and items models are the same, by creating a flag file.
 
-    :param model_repo: The repository path where the model is stored.
-    :param plugin_name: The plugin name under which the model is stored.
+    :param query_model_path: The path to the query model.
     """
-    with open(
-        os.path.join(model_repo, f"{plugin_name}.query", "same_query"), "w"
-    ) as f:
+    with open(os.path.join(query_model_path, "same_query"), "w") as f:
         f.write("TRUE")
 
 
@@ -49,7 +30,7 @@ def convert_for_triton(
     plugin_name: str,
     model_repo: str,
     model_version: int,
-    experiment_id: str,
+    embedding_model_id: str,
     embedding_studio_path: str = "/embedding_studio",
 ):
     """
@@ -61,7 +42,7 @@ def convert_for_triton(
         plugin_name (str): The name used for creating directories and files for the model.
         model_repo (str): The file path to the repository where the model versions will be stored.
         model_version (int): The version number of the model to be saved.
-        experiment_id (str): A unique identifier for the experiment.
+        embedding_model_id (str): A unique identifier for the model.
     """
     query_device = select_device()  # Dynamic GPU selection
     logger.info(f"Query model device: {query_device}")
@@ -74,6 +55,7 @@ def convert_for_triton(
         model_repo=model_repo,
         plugin_name=plugin_name,
         model_type="query",
+        embedding_model_id=embedding_model_id,
         version=str(model_version),
         embedding_studio_path=embedding_studio_path,
     )
@@ -84,13 +66,9 @@ def convert_for_triton(
         query_model, query_example_input, query_input_name
     )
 
-    write_experiment_data(
-        query_model_storage_info.model_version_path, experiment_id, "TRUE"
-    )
-
     # Check if the same model is used for both queries and items
     if model.same_query_and_items:
-        mark_same_query_and_items(model_repo, plugin_name)
+        mark_same_query_and_items(query_model_storage_info.model_path)
     else:
         items_device = select_device()
         logger.info(f"Items model device: {items_device}")
@@ -104,6 +82,7 @@ def convert_for_triton(
             model_repo=model_repo,
             plugin_name=plugin_name,
             model_type="items",
+            embedding_model_id=embedding_model_id,
             version=str(model_version),
             embedding_studio_path=embedding_studio_path,
         )
@@ -112,7 +91,4 @@ def convert_for_triton(
         )
         items_model_manager.save_model(
             items_model, items_example_input, items_input_name
-        )
-        write_experiment_data(
-            items_model_storage_info.model_version_path, experiment_id, "TRUE"
         )

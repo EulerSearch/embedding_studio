@@ -73,7 +73,7 @@ def fine_tuning_worker(task_id: str):
                 f"Fine tuning plugin with name `{task.fine_tuning_method}` "
                 f"not found"
             )
-        if not fine_tuning_plugin.experiments_manager.has_initial_model():
+        if not fine_tuning_plugin.manager.has_initial_model():
             logger.info("No initial model found, uploading.")
             logger.info(f"Upload initial model...")
             fine_tuning_plugin.upload_initial_model()
@@ -87,7 +87,7 @@ def fine_tuning_worker(task_id: str):
 
         iteration = FineTuningIteration(
             batch_id=task.batch_id,
-            run_id=task.model_id,
+            run_id=task.embedding_model_id,
             plugin_name=task.fine_tuning_method,
         )
         logger.info("Start fine-tuning the embedding model...")

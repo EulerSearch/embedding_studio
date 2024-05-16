@@ -21,7 +21,7 @@ class TextToTextE5TritonClient(TritonClient):
         self,
         url: str,
         plugin_name: str,
-        model_version: str = "blue",
+        embedding_model_id: str,
         preprocessor: Callable[[Union[str, dict]], str] = None,
         model_name: str = "intfloat/multilingual-e5-large",
         retry_config: Optional[RetryConfig] = None,
@@ -31,7 +31,7 @@ class TextToTextE5TritonClient(TritonClient):
 
         :param url: The URL of the Triton Inference Server.
         :param plugin_name: The name of the plugin/model used for inference tasks.
-        :param model_version: The deployment version of the model ('blue' or 'green').
+        :param embedding_model_id: deployed model ID.
         :param preprocessor: The text preprocessing function.
         :param model_name: The name of the model for which the tokenizer is tailored.
         :param retry_config: retry policy (default: None).
@@ -39,7 +39,7 @@ class TextToTextE5TritonClient(TritonClient):
         super().__init__(
             url,
             plugin_name,
-            model_version,
+            embedding_model_id,
             same_query_and_items=True,
             retry_config=retry_config,
         )
@@ -142,18 +142,18 @@ class TextToTextE5TritonClientFactory(TritonClientFactory):
         self.preprocessor = preprocessor
         self.model_name = model_name
 
-    def get_client(self, model_version: str = "blue", **kwargs):
+    def get_client(self, embedding_model_id: str, **kwargs):
         """
         Create an instance of a specified TritonClient subclass with a specific model version.
 
-        :param model_version: The deployment version of the model ('blue' or 'green').
+        :param embedding_model_id: The deployed ID of the model.
         :param kwargs: Additional keyword arguments to pass to the client class constructor.
         :return: An instance of the specified TritonClient subclass.
         """
         return TextToTextE5TritonClient(
             url=self.url,
             plugin_name=self.plugin_name,
-            model_version=model_version,
+            embedding_model_id=embedding_model_id,
             preprocessor=self.preprocessor,
             model_name=self.model_name,
             retry_config=self.retry_config,

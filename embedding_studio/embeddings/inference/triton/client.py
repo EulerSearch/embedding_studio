@@ -7,6 +7,9 @@ import tritonclient.grpc as grpcclient
 from tritonclient.utils import InferenceServerException
 
 from embedding_studio.core.config import settings
+from embedding_studio.inference_management.triton.model_storage_info import (
+    DeployedModelInfo,
+)
 from embedding_studio.workers.fine_tuning.utils.config import (
     RetryConfig,
     RetryParams,
@@ -17,33 +20,36 @@ logger = logging.getLogger(__name__)
 
 
 class TritonClient(ABC):
-    _MODEL_VERSIONS = {"blue": "1", "green": "2"}
-
     def __init__(
         self,
         url: str,
         plugin_name: str,
-        model_version: str = "blue",
+        embedding_model_id: str,
         same_query_and_items: bool = False,
         retry_config: Optional[RetryConfig] = None,
     ):
         """Initialize the Triton client connection with the specified model version.
         :param url: tritonserver connection URL.
         :param plugin_name: model's plugin name.
-        :param model_version: version of a model ("green" means deployed, but not used in production,
-                                                 "blue" means used in production) (default: blue).
+        :param embedding_model_id: deployed model ID.
         :param same_query_and_items: are query and items models acutally the same model (default: False).
         :param retry_config: retry policy (default: None).
         """
         self.url = url
         self.plugin_name = plugin_name
-        if model_version not in TritonClient._MODEL_VERSIONS:
-            logger.warning(
-                f'Unknown model version: {model_version}. Excepted: {", ".join(list(TritonClient._MODEL_VERSIONS.keys()))}'
-            )
-        self.model_version = TritonClient._MODEL_VERSIONS.get(
-            model_version, model_version
-        )  # Save the model version
+        self.embedding_model_id = embedding_model_id
+
+        self.query_model_info = DeployedModelInfo(
+            plugin_name=plugin_name,
+            embedding_model_id=embedding_model_id,
+            model_type="query",
+        )
+        self.items_model_info = DeployedModelInfo(
+            plugin_name=plugin_name,
+            embedding_model_id=embedding_model_id,
+            model_type="items",
+        )
+
         self.client = grpcclient.InferenceServerClient(url=self.url)
         self.same_query_and_items = same_query_and_items
         self.retry_config = (
@@ -100,9 +106,9 @@ class TritonClient(ABC):
     ) -> np.ndarray:
         """Helper function to send a request to the Triton server."""
         try:
-            model_name = f"{self.plugin_name}_query"
+            model_name = self.query_model_info.name
             response = self.client.infer(
-                model_name, inputs=inputs, model_version=self.model_version
+                model_name, inputs=inputs, model_version="1"
             )
             return response.as_numpy(
                 "output"
@@ -119,12 +125,12 @@ class TritonClient(ABC):
         """Helper function to send a request to the Triton server."""
         try:
             model_name = (
-                f"{self.plugin_name}_query"
+                self.query_model_info.name
                 if self.same_query_and_items
-                else f"{self.plugin_name}_items"
+                else self.items_model_info.name
             )
             response = self.client.infer(
-                model_name, inputs=inputs, model_version=self.model_version
+                model_name, inputs=inputs, model_version="1"
             )
             return response.as_numpy(
                 "output"
@@ -161,11 +167,11 @@ class TritonClientFactory:
         self.retry_config = retry_config
 
     @abstractmethod
-    def get_client(self, model_version: str = "blue", **kwargs):
+    def get_client(self, embedding_model_id: str, **kwargs):
         """
         Create an instance of a specified TritonClient subclass with a specific model version.
 
-        :param model_version: The deployment version of the model ('blue' or 'green').
+        :param embedding_model_id: The deployed ID of the model.
         :param kwargs: Additional keyword arguments to pass to the client class constructor.
         :return: An instance of the specified TritonClient subclass.
         """
