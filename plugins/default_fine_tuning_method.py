@@ -2,8 +2,6 @@ from typing import List
 
 from sentence_transformers import SentenceTransformer
 
-from embedding_studio.core.config import settings
-from embedding_studio.core.plugin import FineTuningMethod
 from embedding_studio.clickstream_storage.parsers.s3_parser import (
     AWSS3ClickstreamParser,
 )
@@ -11,17 +9,17 @@ from embedding_studio.clickstream_storage.search_event import (
     DummyEventType,
     SearchResult,
 )
-from embedding_studio.embeddings.data.clickstream.splitter import (
-    ClickstreamSessionsSplitter,
-)
-from embedding_studio.clickstream_storage.text_query_item import (
-    TextQueryItem,
-)
+from embedding_studio.clickstream_storage.text_query_item import TextQueryItem
 from embedding_studio.clickstream_storage.text_query_retriever import (
     TextQueryRetriever,
 )
+from embedding_studio.core.config import settings
+from embedding_studio.core.plugin import FineTuningMethod
 from embedding_studio.data_storage.loaders.s3.s3_image_loader import (
     AwsS3ImageLoader,
+)
+from embedding_studio.embeddings.data.clickstream.train_test_splitter import (
+    TrainTestSplitter,
 )
 from embedding_studio.embeddings.data.storages.producers.clip import (
     CLIPItemStorageProducer,
@@ -29,33 +27,27 @@ from embedding_studio.embeddings.data.storages.producers.clip import (
 from embedding_studio.embeddings.data.utils.fields_normalizer import (
     DatasetFieldsNormalizer,
 )
+from embedding_studio.embeddings.inference.triton.text_to_image.clip import (
+    CLIPModelTritonClientFactory,
+)
 from embedding_studio.embeddings.losses.prob_cosine_margin_ranking_loss import (
     CosineProbMarginRankingLoss,
 )
 from embedding_studio.embeddings.models.text_to_image.clip import (
     TextToImageCLIPModel,
 )
+from embedding_studio.experiments.experiments_tracker import ExperimentsManager
+from embedding_studio.experiments.finetuning_settings import FineTuningSettings
+from embedding_studio.experiments.initial_params.clip import INITIAL_PARAMS
+from embedding_studio.experiments.metrics_accumulator import MetricsAccumulator
 from embedding_studio.models.clickstream.sessions import SessionWithEvents
 from embedding_studio.models.plugin import FineTuningBuilder, PluginMeta
 from embedding_studio.workers.fine_tuning.data.prepare_data import prepare_data
-from embedding_studio.experiments.experiments_tracker import (
-    ExperimentsManager,
-)
-from embedding_studio.experiments.finetuning_settings import (
-    FineTuningSettings,
-)
-from embedding_studio.experiments.initial_params.clip import (
-    INITIAL_PARAMS,
-)
-from embedding_studio.experiments.metrics_accumulator import (
-    MetricsAccumulator,
-)
-from embedding_studio.embeddings.inference.triton.text_to_image.clip import CLIPModelTritonClientFactory
 
 
 class DefaultFineTuningMethod(FineTuningMethod):
     meta = PluginMeta(
-        name="DefaultFineTuningMethod", # Should be a python-like naming
+        name="DefaultFineTuningMethod",  # Should be a python-like naming
         version="0.0.1",
         description="A default fine-tuning plugin",
     )
@@ -68,17 +60,16 @@ class DefaultFineTuningMethod(FineTuningMethod):
         #     "aws_secret_access_key": "QWERTY1232qdsadfasfg5349BBdf30ekp23odk03",
         # }
         # self.data_loader = AwsS3DataLoader(**creds)
-        self.model_name = 'clip-ViT-B-32'
+        self.model_name = "clip-ViT-B-32"
         # with empty creds, use anonymous session
-        creds = {
-        }
+        creds = {}
         self.data_loader = AwsS3ImageLoader(**creds)
 
         self.retriever = TextQueryRetriever()
         self.parser = AWSS3ClickstreamParser(
             TextQueryItem, SearchResult, DummyEventType
         )
-        self.splitter = ClickstreamSessionsSplitter()
+        self.splitter = TrainTestSplitter()
         self.normalizer = DatasetFieldsNormalizer("item", "item_id")
         self.storage_producer = CLIPItemStorageProducer(self.normalizer)
 
@@ -88,21 +79,21 @@ class DefaultFineTuningMethod(FineTuningMethod):
                 calc_mean=True,
                 calc_sliding=True,
                 calc_min=True,
-                calc_max=True
+                calc_max=True,
             ),
             MetricsAccumulator(
                 "train_not_irrelevant_dist_shift",
                 calc_mean=True,
                 calc_sliding=True,
                 calc_min=True,
-                calc_max=True
+                calc_max=True,
             ),
             MetricsAccumulator(
                 "train_irrelevant_dist_shift",
                 calc_mean=True,
                 calc_sliding=True,
                 calc_min=True,
-                calc_max=True
+                calc_max=True,
             ),
             MetricsAccumulator("test_loss"),
             MetricsAccumulator("test_not_irrelevant_dist_shift"),
@@ -139,7 +130,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
         )
 
         self.inference_client_factory = CLIPModelTritonClientFactory(
-            f'{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}',
+            f"{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}",
             plugin_name=self.meta.name,
             transform=self.storage_producer.preprocessor,
             model_name=self.model_name,

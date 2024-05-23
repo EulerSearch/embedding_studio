@@ -4,7 +4,9 @@ from pydantic import BaseModel
 
 from embedding_studio.clickstream_storage.query_item import QueryItem
 from embedding_studio.clickstream_storage.search_event import SearchResult
-from embedding_studio.clickstream_storage.session import ClickstreamSession
+from embedding_studio.embeddings.features.feature_extractor_input import (
+    FineTuningInput,
+)
 from embedding_studio.models.clickstream.sessions import SessionWithEvents
 
 
@@ -78,8 +80,8 @@ class RawClickstreamSession(BaseModel):
             timestamp=int(data.get("timestamp")),
         )
 
-    def get_session(self) -> ClickstreamSession:
-        return ClickstreamSession(
+    def get_fine_tuning_input(self) -> FineTuningInput:
+        return FineTuningInput(
             query=self.query,
             events=[r.item.id for r in self.results if r.is_click],
             results=[r.item.id for r in self.results],

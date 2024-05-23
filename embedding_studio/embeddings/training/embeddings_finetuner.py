@@ -11,13 +11,15 @@ from torch.optim import SGD, Optimizer
 from torch.optim.lr_scheduler import LRScheduler, StepLR
 
 from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
-from embedding_studio.clickstream_storage.raw_session import ClickstreamSession
 from embedding_studio.embeddings.features.event_confidences import (
     dummy_confidences,
 )
 from embedding_studio.embeddings.features.extractor import (
     COSINE_SIMILARITY,
     FeaturesExtractor,
+)
+from embedding_studio.embeddings.features.feature_extractor_input import (
+    FineTuningInput,
 )
 from embedding_studio.embeddings.features.session_features import (
     SessionFeatures,
@@ -211,7 +213,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
     # 2. Training step code with one batch
     def training_step(
         self,
-        batch: List[Tuple[ClickstreamSession, ClickstreamSession]],
+        batch: List[Tuple[FineTuningInput, FineTuningInput]],
         batch_idx: int,
     ) -> Union[FloatTensor, Tensor]:
         if not (
@@ -245,7 +247,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
         # Calculate features and loss
         # TODO: encapsulate all inference
         features: SessionFeatures = self.features_extractor.forward(
-            batch, self.items_storages["train"], self.query_retriever
+            batch, self.items_storages["train"]
         )
         loss: FloatTensor = self.loss_func(features)
         # Gradient backward step
@@ -276,7 +278,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
     @torch.no_grad()
     def validation_step(
         self,
-        batch: List[Tuple[ClickstreamSession, ClickstreamSession]],
+        batch: List[Tuple[FineTuningInput, FineTuningInput]],
         batch_idx: int,
     ) -> Union[FloatTensor, Tensor]:
         if not (
@@ -297,7 +299,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
 
         # TODO: encapsulate all inference
         features: SessionFeatures = self.features_extractor.forward(
-            batch, self.items_storages["test"], self.query_retriever
+            batch, self.items_storages["test"]
         )
         loss: FloatTensor = self.loss_func(features)
 

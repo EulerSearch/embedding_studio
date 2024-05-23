@@ -4,15 +4,18 @@ from pydantic import BaseModel, validator
 from torch import Tensor
 
 
-class ClickstreamSession(BaseModel):
-    """Class that represents clickstream session.
+class FineTuningInput(BaseModel):
+    """Class that represents clickstream session passes to a feature extractor.
 
     :param query: provided query.
     :param events: ids of results (right now mostly clicks)
     :param results: ids of result items
     :param ranks: dictionary of each item ranks
     :param event_types: type of results
-    :param timestamp: when srddion was initialized
+    :param timestamp: when session was initialized
+    :param not_events: results that have no events with
+    :param is_irrelevant: clickstream session is fully irrelevant
+    :param groups: dictionary of ids to group id, use if an item is split into subitems.
     """
 
     query: Any
@@ -21,8 +24,8 @@ class ClickstreamSession(BaseModel):
     ranks: Dict[str, Optional[float]]
     event_types: Optional[List[float]] = None
     timestamp: Optional[int] = None
-    not_events: Optional[List[str]] = None
     is_irrelevant: Optional[bool] = None
+    part_to_object_dict: Optional[Dict[str, str]] = None
 
     class Config:
         arbitrary_types_allowed = True
@@ -37,15 +40,22 @@ class ClickstreamSession(BaseModel):
             if id_ not in self.ranks:
                 raise ValueError(f"No such ID ({id_}) in provided ranks dict")
 
-        self.not_events = [
-            id_ for id_ in self.results if id_ not in self.events
-        ]
         self.is_irrelevant = (
             len(self.events) == 0
         )  # TODO: will be passed later and not be calculated
 
+    @property
+    def not_events(self) -> List[str]:
+        return [id_ for id_ in self.results if id_ not in self.events]
+
     def __len__(self) -> int:
         return len(self.results)
+
+    def get_object_id(self, id: str) -> str:
+        if self.part_to_object_dict:
+            return self.part_to_object_dict.get(id, id)
+        else:
+            return id
 
     @validator("results", "results", pre=True, always=True)
     def preprocess_ids(cls, value):

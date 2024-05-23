@@ -1,9 +1,8 @@
 from typing import List
 
 from sentence_transformers import SentenceTransformer
+from transformers import AutoTokenizer
 
-from embedding_studio.core.config import settings
-from embedding_studio.core.plugin import FineTuningMethod
 from embedding_studio.clickstream_storage.parsers.s3_parser import (
     AWSS3ClickstreamParser,
 )
@@ -11,17 +10,27 @@ from embedding_studio.clickstream_storage.search_event import (
     DummyEventType,
     SearchResult,
 )
-from embedding_studio.embeddings.data.clickstream.splitter import (
-    ClickstreamSessionsSplitter,
-)
-from embedding_studio.clickstream_storage.text_query_item import (
-    TextQueryItem,
-)
+from embedding_studio.clickstream_storage.text_query_item import TextQueryItem
 from embedding_studio.clickstream_storage.text_query_retriever import (
     TextQueryRetriever,
 )
+from embedding_studio.core.config import settings
+from embedding_studio.core.plugin import FineTuningMethod
 from embedding_studio.data_storage.loaders.s3.s3_text_loader import (
     AwsS3TextLoader,
+)
+from embedding_studio.embeddings.augmentations.compose import (
+    AugmentationsComposition,
+)
+from embedding_studio.embeddings.augmentations.items_storage_augmentation_applier import (
+    ItemsStorageAugmentationApplier,
+)
+from embedding_studio.embeddings.augmentations.text.cases import ChangeCases
+from embedding_studio.embeddings.augmentations.text.misspellings import (
+    Misspellings,
+)
+from embedding_studio.embeddings.data.clickstream.train_test_splitter import (
+    TrainTestSplitter,
 )
 from embedding_studio.embeddings.data.storages.producers.text import (
     TextItemStorageProducer,
@@ -29,33 +38,36 @@ from embedding_studio.embeddings.data.storages.producers.text import (
 from embedding_studio.embeddings.data.utils.fields_normalizer import (
     DatasetFieldsNormalizer,
 )
+from embedding_studio.embeddings.inference.triton.text_to_text.e5 import (
+    TextToTextE5TritonClientFactory,
+)
 from embedding_studio.embeddings.losses.prob_cosine_margin_ranking_loss import (
     CosineProbMarginRankingLoss,
 )
 from embedding_studio.embeddings.models.text_to_text.e5 import (
     TextToTextE5Model,
 )
-from embedding_studio.embeddings.inference.triton.text_to_text.e5 import TextToTextE5TritonClientFactory
+from embedding_studio.embeddings.splitters.dataset_splitter import (
+    ItemsStorageSplitter,
+)
+from embedding_studio.embeddings.splitters.text.dummy_sentence_splitter import (
+    DummySentenceSplitter,
+)
+from embedding_studio.embeddings.splitters.text.tokenized_grouped_splitter import (
+    TokenGroupTextSplitter,
+)
+from embedding_studio.experiments.experiments_tracker import ExperimentsManager
+from embedding_studio.experiments.finetuning_settings import FineTuningSettings
+from embedding_studio.experiments.initial_params.clip import INITIAL_PARAMS
+from embedding_studio.experiments.metrics_accumulator import MetricsAccumulator
 from embedding_studio.models.clickstream.sessions import SessionWithEvents
 from embedding_studio.models.plugin import FineTuningBuilder, PluginMeta
 from embedding_studio.workers.fine_tuning.data.prepare_data import prepare_data
-from embedding_studio.experiments.experiments_tracker import (
-    ExperimentsManager,
-)
-from embedding_studio.experiments.finetuning_settings import (
-    FineTuningSettings,
-)
-from embedding_studio.experiments.initial_params.clip import (
-    INITIAL_PARAMS,
-)
-from embedding_studio.experiments.metrics_accumulator import (
-    MetricsAccumulator,
-)
 
 
-class DefaultFineTuningMethod(FineTuningMethod):
+class DefaultTextFineTuningMethod(FineTuningMethod):
     meta = PluginMeta(
-        name="DefaultFineTuningMethodForText", # Should be a python-like naming
+        name="DefaultFineTuningMethodForText",  # Should be a python-like naming
         version="0.0.1",
         description="A default fine-tuning text plugin",
     )
@@ -69,19 +81,30 @@ class DefaultFineTuningMethod(FineTuningMethod):
         # }
         # self.data_loader = AwsS3DataLoader(**creds)
 
-        self.model_name = 'intfloat/multilingual-e5-large'
+        self.model_name = "intfloat/multilingual-e5-large"
         # with empty creds, use anonymous session
-        creds = {
-        }
+        creds = {}
         self.data_loader = AwsS3TextLoader(**creds)
 
         self.retriever = TextQueryRetriever()
         self.parser = AWSS3ClickstreamParser(
             TextQueryItem, SearchResult, DummyEventType
         )
-        self.splitter = ClickstreamSessionsSplitter()
+        self.splitter = TrainTestSplitter()
         self.normalizer = DatasetFieldsNormalizer("item", "item_id")
-        self.storage_producer = TextItemStorageProducer(self.normalizer)
+        self.storage_producer = TextItemStorageProducer(
+            self.normalizer,
+            items_storage_splitter=ItemsStorageSplitter(
+                TokenGroupTextSplitter(
+                    tokenizer=AutoTokenizer.from_pretrained(self.model_name),
+                    blocks_splitter=DummySentenceSplitter(),
+                )
+            ),
+            augmenter=ItemsStorageAugmentationApplier(
+                AugmentationsComposition([ChangeCases(5), Misspellings(5)])
+            ),
+            do_augment_test=False,
+        )
 
         self.accumulators = [
             MetricsAccumulator(
@@ -89,21 +112,21 @@ class DefaultFineTuningMethod(FineTuningMethod):
                 calc_mean=True,
                 calc_sliding=True,
                 calc_min=True,
-                calc_max=True
+                calc_max=True,
             ),
             MetricsAccumulator(
                 "train_not_irrelevant_dist_shift",
                 calc_mean=True,
                 calc_sliding=True,
                 calc_min=True,
-                calc_max=True
+                calc_max=True,
             ),
             MetricsAccumulator(
                 "train_irrelevant_dist_shift",
                 calc_mean=True,
                 calc_sliding=True,
                 calc_min=True,
-                calc_max=True
+                calc_max=True,
             ),
             MetricsAccumulator("test_loss"),
             MetricsAccumulator("test_not_irrelevant_dist_shift"),
@@ -139,10 +162,10 @@ class DefaultFineTuningMethod(FineTuningMethod):
             num_epochs=3,
         )
         self.inference_client_factory = TextToTextE5TritonClientFactory(
-            f'{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}',
+            f"{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}",
             plugin_name=self.meta.name,
             preprocessor=self.storage_producer.preprocessor,
-            model_name=self.model_name
+            model_name=self.model_name,
         )
 
     def upload_initial_model(self) -> None:

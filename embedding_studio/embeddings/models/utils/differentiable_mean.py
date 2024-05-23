@@ -1,9 +1,11 @@
 import torch
 
-from embedding_studio.embeddings.losses.soft_indicator import soft_indicator
+from embedding_studio.embeddings.models.utils.soft_indicator import (
+    soft_indicator,
+)
 
 
-def differentiable_mean(
+def differentiable_mean_small_values(
     x: torch.FloatTensor, threshold: float = 0.01, steepness: int = 100
 ) -> torch.FloatTensor:
     """Differentiable version of torch.mean(x[x<threshold]).

@@ -9,8 +9,8 @@ from embedding_studio.clickstream_storage.parsers.parser import (
 )
 from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
-from embedding_studio.embeddings.data.clickstream.splitter import (
-    ClickstreamSessionsSplitter,
+from embedding_studio.embeddings.data.clickstream.train_test_splitter import (
+    TrainTestSplitter,
 )
 from embedding_studio.embeddings.data.ranking_data import RankingData
 from embedding_studio.embeddings.data.storages.producer import (
@@ -46,7 +46,7 @@ class FineTuningBuilder:
     data_loader: DataLoader
     query_retriever: QueryRetriever
     clickstream_parser: ClickstreamParser
-    clickstream_sessions_splitter: ClickstreamSessionsSplitter
+    clickstream_sessions_splitter: TrainTestSplitter
     dataset_fields_normalizer: DatasetFieldsNormalizer
     item_storage_producer: ItemStorageProducer
     accumulators: List[MetricsAccumulator]

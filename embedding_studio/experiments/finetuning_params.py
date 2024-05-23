@@ -28,7 +28,7 @@ class FineTuningParams(BaseModel):
     :param query_weight_decay: weight decay of query model optimizer
     :param items_weight_decay: weight decay of items model optimizer
     :param margin: margin from MarginRankingLoss
-    :param not_irrelevant_only: use only not irrelevant sessions
+    :param not_irrelevant_only: use only not irrelevant inputs
     :param negative_downsampling: ratio of negative samples to be used
     :param min_abs_difference_threshold: filter out soft pairs abs(neg_dist - pos_dist) < small value (default: 0.0)
     :param max_abs_difference_threshold: filter out hard pairs abs(neg_dist - pos_dist) > huge value (default: 1.0)

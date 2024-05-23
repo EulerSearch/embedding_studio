@@ -5,9 +5,11 @@ import torch
 from torch import FloatTensor
 
 from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
-from embedding_studio.clickstream_storage.raw_session import ClickstreamSession
 from embedding_studio.embeddings.data.storages.storage import ItemsStorage
 from embedding_studio.embeddings.features.extractor import FeaturesExtractor
+from embedding_studio.embeddings.features.feature_extractor_input import (
+    FineTuningInput,
+)
 from embedding_studio.embeddings.metrics.metric import MetricCalculator
 from embedding_studio.experiments.metrics_accumulator import MetricValue
 
@@ -15,7 +17,7 @@ from embedding_studio.experiments.metrics_accumulator import MetricValue
 class DistanceShift(MetricCalculator):
     def _calc_dist_shift(
         self,
-        session: ClickstreamSession,
+        session: FineTuningInput,
         extractor: FeaturesExtractor,
         items_storage: ItemsStorage,
         query_retriever: QueryRetriever,
@@ -32,7 +34,7 @@ class DistanceShift(MetricCalculator):
             extractor.ranker(query_vector, items_vectors).cpu().tolist()
         )
 
-        # for similarity ranks should be higher for results of not irrelevant sessions,
+        # for similarity ranks should be higher for results of not irrelevant inputs,
         # for distances should be vice versa
         target: int = 1 if extractor.is_similarity else -1
         compare = lambda prev, new: target * float(new - prev)
@@ -53,15 +55,15 @@ class DistanceShift(MetricCalculator):
     @torch.no_grad()
     def __call__(
         self,
-        batch: List[Tuple[ClickstreamSession, ClickstreamSession]],
+        batch: List[Tuple[FineTuningInput, FineTuningInput]],
         extractor: FeaturesExtractor,
         items_storage: ItemsStorage,
         query_retriever: QueryRetriever,
     ) -> List[MetricValue]:
-        """Calculate metric, that means how ranks of provided sessions were changed .
+        """Calculate metric, that means how ranks of provided inputs were changed .
 
-        :param batch: batch of pairs clickstream sessions (not_irrelevant, irrelevant)
-        :param extractor: object to extract SessionFeatures out of provided sessions
+        :param batch: batch of pairs clickstream inputs (not_irrelevant, irrelevant)
+        :param extractor: object to extract SessionFeatures out of provided inputs
         :param items_storage: items dataset
         :param query_retriever: how to retrieve a value related to session query
         :return: list of calculated not_irrelevant_dist_shift and irrelevant_dist_shift metrics

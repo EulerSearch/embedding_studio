@@ -12,7 +12,7 @@ from embedding_studio.inference_management.triton.manager import (
 
 class EmbeddingsModelInterface(pl.LightningModule):
     def __init__(self, same_query_and_items: bool = False):
-        """In search we have two entities, which could be multi domain: query and search result (item).
+        """In search results we have two entities, which could be multi domain: query and search result (item).
         This is the interface we used in fine-tuning procedure.
 
         :param same_query_and_items: are query and items models acutally the same model (default: False)

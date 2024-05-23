@@ -1,12 +1,8 @@
 import logging
-import mlflow
-
 from typing import Optional
 
-from demo.utils.constants import (
-    DEFAULT_FINE_TUNING_METHOD_NAME
-)
-
+import mlflow
+from demo.utils.constants import DEFAULT_FINE_TUNING_METHOD_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +28,16 @@ def get_run_id_by_name(experiment_id: str, run_name: str) -> str:
     matching_runs = runs[runs.get("tags.mlflow.runName") == run_name]
 
     # Return embedding_model_id if found, else return None
-    return matching_runs.iloc[0]["embedding_model_id"] if not matching_runs.empty else None
+    return (
+        matching_runs.iloc[0]["embedding_model_id"]
+        if not matching_runs.empty
+        else None
+    )
 
 
-def get_mlflow_results_url(mlflow_url: str, batch_id: str, model_id: str) -> Optional[str]:
+def get_mlflow_results_url(
+    mlflow_url: str, batch_id: str, model_id: str
+) -> Optional[str]:
     """Generate URL where to check results.
 
     :param mlflow_url: MLFlow connection URL
@@ -44,9 +46,7 @@ def get_mlflow_results_url(mlflow_url: str, batch_id: str, model_id: str) -> Opt
     :return:
     """
     mlflow.set_tracking_uri(mlflow_url)
-    iteration_name = (
-        f"iteration / {DEFAULT_FINE_TUNING_METHOD_NAME} / {model_id} / {batch_id}"
-    )
+    iteration_name = f"iteration / {DEFAULT_FINE_TUNING_METHOD_NAME} / {model_id} / {batch_id}"
     experiment_ids = [
         experiment.id
         for experiment in mlflow.search_experiments()

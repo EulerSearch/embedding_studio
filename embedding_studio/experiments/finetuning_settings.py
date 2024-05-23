@@ -25,7 +25,7 @@ class FineTuningSettings(BaseModel):
     :param step_size: optimizer steps (default: 500)
     :param gamma: optimizers gamma (default: 0.9)
     :param num_epochs: num of training epochs (default: 10)
-    :param batch_size: count of sessions in a batch (default: 1)
+    :param batch_size: count of inputs in a batch (default: 1)
     :param test_each_n_sessions: frequency of validation, if value in range [0, 1] - used as ratio (default: -1)
     """
 

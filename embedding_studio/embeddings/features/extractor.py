@@ -1,16 +1,27 @@
 import logging
 import random
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import pytorch_lightning as pl
 import torch
 from torch import FloatTensor, Tensor
 
-from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
-from embedding_studio.clickstream_storage.raw_session import ClickstreamSession
+from embedding_studio.clickstream_storage.raw_session import FineTuningInput
 from embedding_studio.embeddings.data.storages.storage import ItemsStorage
+from embedding_studio.embeddings.features.clicks_aggregator.clicks_aggregator import (
+    ClicksAggregator,
+)
+from embedding_studio.embeddings.features.clicks_aggregator.max_aggregator import (
+    MaxClicksAggregator,
+)
 from embedding_studio.embeddings.features.event_confidences import (
     dummy_confidences,
+)
+from embedding_studio.embeddings.features.ranks_aggregators.mean_aggregator import (
+    MeanAggregator,
+)
+from embedding_studio.embeddings.features.ranks_aggregators.ranks_aggregator import (
+    RanksAggregator,
 )
 from embedding_studio.embeddings.features.session_features import (
     SessionFeatures,
@@ -38,7 +49,9 @@ class FeaturesExtractor(pl.LightningModule):
         min_abs_difference_threshold: Optional[float] = 0.0,
         max_abs_difference_threshold: Optional[float] = 1.0,
         confidence_calculator: Optional[Callable] = dummy_confidences,
-        exmaples_order: Optional[List[ExamplesType]] = None,
+        examples_order: Optional[List[ExamplesType]] = None,
+        ranks_aggregator: RanksAggregator = MeanAggregator(),
+        clicks_aggregator: ClicksAggregator = MaxClicksAggregator(),
     ):
         """Logic of extracting features:
         1. Positive and negative examples ranks
@@ -50,7 +63,7 @@ class FeaturesExtractor(pl.LightningModule):
         :param model: embedding model itself
         :param ranker: ranking function (query, items) -> ranks (defult: cosine similarity)
         :param is_similarity: is ranking function similarity like or distance (default: True)
-        :param not_irrelevant_only: use only not irrelevant sessions (default: True)
+        :param not_irrelevant_only: use only not irrelevant inputs (default: True)
                                     True - Triplet loss
                                     False - Contrastive-like loss
         :param negative_downsampling_factor: in real tasks amount of results is much larger than  not-results,
@@ -59,6 +72,8 @@ class FeaturesExtractor(pl.LightningModule):
         :param max_abs_difference_threshold: filter out hard pairs abs(neg_dist - pos_dist) > huge value
         :param confidence_calculator: function to calculate results confidences (default: dummy_confidences)
         :param examples_order: order of passing examples to a trainer (default: None)
+        :param ranks_aggregator: if an item is split into subitems, ranks should be aggregated
+        :param clicks_aggregator: if an item is split into subtimes, clicks should be aggregated too
         """
         super(FeaturesExtractor, self).__init__()
         # Check model type
@@ -112,20 +127,23 @@ class FeaturesExtractor(pl.LightningModule):
         self.max_abs_difference_threshold = max_abs_difference_threshold
         self.confidence_calculator = confidence_calculator
 
-        if not exmaples_order:
-            exmaples_order = [ExamplesType.all_examples]
+        if not examples_order:
+            examples_order = [ExamplesType.all_examples]
             logger.debug("All types of examples will be used in training")
 
-        if len({isinstance(e, ExamplesType) for e in exmaples_order}) > 1:
+        if len({isinstance(e, ExamplesType) for e in examples_order}) > 1:
             raise ValueError(
                 "Some of exmaple types are not instances of ExampleType"
             )
         self.exmaples_order = (
-            exmaples_order  # TODO: use different examples order
+            examples_order  # TODO: use different examples order
         )
 
+        self.ranks_aggregator = ranks_aggregator
+        self.clicks_aggregator = clicks_aggregator
+
     def _confidences(
-        self, session: ClickstreamSession, not_events: List[str]
+        self, session: FineTuningInput, not_events: List[str]
     ) -> Tuple[Tensor, Tensor]:
         """Calculate confidences for a given clickstream session items.
 
@@ -133,150 +151,171 @@ class FeaturesExtractor(pl.LightningModule):
         :param not_events: not-results (negatives) used for ranks prediction
         :return: positive (results) confidences, negative (not-results) confidences
         """
-        only_used: List[bool] = [
-            (id_ in session.events or id_ in not_events)
-            for id_ in session.results
-        ]
-        only_used_ids: List[str] = [
+        only_used_ids = [
             id_
             for id_ in session.results
-            if (id_ in session.events or id_ in not_events)
+            if id_ in session.events or id_ in not_events
         ]
-        ranks: FloatTensor = FloatTensor(
-            [session.ranks[i] for i in session.results]
-        )
-        bin_clicks: FloatTensor = FloatTensor(
-            [(1 if i in session.events else 0) for i in session.results]
-        )
-        confidences: FloatTensor = self.confidence_calculator(
-            ranks, bin_clicks
-        )[only_used]
+
+        # Initialize dictionaries to store grouped ranks and clicks
+        group_ranks = {}
+        group_clicks = {}
+        group_map = {id_: session.get_object_id(id_) for id_ in only_used_ids}
+        for id_ in only_used_ids:
+            group_id = group_map[id_]
+            if group_id not in group_ranks:
+                group_ranks[group_id] = []
+                group_clicks[group_id] = []
+            group_ranks[group_id].append(session.ranks[id_])
+            group_clicks[group_id].append(1 if id_ in session.events else 0)
+
+        # Aggregate ranks and binary clicks across part_to_object_dict
+        aggregated_ranks = dict()
+        for group_id in group_ranks:
+            if len(group_ranks[group_id]) == 1:
+                aggregated_ranks[group_id] = group_ranks[group_id][0]
+            else:
+                aggregated_ranks[group_id] = self.ranks_aggregator(
+                    group_ranks[group_id], differentiable=False
+                )
+
+        aggregated_clicks = self.clicks_aggregator(group_clicks)
+
+        # Calculate confidences for aggregated ranks and clicks
+        group_confidences = {}
+        for group_id in aggregated_ranks:
+            rank = torch.FloatTensor([aggregated_ranks[group_id]])
+            clicks = torch.FloatTensor([aggregated_clicks[group_id]])
+            group_confidences[group_id] = self.confidence_calculator(
+                rank, clicks
+            )
 
         # Sort confidences among positive and negative types
-        positive_confidences: Tensor = torch.zeros(len(session.events))
-        negative_confidences: Tensor = torch.zeros(len(not_events))
+        positive_confidences = torch.zeros(len(session.events))
+        negative_confidences = torch.zeros(len(not_events))
 
-        for id_index, id_ in enumerate(only_used_ids):
+        # Assign confidences to appropriate positive or negative tensors based on group participation
+        for id_ in only_used_ids:
+            group_id = group_map[id_]
             if id_ in session.events:
-                positive_confidences[session.events.index(id_)] = confidences[
-                    id_index
-                ]
-
+                index = session.events.index(id_)
+                positive_confidences[index] = group_confidences[group_id]
             elif id_ in not_events:
-                negative_confidences[not_events.index(id_)] = confidences[
-                    id_index
-                ]
+                index = not_events.index(id_)
+                negative_confidences[index] = group_confidences[group_id]
 
         return positive_confidences.to(self.device), negative_confidences.to(
             self.device
         )
 
-    @torch.no_grad()
-    def calculate_ranks(
-        self,
-        session: ClickstreamSession,
-        dataset: ItemsStorage,
-        query_retriever: QueryRetriever,
-    ) -> Dict[str, float]:
-        """Calculate ranks for a single session
+    def _downsample_not_events(self, session):
+        # Group not-events by their respective group IDs
+        group_to_not_events = {}
+        for id_ in session.not_events:
+            group_id = session.get_object_id(id_)
+            if group_id not in group_to_not_events:
+                group_to_not_events[group_id] = []
+            group_to_not_events[group_id].append(id_)
 
-        :param session: given session
-        :param dataset: items storage related to a given session
-        :param query_retriever: object to get item related to query, that can be used in "forward"
-        :return: provided session's results ranks
-        """
-        query_vector: FloatTensor = self.model.forward_query(
-            query_retriever(session.query)
+        # Calculate the number of part_to_object_dict to include based on the downsampling factor
+        total_groups = len(group_to_not_events)
+        groups_to_sample = int(
+            self.negative_downsampling_factor * total_groups
         )
-        items_vectors: FloatTensor = self.model.forward_items(
-            dataset.items_by_ids(session.results)
-        )
-        ranks_: FloatTensor = self.ranker(query_vector, items_vectors)
-        ranks = dict()
-        for id_, rank in zip(session.results, ranks_.cpu().tolist()):
-            ranks[id_] = rank
 
-        return ranks
+        # Randomly select part_to_object_dict to be included in the downsampled set
+        selected_groups = random.sample(
+            list(group_to_not_events.keys()), groups_to_sample
+        )
+
+        # Collect all not-events from the selected part_to_object_dict
+        downsampled_not_events = []
+        for group_id in selected_groups:
+            downsampled_not_events.extend(group_to_not_events[group_id])
+
+        return downsampled_not_events
 
     def _get_session_features(
-        self,
-        session: ClickstreamSession,
-        dataset: ItemsStorage,
-        query_retriever: QueryRetriever,
+        self, session: FineTuningInput, dataset: ItemsStorage
     ) -> SessionFeatures:
-        """Calculate features for a single session
+        """Calculate features for a single session, ensuring tensors are prepared for gradient calculations in fine-tuning.
 
         :param session: given session
         :param dataset: items storage related to a given session
-        :param query_retriever: object to get item related to query, that can be used in "forward"
         :return: provided session's features
         """
         features = SessionFeatures()
 
-        # For keep balance between results and not-results, we decrease a number of not-results
-        not_events_count: int = int(
-            self.negative_downsampling_factor * len(session.not_events)
-        )
-        not_events_indexes: List[int] = random.choices(
-            list(range(len(session.not_events))), k=not_events_count
-        )  # we use indexes instead of ids to keep order
-        not_events: List[str] = [
-            session.not_events[i] for i in sorted(not_events_indexes)
-        ]
+        # Downsample not-events while respecting group boundaries
+        not_events = self._downsample_not_events(session)
 
-        # And calculate confidences for two groups of items
-        (
-            features.positive_confidences,
-            features.negative_confidences,
-        ) = self._confidences(session, not_events)
-
-        # Then we calculate query and items vectors
-        query_vector: FloatTensor = self.model.forward_query(
-            query_retriever(session.query)
-        )
-        items_vectors: FloatTensor = self.model.forward_items(
-            dataset.items_by_ids(session.events + not_events)
+        # Calculate confidences for both positive and negative items, considering part_to_object_dict
+        positive_confidences, negative_confidences = self._confidences(
+            session, not_events
         )
 
-        positive_indexes: List[int] = [i for i in range(len(session.events))]
-        negative_indexes: List[int] = [
-            i + len(session.events) for i in range(len(not_events))
-        ]
+        # Calculate query and item vectors
+        query_vector = self.model.forward_query(session.query)
+        items, ids = dataset.items_by_ids(session.events + not_events)
+        items_vectors = self.model.forward_items(items)
 
-        # For each group we calculate ranks
-        positive_ranks_: FloatTensor = self.ranker(
-            query_vector, items_vectors[positive_indexes]
+        # Map items to their part_to_object_dict
+        group_map = {id_: session.get_object_id(id_) for id_ in ids}
+
+        # Group items vectors by their group IDs for aggregation
+        grouped_vectors = {}
+        for i, id_ in enumerate(ids):
+            group_id = group_map[id_]
+            if group_id not in grouped_vectors:
+                grouped_vectors[group_id] = []
+            grouped_vectors[group_id].append(items_vectors[i])
+
+        # Aggregate vectors within each group using the rank aggregator's method
+        for group_id in grouped_vectors:
+            vectors = torch.stack(grouped_vectors[group_id])
+            grouped_vectors[group_id] = vectors
+
+        # Calculate ranks for aggregated vectors
+        aggregated_ranks = {}
+        for group_id, vector in grouped_vectors.items():
+            ranks = self.ranker(query_vector, vector.unsqueeze(0))
+            aggregated_ranks[group_id] = self.ranks_aggregator(
+                ranks.squeeze(), differentiable=True
+            )
+
+        # Prepare lists to collect ranks and confidences for tensor conversion
+        positive_ranks = []
+        negative_ranks = []
+        positive_confidences_values = []
+        negative_confidences_values = []
+
+        # Assign aggregated ranks, confidences, and targets to each ID based on their group
+        for id_ in ids:
+            group_id = group_map[id_]
+            if id_ in session.events:
+                positive_ranks.append(aggregated_ranks[group_id])
+                positive_confidences_values.append(
+                    positive_confidences[group_id]
+                )
+            else:
+                negative_ranks.append(aggregated_ranks[group_id])
+                negative_confidences_values.append(
+                    negative_confidences[group_id]
+                )
+
+        # Convert lists to tensors for backprop compatibility
+        features.positive_ranks = torch.stack(positive_ranks)
+        features.negative_ranks = torch.stack(negative_ranks)
+        features.positive_confidences = torch.tensor(
+            positive_confidences_values
         )
-        negative_ranks_: FloatTensor = self.ranker(
-            query_vector, items_vectors[negative_indexes]
+        features.negative_confidences = torch.tensor(
+            negative_confidences_values
         )
 
-        if len(positive_indexes) > 0:
-            positive_idx = []
-            negatie_idx = []
-            for pos_i_ in positive_indexes:
-                for neg_i_ in negative_indexes:
-                    pos_i = pos_i_
-                    neg_i = neg_i_ - len(session.events)
-                    positive_idx.append(pos_i)
-                    negatie_idx.append(neg_i)
-
-            features.positive_ranks = positive_ranks_[positive_idx]
-            features.negative_ranks = negative_ranks_[negatie_idx]
-
-            features.positive_confidences = features.positive_confidences[
-                positive_idx
-            ]
-            features.negative_confidences = features.negative_confidences[
-                negatie_idx
-            ]
-
-        else:
-            features.negative_distances = negative_ranks_
-
-        target_value: int = 1 if self.is_similarity else -1
-        features.target = target_value * torch.ones(
-            features.negative_confidences.shape[0]
+        # Prepare the target value based on similarity settings
+        features.target = torch.tensor(
+            [1 if self.is_similarity else -1] * len(not_events)
         ).to(self.device)
 
         # Filter out noises
@@ -289,24 +328,22 @@ class FeaturesExtractor(pl.LightningModule):
 
     def _get_paired_sessions_features(
         self,
-        not_irrelevant_session: ClickstreamSession,
-        irrelevant_session: ClickstreamSession,
+        not_irrelevant_session: FineTuningInput,
+        irrelevant_session: FineTuningInput,
         dataset: ItemsStorage,
-        query_retriever: QueryRetriever,
     ) -> SessionFeatures:
-        """Calculate features for a given pair: irrelevant and not irrelevant sessions
+        """Calculate features for a given pair: irrelevant and not irrelevant inputs
 
         :param not_irrelevant_session: not-irrelevant session
         :param irrelevant_session: irrelevant session
-        :param dataset: storage of items related to clickstream sessions
-        :param query_retriever: object to get item related to query, that can be used in "forward"
-        :return: features related for both irrelevant and not irrelevant sessions
+        :param dataset: storage of items related to clickstream inputs
+        :return: features related for both irrelevant and not irrelevant inputs
         """
         not_irrelevant_features: SessionFeatures = self._get_session_features(
-            not_irrelevant_session, dataset, query_retriever
+            not_irrelevant_session, dataset
         )
         irrelevant_features: SessionFeatures = self._get_session_features(
-            irrelevant_session, dataset, query_retriever
+            irrelevant_session, dataset
         )
 
         irrelevant_features.use_positive_from(not_irrelevant_features)
@@ -317,15 +354,13 @@ class FeaturesExtractor(pl.LightningModule):
 
     def forward(
         self,
-        batch: List[Tuple[ClickstreamSession, ClickstreamSession]],
+        batch: List[Tuple[FineTuningInput, FineTuningInput]],
         dataset: ItemsStorage,
-        query_retriever: QueryRetriever,
     ) -> SessionFeatures:
-        """Calculate features for a given batch of pairs: irrelevant and not irrelevant sessions
+        """Calculate features for a given batch of pairs: irrelevant and not irrelevant inputs
 
-        :param batch: list of pairs: irrelevant and not irrelevant sessions
-        :param dataset:  storage of items related to clickstream sessions
-        :param query_retriever: object to get item related to query, that can be used in "forward"
+        :param batch: list of pairs: irrelevant and not irrelevant inputs
+        :param dataset:  storage of items related to clickstream inputs
         :return: session features related to a given batch
         """
         features = SessionFeatures()
@@ -342,12 +377,11 @@ class FeaturesExtractor(pl.LightningModule):
                     not_irrelevant_session,
                     irrelevant_session,
                     dataset,
-                    query_retriever,
                 )
 
             else:
                 features += self._get_session_features(
-                    not_irrelevant_session, dataset, query_retriever
+                    not_irrelevant_session, dataset
                 )
 
         return features

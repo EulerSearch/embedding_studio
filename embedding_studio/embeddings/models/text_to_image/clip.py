@@ -14,7 +14,7 @@ from torchvision.transforms import Resize
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
-from embedding_studio.embeddings.models.pooler_output import (
+from embedding_studio.embeddings.models.utils.pooler_output import (
     PassPoolerOutputLayer,
 )
 from embedding_studio.inference_management.triton.jit_trace_manager import (

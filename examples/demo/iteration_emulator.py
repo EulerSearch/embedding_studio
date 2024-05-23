@@ -7,8 +7,6 @@ from typing import Optional
 import boto3  # as we put data in S3, we need to use this package
 from botocore import UNSIGNED
 from botocore.client import Config
-from tqdm.auto import tqdm
-
 from demo.utils.api_utils import (
     create_session_and_push_events,
     get_task_status,
@@ -17,7 +15,7 @@ from demo.utils.api_utils import (
 )
 from demo.utils.aws_utils import download_s3_object_to_memory
 from demo.utils.mlflow_utils import get_mlflow_results_url
-
+from tqdm.auto import tqdm
 
 DESCRIPTION = """
 # Introduction
@@ -95,7 +93,7 @@ We put the result of generation into the public reading-available S3 repository:
 # Used constants
 DEFAULT_FINE_TUNING_METHOD_NAME = "Default Fine Tuning Method"
 BUCKET_NAME = "embedding-studio-experiments"
-# We use the easiest one of generated sessions batch:
+# We use the easiest one of generated inputs batch:
 # 1. Minimal probability of a mistake: 0.01
 # 2. 50 search results in each session
 # 3. from 0.4 to 0.6 of random positives were picked
@@ -122,7 +120,7 @@ def emulate_clickstream(
     - Mark session as irrelevant (e.g. search results are completely nonsense)
 
     Internal methods:
-    - Release batch of sessions. After this method, new sessions will be created with a new batch ID. We need this mechanism
+    - Release batch of inputs. After this method, new sessions will be created with a new batch ID. We need this mechanism
       to run fine-tuning only on new sessions, not included in previous run. (**Important**: later we are going to provide a mechanism to customize it).
     - Get sessions related to a batch.
 
@@ -138,8 +136,10 @@ def emulate_clickstream(
         f"Download emulated clickstream sessions from S3 Bucket: {BUCKET_NAME} by path {CLICKSTREAM_INFO_KEY}"
     )
     if aws_access_key_id is None or aws_secret_access_key is None:
-        print('No specific AWS credentials, use Anonymous session')
-        s3_client = boto3.client('s3', config=Config(signature_version=UNSIGNED))
+        print("No specific AWS credentials, use Anonymous session")
+        s3_client = boto3.client(
+            "s3", config=Config(signature_version=UNSIGNED)
+        )
     else:
         s3_client = boto3.client(
             "s3",
@@ -156,9 +156,7 @@ def emulate_clickstream(
     )
     print(f"Downloaded {len(clickstream)} emulated clickstream sessions")
 
-    print(
-        f"Use {test_sessions_count} of {len(clickstream)} for emulation"
-    )
+    print(f"Use {test_sessions_count} of {len(clickstream)} for emulation")
     for session_id, session_info in enumerate(
         tqdm(clickstream[:test_sessions_count])
     ):
@@ -178,7 +176,7 @@ def emulate_fine_tuning(connection_url: str, mlflow_url: str):
     """
 
     print(
-    """ We categorize sessions into batches. A 'batch' refers to new clickstream sessions that have not been utilized for fine-tuning.
+        """ We categorize sessions into batches. A 'batch' refers to new clickstream sessions that have not been utilized for fine-tuning.
     When initiating a new fine-tuning iteration, it's necessary to release the current batch.
     This allows new sessions to be assembled into the next batch, while the existing batch is being used.
     We do it before starting a fine-tuning task, just to show how to do it, but EmbeddingStudio does it on it's own.
@@ -208,7 +206,9 @@ def emulate_fine_tuning(connection_url: str, mlflow_url: str):
             "Something went wrong with experiments tracking system, please check logs"
         )
         return
-    print(f"Experiment is started. If you want to check results: {mlflow_url}/#/experiments/{experiment_id}")
+    print(
+        f"Experiment is started. If you want to check results: {mlflow_url}/#/experiments/{experiment_id}"
+    )
     print(f"Start periodically getting the task status")
     while True:
         status = get_task_status(connection_url, task_id)

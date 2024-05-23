@@ -11,6 +11,10 @@ from embedding_studio.experiments.finetuning_iteration import (
     FineTuningIteration,
 )
 from embedding_studio.models.fine_tuning import FineTuningStatus
+from embedding_studio.utils.dramatiq_middlewares import (
+    ActionsOnStartMiddleware,
+)
+from embedding_studio.utils.initializer_actions import init_nltk
 from embedding_studio.workers.fine_tuning.finetune_embedding import (
     finetune_embedding_model,
 )
@@ -19,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 plugin_manager = PluginManager()
 plugin_manager.discover_plugins(directory=settings.ES_PLUGINS_PATH)
+
+redis_broker.add_middleware(ActionsOnStartMiddleware([init_nltk]))
 
 
 class FineTuningWorkerException(Exception):
@@ -123,7 +129,3 @@ def fine_tuning_worker(task_id: str):
 
     task.status = FineTuningStatus.done
     context.fine_tuning_task.update(obj=task)
-
-
-if settings.OPEN_MOCKED_ENDPOINTS:
-    pass

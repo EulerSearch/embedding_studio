@@ -4,11 +4,11 @@ from torch import FloatTensor, Tensor
 from embedding_studio.embeddings.features.session_features import (
     SessionFeatures,
 )
-from embedding_studio.embeddings.losses.differentiable_mean import (
-    differentiable_mean,
-)
 from embedding_studio.embeddings.losses.ranking_loss_interface import (
     RankingLossInterface,
+)
+from embedding_studio.embeddings.models.utils.differentiable_mean import (
+    differentiable_mean_small_values,
 )
 
 
@@ -52,7 +52,7 @@ class ProbMarginRankingLoss(RankingLossInterface):
 
         fine = 0.0
         if self.do_fine_small_difference:
-            fine = differentiable_mean(
+            fine = differentiable_mean_small_values(
                 pairwise_diff,
                 self.base_margin,
                 int(1 / self.base_margin * 100),

@@ -25,6 +25,8 @@ def get_field_name(
 def get_text_line_from_dict(
     object: dict,
     separator: str = " ",
+    field_name_separator: str = ":",
+    text_quote: str = '"',
     order_fields: Optional[Union[bool, List[str]]] = True,
     ascending: bool = True,
     field_names: Optional[Dict[str, str]] = None,
@@ -34,6 +36,8 @@ def get_text_line_from_dict(
 
     :param object: dict to be converted into a string.
     :param separator: symbol to be used to separation of different values (default: ' ')
+    :param field_name_separator: symbol to be used to separation of field_name (default: ':')
+    :param text_quote: symbol to be used to separation of text out as quotes (default: '"')
     :param order_fields: the way to order fields (default: True)
                          If set as False, field will bnot be sorted at all.
                          If set as True, fields will be sorted accordingly to ascending params.
@@ -51,7 +55,8 @@ def get_text_line_from_dict(
 
     return separator.join(
         [
-            f"{get_field_name(k, field_names, ignore_missed)}: {order_fields[k]}"
+            f"{get_field_name(k, field_names, ignore_missed)}{field_name_separator} "
+            f"{text_quote}{order_fields[k].replace(text_quote, ' ')}{text_quote}"
             for k in fields
         ]
     )

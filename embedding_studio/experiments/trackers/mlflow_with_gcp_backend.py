@@ -50,7 +50,7 @@ class ExperimentsManagerWithGCPBackend(ExperimentsManager):
         :param plugin_name: name of fine-tuning method being used
         :param accumulators: accumulators of metrics to be logged
         :param is_loss: is the main metric loss (if True, then the best quality is minimal) (default: False)
-        :param n_top_runs: how many hyper params groups to consider for following tuning steps (default: 10)
+        :param n_top_runs: how many hyper param groups to consider for following tuning steps (default: 10)
         :param requirements: extra requirements to be passed to mlflow.pytorch.log_model (default: None)
         :param retry_config: retry policy (default: None)
         """

@@ -166,4 +166,4 @@ cython_debug/
 lightning_logs/
 
 # PostgreSQL
-data/
+./data/

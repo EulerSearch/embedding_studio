@@ -7,10 +7,10 @@ from torch import FloatTensor, Tensor
 from torch.nn import Module, Parameter
 from transformers import AutoModel, AutoTokenizer
 
-from embedding_studio.embeddings.models.average_pool import average_pool
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
+from embedding_studio.embeddings.models.utils.average_pool import average_pool
 from embedding_studio.inference_management.triton.jit_trace_manager import (
     JitTraceTritonModelStorageManager,
 )

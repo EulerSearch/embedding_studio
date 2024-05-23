@@ -1,4 +1,6 @@
-from typing import Any, List, Optional
+import itertools
+from collections import defaultdict
+from typing import Any, List, Optional, Tuple
 
 from datasets import Dataset
 
@@ -29,9 +31,9 @@ class ItemsStorage(Dataset):
         self._item_field_name = item_field_name
         self._id_field_name = id_field_name
 
-        self._id_to_index = {
-            row[self.id_field_name]: index for index, row in enumerate(dataset)
-        }
+        self._id_to_index = defaultdict(list)
+        for index, row in enumerate(dataset):
+            row[self.id_field_name].append(index)
 
     @property
     def item_field_name(self) -> str:
@@ -56,10 +58,9 @@ class ItemsStorage(Dataset):
     @property
     def id_to_index(self) -> dict:
         if self._id_to_index is None:
-            self._id_to_index = {
-                row[self.id_field_name]: index
-                for index, row in enumerate(self)
-            }
+            self._id_to_index = defaultdict(list)
+            for index, row in enumerate(self):
+                row[self.id_field_name].append(index)
         return self._id_to_index
 
     def rows_by_ids(self, ids: List[Any], ignore_missed: bool = False) -> dict:
@@ -74,7 +75,15 @@ class ItemsStorage(Dataset):
                 if id_ not in self.id_to_index:
                     raise IndexError(f"ID {id_} is missed")
         return self[
-            [self.id_to_index[id_] for id_ in ids if id_ in self.id_to_index]
+            list(
+                itertools.chain.from_iterable(
+                    [
+                        self.id_to_index[id_]
+                        for id_ in ids
+                        if id_ in self.id_to_index
+                    ]
+                )
+            )
         ]
 
     def items_by_indices(self, indices: List[int]) -> List[Any]:
@@ -86,14 +95,15 @@ class ItemsStorage(Dataset):
         """
         return self[indices][self.item_field_name]
 
-    def items_by_ids(self, ids: List[Any]) -> List[Any]:
+    def items_by_ids(self, ids: List[Any]) -> Tuple[List[Any], List[Any]]:
         """
         Get a slice of items from the dataset based on a list of ids.
 
         :param indices: List of indices to retrieve items.
-        :return: List of items corresponding to the given indices.
+        :return: List of items corresponding to the given ids, and list of ids related to items.
         """
-        return self.rows_by_ids(ids)[self.item_field_name]
+        rows = self.rows_by_ids(ids)
+        return rows[self.item_field_name], rows[self.id_field_name]
 
     def items_slice(
         self, start_idx: int = 0, end_idx: Optional[int] = None

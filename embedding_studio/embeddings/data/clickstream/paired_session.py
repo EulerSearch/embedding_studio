@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Set, Tuple, Union
 
 from torch.utils.data import Dataset
 
-from embedding_studio.clickstream_storage.raw_session import ClickstreamSession
+from embedding_studio.clickstream_storage.raw_session import FineTuningInput
 
 logger = logging.getLogger(__name__)
 
@@ -26,19 +26,22 @@ def _make_lists_equal_size(
 class PairedClickstreamDataset(Dataset):
     def __init__(
         self,
-        sessions: List[ClickstreamSession],
+        sessions: List[FineTuningInput],
         randomize: bool = False,
         session_count: int = -1,
     ):
-        """Irrelevant clickstream sessions are quite unuseful, combine them with
-        usual sessions to extract useful information for the future.
+        """Irrelevant clickstream inputs are quite unuseful, combine them with
+        usual inputs to extract useful information for the future.
 
-        :param sessions: clickstream sessions to group
-        :param randomize: shuffle sessions or not (default: False)
+        :param sessions: clickstream inputs to group
+        :param randomize: shuffle inputs or not (default: False)
         :param session_count: maximum session pairs to use (default: -1)
         """
-        self.irrelevant: List[ClickstreamSession] = []
-        self.not_irrelevant: List[ClickstreamSession] = []
+        self.randomize = randomize
+        self.session_count = session_count
+
+        self.irrelevant: List[FineTuningInput] = []
+        self.not_irrelevant: List[FineTuningInput] = []
         for session in sessions:
             if session.is_irrelevant:
                 self.irrelevant.append(session)
@@ -50,11 +53,11 @@ class PairedClickstreamDataset(Dataset):
             range(len(self.not_irrelevant))
         )
 
-        # Count of sessions should be different, so we need to aligned them
+        # Count of inputs should be different, so we need to aligned them
         if len(self.irrelevant) > 0 and len(self.not_irrelevant) > 0:
             if len(self.irrelevant) != len(self.not_irrelevant):
                 logger.debug(
-                    "Lists of irrelevant and not irrelevant sessions has different sizes. Make them equal."
+                    "Lists of irrelevant and not irrelevant inputs has different sizes. Make them equal."
                 )
                 (
                     self.irrelevant_indexes,
@@ -76,10 +79,10 @@ class PairedClickstreamDataset(Dataset):
                 ]
 
         elif len(self.irrelevant) == 0:
-            logger.warning("List of irrelevant sessions is empty")
+            logger.warning("List of irrelevant inputs is empty")
 
         else:
-            raise ValueError("List of not irrelevant sessions is empty")
+            raise ValueError("List of not irrelevant inputs is empty")
 
         self.irrelevant_ids: Set[str] = set()
         for session in self.irrelevant:
@@ -103,8 +106,8 @@ class PairedClickstreamDataset(Dataset):
     def __getitem__(
         self, idx
     ) -> Tuple[
-        Union[ClickstreamSession, Dict, None],
-        Union[ClickstreamSession, Dict, None],
+        Union[FineTuningInput, Dict, None],
+        Union[FineTuningInput, Dict, None],
     ]:
         if len(self.irrelevant) == 0:
             return self.not_irrelevant[self.not_irrelevant_indexes[idx]], None

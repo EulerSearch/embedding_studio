@@ -1,7 +1,8 @@
 from typing import List
 
-from embedding_studio.clickstream_storage.query_item import QueryItem
-from embedding_studio.clickstream_storage.raw_session import ClickstreamSession
+from embedding_studio.embeddings.features.feature_extractor_input import (
+    FineTuningInput,
+)
 
 
 class QueryRetriever(object):
@@ -14,8 +15,5 @@ class QueryRetriever(object):
 
     """
 
-    def setup(self, clickstream_sessions: List[ClickstreamSession]):
+    def get_queries(self, clickstream_sessions: List[FineTuningInput]):
         pass
-
-    def __call__(self, query: QueryItem):
-        return query
