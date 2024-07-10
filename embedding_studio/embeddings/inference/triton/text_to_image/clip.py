@@ -1,5 +1,6 @@
 import gc
-from typing import Callable, Optional, Union
+from copy import deepcopy
+from typing import Callable, List, Optional, Union
 
 import cv2
 import numpy as np
@@ -54,14 +55,14 @@ class CLIPModelTritonClient(TritonClient):
                 model_name, use_fast=True
             )
         except Exception:
-            model = SentenceTransformer(model_name)[0]
+            model = deepcopy(SentenceTransformer(model_name)[0])
             self.tokenizer = model.processor.tokenizer
             del model
             gc.collect()
 
         self.transform = transform
 
-    def _prepare_query(self, query: str) -> InferInput:
+    def _prepare_query(self, query: str) -> List[InferInput]:
         """
         Prepare text input for the Triton server by tokenizing the query string.
 
@@ -73,42 +74,61 @@ class CLIPModelTritonClient(TritonClient):
             padding="max_length",
             truncation=True,
             max_length=self.tokenizer.model_max_length,
-        )["input_ids"]
-        inputs = inputs.numpy()
-        infer_input = InferInput("input_ids", inputs.shape, "INT64")
-        infer_input.set_data_from_numpy(inputs)
-        return infer_input
+        )
+        inputs.pop("attention_mask")
+        infer_inputs = []
+        for key, value in inputs.items():
+            tensor_np = value.numpy().astype(
+                np.int64
+            )  # Adjust data type if necessary
+            infer_input = InferInput(key, tensor_np.shape, "INT64")
+            infer_input.set_data_from_numpy(tensor_np)
+            infer_inputs.append(infer_input)
+
+        return infer_inputs
 
     def _prepare_items(
-        self, image: Union[np.ndarray, Image.Image]
-    ) -> InferInput:
+        self, data: List[Union[np.ndarray, Image.Image]]
+    ) -> List[InferInput]:
         """
-        Prepare image input for the Triton server. Handles both PIL images and numpy arrays,
+        Prepare a batch of image inputs for the Triton server. Handles both PIL images and numpy arrays,
         converting them as needed and applying a specified transformation.
 
-        :param image: A PIL.Image instance or a numpy array from an image prepared using cv2.
+        :param data: A list of PIL.Image instances or numpy arrays from images prepared using cv2.
         """
-        if isinstance(
-            image, np.ndarray
-        ):  # Convert from OpenCV BGR to RGB if needed
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            image = Image.fromarray(image)
+        processed_images = []
 
-        if self.transform:
-            image = np.array(
-                self.transform(image)
-            )  # Apply the provided transformation function
+        for image in data:
+            if isinstance(
+                image, np.ndarray
+            ):  # Convert from OpenCV BGR to RGB if needed
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                image = Image.fromarray(image)
 
-        if isinstance(image, Image.Image):
-            image = np.array(image)  # Ensure it's a numpy array for Triton
+            if self.transform:
+                image = self.transform(image)
 
-        if image.dtype != np.float32:
-            image = image.astype(np.float32)
+            if isinstance(image, Image.Image):
+                image = np.array(image)  # Ensure it's a numpy array for Triton
 
-        image = np.expand_dims(image, axis=0)
-        infer_input = InferInput("pixel_values", image.shape, "FP32")
-        infer_input.set_data_from_numpy(image)
-        return infer_input
+            if isinstance(image, torch.Tensor):
+                image = (
+                    image.detach().cpu().numpy()
+                )  # Ensure it's a numpy array for Triton
+
+            if image.dtype != np.float32:
+                image = image.astype(np.float32)
+
+            processed_images.append(image)
+
+        batch_images = np.stack(
+            processed_images, axis=0
+        )  # Stack images into a batch
+        infer_input = InferInput("pixel_values", batch_images.shape, "FP32")
+        infer_input.set_data_from_numpy(batch_images)
+        return [
+            infer_input,
+        ]
 
 
 class CLIPModelTritonClientFactory(TritonClientFactory):

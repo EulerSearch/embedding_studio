@@ -112,9 +112,9 @@ def finetune_embedding_model(
 
     best_params = None
     if not tracker.is_initial_run(iteration.run_id):
-        starting_run_param: Optional[
-            FineTuningParams
-        ] = tracker.get_params_by_run_id(iteration.run_id)
+        starting_run_param: Optional[FineTuningParams] = (
+            tracker.get_params_by_run_id(iteration.run_id)
+        )
         if starting_run_param is None:
             logger.error(
                 f"Cannot get fine-tuning params for starting run with ID {iteration.run_id}."
@@ -124,9 +124,9 @@ def finetune_embedding_model(
         starting_run_experiment_id: str = tracker.get_experiment_id(
             iteration.run_id
         )
-        best_params: Optional[
-            List[FineTuningParams]
-        ] = tracker.get_top_params_by_experiment_id(starting_run_experiment_id)
+        best_params: Optional[List[FineTuningParams]] = (
+            tracker.get_top_params_by_experiment_id(starting_run_experiment_id)
+        )
         if best_params is None:
             logger.error(
                 f"Cannot get fine-tuning params for starting experiment with ID: {starting_run_experiment_id}"

@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Iterator, List, Tuple, Type
+from typing import Any, Dict, Iterator, List, Type
 
 import pytorch_lightning as pl
 from torch import FloatTensor, Tensor
@@ -29,11 +29,11 @@ class EmbeddingsModelInterface(pl.LightningModule):
         pass
 
     @abstractmethod
-    def get_query_model_input(self) -> Tuple[str, Tensor]:
+    def get_query_model_inputs(self, device=None) -> Dict[str, Tensor]:
         pass
 
     @abstractmethod
-    def get_items_model_input(self) -> Tuple[str, Tensor]:
+    def get_items_model_inputs(self, device=None) -> Dict[str, Tensor]:
         pass
 
     @abstractmethod

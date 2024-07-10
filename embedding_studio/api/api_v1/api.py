@@ -24,10 +24,17 @@ api_router.include_router(
 
 
 if settings.OPEN_TEST_ENDPOINTS:
-    from embedding_studio.api.api_v1.test_endpoints import vectordb
+    from embedding_studio.api.api_v1.test_endpoints import (
+        inference_deployment_tasks,
+        upsert,
+        vectordb,
+    )
 
     api_router.include_router(
-        inference_deployment.router,
+        upsert.router, prefix="/test-upsertion-task", tags=["upsertion-task"]
+    )
+    api_router.include_router(
+        inference_deployment_tasks.router,
         prefix="/inference-deployment",
         tags=["inference-deployment"],
     )
@@ -36,6 +43,7 @@ if settings.OPEN_TEST_ENDPOINTS:
         prefix="/vectordb",
         tags=["vectordb"],
     )
+
 
 if settings.OPEN_MOCKED_ENDPOINTS:
     from embedding_studio.api.api_v1.mocked_endpoints import mocked_fine_tuning

@@ -47,7 +47,8 @@ def handle_deployment(task_id: str):
         context.deployment_task.update(obj=task)
 
         plugin = plugin_manager.get_plugin(task.fine_tuning_method)
-        model = plugin.manager.download_model_by_run_id(
+        experiments_manager = plugin.get_manager()
+        model = experiments_manager.download_model_by_run_id(
             task.embedding_model_id
         )
 

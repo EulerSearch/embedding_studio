@@ -44,50 +44,34 @@ class TextToTextE5TritonClient(TritonClient):
             retry_config=retry_config,
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
-            model_name, use_fast=True
+            model_name, use_fast=False
         )
         self.preprocessor = preprocessor
         self.model_name = model_name
 
-    def _prepare_input(self, query: str) -> InferInput:
-        """
-        Prepare text input for the Triton server by tokenizing the query string.
-
-        :param query: A string containing the text to be processed.
-        """
-        inputs = self.tokenizer(
-            query,
-            return_tensors="pt",
-            padding="max_length",
-            truncation=True,
-            max_length=512,
-        )
-        inputs = (
-            inputs["input_ids"].numpy().astype(np.int32)
-        )  # Adjust data type if necessary
-        infer_input = InferInput("text_input", inputs.shape, "INT32")
-        infer_input.set_data_from_numpy(inputs)
-        return infer_input
-
-    def _prepare_query(self, query: str) -> InferInput:
+    def _prepare_query(self, query: str) -> List[InferInput]:
         """
         Prepare a single text input for the Triton server by tokenizing the query string.
 
         :param query: A string containing the text to be processed.
         """
         inputs = self.tokenizer(
-            f"query: {query}",
+            [f"query: {query}"],
             return_tensors="pt",
             padding="max_length",
             truncation=True,
             max_length=512,
         )
-        inputs = (
-            inputs["input_ids"].numpy().astype(np.int32)
-        )  # Adjust data type if necessary
-        infer_input = InferInput("input0", inputs.shape, "INT32")
-        infer_input.set_data_from_numpy(inputs)
-        return infer_input
+        infer_inputs = []
+        for key, value in inputs.items():
+            tensor_np = value.numpy().astype(
+                np.int64
+            )  # Adjust data type if necessary
+            infer_input = InferInput(key, tensor_np.shape, "INT64")
+            infer_input.set_data_from_numpy(tensor_np)
+            infer_inputs.append(infer_input)
+
+        return infer_inputs
 
     def _prepare_items(self, data: List[Union[str, dict]]) -> List[InferInput]:
         """
@@ -103,11 +87,13 @@ class TextToTextE5TritonClient(TritonClient):
             truncation=True,
             max_length=512,
         )
-        inputs = inputs["input_ids"].numpy().astype(np.int32)
-        infer_inputs = [InferInput("input0", inputs.shape, "INT32")]
-        infer_inputs[0].set_data_from_numpy(
-            inputs
-        )  # All text inputs are batched into one tensor
+        infer_inputs = []
+        for key, value in inputs.items():
+            tensor_np = value.numpy().astype(np.int64)
+            infer_input = InferInput(key, tensor_np.shape, "INT64")
+            infer_input.set_data_from_numpy(tensor_np)
+            infer_inputs.append(infer_input)
+
         return infer_inputs
 
 

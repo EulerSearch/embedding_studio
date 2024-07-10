@@ -7,6 +7,7 @@ from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
 from embedding_studio.inference_management.triton.model_storage_info import (
+    DeployedModelInfo,
     ModelStorageInfo,
 )
 from embedding_studio.utils.gpu_monitoring import select_device
@@ -44,27 +45,27 @@ def convert_for_triton(
         model_version (int): The version number of the model to be saved.
         embedding_model_id (str): A unique identifier for the model.
     """
+    logger.info(f"Embedding model {embedding_model_id} deployment.")
     query_device = select_device()  # Dynamic GPU selection
     logger.info(f"Query model device: {query_device}")
     # Process and save the query model
     query_model = model.get_query_model().to(query_device)
     query_model.eval()
-    query_input_name, query_example_input = model.get_query_model_input()
-    query_example_input = query_example_input.to(query_device)
+    query_example_inputs = model.get_query_model_inputs(device=query_device)
     query_model_storage_info = ModelStorageInfo(
         model_repo=model_repo,
-        plugin_name=plugin_name,
-        model_type="query",
-        embedding_model_id=embedding_model_id,
-        version=str(model_version),
         embedding_studio_path=embedding_studio_path,
+        deployed_model_info=DeployedModelInfo(
+            plugin_name=plugin_name,
+            model_type="query",
+            embedding_model_id=embedding_model_id,
+            version=str(model_version),
+        ),
     )
     query_model_manager = model.get_query_model_inference_manager_class()(
         query_model_storage_info
     )
-    query_model_manager.save_model(
-        query_model, query_example_input, query_input_name
-    )
+    query_model_manager.save_model(query_model, query_example_inputs)
 
     # Check if the same model is used for both queries and items
     if model.same_query_and_items:
@@ -76,19 +77,20 @@ def convert_for_triton(
         items_model = model.get_items_model().to(items_device)
         items_model.eval()
 
-        items_input_name, items_example_input = model.get_items_model_input()
-        items_example_input = items_example_input.to(items_device)
+        items_example_inputs = model.get_items_model_inputs(
+            device=items_device
+        )
         items_model_storage_info = ModelStorageInfo(
             model_repo=model_repo,
-            plugin_name=plugin_name,
-            model_type="items",
-            embedding_model_id=embedding_model_id,
-            version=str(model_version),
             embedding_studio_path=embedding_studio_path,
+            deployed_model_info=DeployedModelInfo(
+                plugin_name=plugin_name,
+                model_type="items",
+                embedding_model_id=embedding_model_id,
+                version=str(model_version),
+            ),
         )
         items_model_manager = model.get_items_model_inference_manager_class()(
             items_model_storage_info
         )
-        items_model_manager.save_model(
-            items_model, items_example_input, items_input_name
-        )
+        items_model_manager.save_model(items_model, items_example_inputs)

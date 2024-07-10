@@ -1,20 +1,21 @@
 import io
 import logging
 import uuid
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Type
 
 import boto3
 from botocore import UNSIGNED
-from botocore.client import Config
+from botocore.client import BaseClient, Config
 from botocore.exceptions import ClientError, EndpointConnectionError
 from datasets import Dataset, Features
 from pydantic import BaseModel
 
 from embedding_studio.core.config import settings
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
-from embedding_studio.data_storage.loaders.s3.exceptions.failed_to_load_anything_from_s3 import (
-    FailedToLoadAnythingFromAWSS3,
+from embedding_studio.data_storage.loaders.downloaded_item import (
+    DownloadedItem,
 )
+from embedding_studio.data_storage.loaders.item_meta import ItemMeta
 from embedding_studio.data_storage.loaders.s3.item_meta import S3FileMeta
 from embedding_studio.workers.fine_tuning.utils.config import (
     RetryConfig,
@@ -77,6 +78,10 @@ class AwsS3DataLoader(DataLoader):
         self.features = features
         self.credentials = AwsS3Credentials(**kwargs)
         self.attempt_exception_types = [EndpointConnectionError]
+
+    @property
+    def item_meta_cls(self) -> Type[ItemMeta]:
+        return S3FileMeta
 
     @staticmethod
     def _get_default_retry_config() -> RetryConfig:
@@ -141,63 +146,213 @@ class AwsS3DataLoader(DataLoader):
     def _get_item(self, file: io.BytesIO) -> Any:
         return file
 
+    def _get_data_from_s3(
+        self, files: List[S3FileMeta], ignore_failures: bool = True
+    ) -> Iterable[Tuple[Dict, S3FileMeta]]:
+        """
+        Main method to retrieve data from AWS S3 using a list of file metadata objects.
+
+        :param files: A list of S3FileMeta objects containing metadata about each file to download.
+        :param ignore_failures: If True, continues with next files after a failure; otherwise, raises an exception.
+        :return: An iterable of tuples, each containing the data dictionary and its corresponding S3FileMeta.
+        """
+        uploaded = (
+            {}
+        )  # Cache to store downloaded data and avoid re-downloading.
+        if not files:
+            logger.warning("Nothing to download")
+            return
+
+        logger.info("Connecting to AWS S3...")
+        task_id = str(uuid.uuid4())
+        s3_client = self._get_client(task_id)
+        logger.info("Start downloading data from S3...")
+
+        for file_meta in files:
+            yield from self._process_file_meta(
+                s3_client, file_meta, ignore_failures, uploaded
+            )
+
+    def _process_file_meta(
+        self,
+        s3_client: BaseClient,
+        file_meta: S3FileMeta,
+        ignore_failures: bool,
+        uploaded: Dict[Tuple[str, str], Any],
+    ) -> Generator[Tuple[Dict, S3FileMeta], None, None]:
+        """
+        Processes a single file metadata to download the file and prepare data objects.
+
+        :param s3_client: The configured boto3 S3 client.
+        :param file_meta: Metadata for a specific file to handle.
+        :param ignore_failures: Controls error handling behavior.
+        :param uploaded: A dictionary acting as a cache to store previously downloaded data.
+        :yield: Yields tuples of data dictionary and file metadata.
+        """
+        try:
+            item = self._download_and_get_item(s3_client, file_meta, uploaded)
+            if item is None:
+                logger.error(
+                    f"Unable to download {file_meta.file} from {file_meta.bucket}"
+                )
+                return
+            yield from self._yield_item_objects(item, file_meta)
+        except Exception as e:
+            logger.exception(
+                f"Unable to download an item: {file_meta.bucket}/{file_meta.file} Exception: {str(e)}"
+            )
+            if not ignore_failures:
+                raise
+
+    def _download_and_get_item(
+        self,
+        s3_client: BaseClient,
+        file_meta: S3FileMeta,
+        uploaded: Dict[Tuple[str, str], Any],
+    ) -> Any:
+        """
+        Attempts to download the file from S3 if not already downloaded and cached.
+
+        :param s3_client: Boto3 S3 client.
+        :param file_meta: Metadata of the file to download.
+        :param uploaded: Cache dictionary to store and retrieve downloaded files.
+        :return: Downloaded or cached item data.
+        """
+        cache_key = (file_meta.bucket, file_meta.file)
+        if cache_key not in uploaded:
+            item = self._get_item(
+                self._read_from_s3(s3_client, file_meta.bucket, file_meta.file)
+            )
+            uploaded[cache_key] = item
+        return uploaded[cache_key]
+
+    def _yield_item_objects(
+        self, item: Any, file_meta: S3FileMeta
+    ) -> Generator[Tuple[Dict, S3FileMeta], None, None]:
+        """
+        Yields data objects based on the item structure and its metadata.
+
+        :param item: Downloaded or retrieved item data.
+        :param file_meta: Metadata associated with the item.
+        :yield: Generates tuples of item data dictionary and file metadata.
+        """
+        if isinstance(item, list) and file_meta.index is not None:
+            for subitem in item:
+                yield self._create_item_object(subitem, file_meta)
+        else:
+            yield self._create_item_object(item, file_meta)
+
+    def _create_item_object(
+        self, item: Any, file_meta: S3FileMeta
+    ) -> Tuple[Dict, S3FileMeta]:
+        """
+        Creates a dictionary object from the item data and includes metadata.
+
+        :param item: The data content of the item.
+        :param file_meta: The metadata of the item.
+        :return: A tuple containing the item dictionary and its metadata.
+        """
+        item_object = {"item_id": file_meta.id}
+        if self.features is None or not isinstance(item, dict):
+            item_object["item"] = item
+        else:
+            item_object.update(item)
+        return item_object, file_meta
+
     def _generate_dataset_from_s3(
         self, files: List[S3FileMeta]
-    ) -> Iterable[Dict]:
-        if len(files) == 0:
-            logger.warning("Nothing to download")
-        else:
-            logger.info("Connecting to aws s3...")
-            task_id: str = str(uuid.uuid4())
-            try:
-                s3_client = self._get_client(task_id)
-                logger.info("Start downloading data from S3...")
-                bad_items_count = 0
-                for val in files:
-                    item = None
-                    try:
-                        item: Any = self._get_item(
-                            self._read_from_s3(s3_client, val.bucket, val.file)
-                        )
-                    except Exception as e:
-                        logger.exception(
-                            f"Unable to download an item: {val.bucket}/{val.file} Exception: {str(e)}"
-                        )
-
-                    if item is None:
-                        logger.error(
-                            f"Unable to download {val.file} from {val.bucket}"
-                        )
-                        bad_items_count += 1
-                        continue
-
-                    if isinstance(item, list):
-                        for i, subitem in enumerate(item):
-                            item_object = {"item_id": f"{val.id}:{i}"}
-                            if self.features is None or not isinstance(
-                                subitem, dict
-                            ):
-                                item_object["item"] = subitem
-                            else:
-                                item_object.update(subitem)
-                            yield item_object
-                    else:
-                        item_object = {"item_id": val.id}
-                        if self.features is None or not isinstance(item, dict):
-                            item_object["item"] = item
-                        else:
-                            item_object.update(item)
-                        yield item
-
-                if bad_items_count == len(files):
-                    raise FailedToLoadAnythingFromAWSS3()
-
-            except Exception as err:
-                logger.error(f"Failed to load dataset from s3: {err}")
-                raise err
+    ) -> Iterable[Tuple[Dict, S3FileMeta]]:
+        for item, _ in self._get_data_from_s3(files):
+            yield item
 
     def load(self, items_data: List[S3FileMeta]) -> Dataset:
         return Dataset.from_generator(
             lambda: self._generate_dataset_from_s3(items_data),
             features=self.features,
         )
+
+    def load_items(self, items_data: List[S3FileMeta]) -> List[DownloadedItem]:
+        result = []
+        for item_object, item_meta in self._get_data_from_s3(
+            items_data, ignore_failures=False
+        ):
+            result.append(
+                DownloadedItem(
+                    id=item_object["item_id"],
+                    data=item_object["item"],
+                    meta=item_meta,
+                )
+            )
+
+        return result
+
+    def _load_batch_with_offset(
+        self, offset: int, batch_size: int, **kwargs
+    ) -> List[DownloadedItem]:
+        """
+        Load a batch of files from S3 starting from the given offset up to the batch size.
+
+        :param offset: The offset from where to start loading files.
+        :param batch_size: The number of files to load.
+        :return: A list of downloaded items, each containing the file key (ID), its content and metadata.
+        """
+        logger.info("Connecting to aws s3...")
+        task_id: str = str(uuid.uuid4())
+        s3_client = self._get_client(task_id)
+
+        paginator = s3_client.get_paginator("list_objects_v2")
+        page_iterator = paginator.paginate(
+            Bucket=kwargs["bucket"],
+            PaginationConfig={
+                "PageSize": batch_size,
+                "StartingToken": str(offset),
+            },
+        )
+
+        batch = []
+        try:
+            for page in page_iterator:
+                for item in page.get("Contents", []):
+                    key = item["Key"]
+                    response = s3_client.get_object(
+                        Bucket=kwargs["bucket"], Key=key
+                    )
+                    content = io.BytesIO(response["Body"].read())
+                    batch.append(
+                        DownloadedItem(
+                            id=key,
+                            data=self._get_item(content),
+                            meta=S3FileMeta(bucket=kwargs["bucket"], file=key),
+                        )
+                    )
+                    if len(batch) >= batch_size:
+                        return batch
+        except ClientError as e:
+            logger.error(f"Error fetching batch from S3: {e}")
+            raise
+        return batch
+
+    def load_all(
+        self, batch_size: int, **kwargs
+    ) -> Generator[DownloadedItem, None, None]:
+        """
+        A generator that iteratively loads batches using the `load_batch` method.
+        This allows for managing large datasets by processing them in manageable chunks.
+        Each batch is yielded to the caller, which can handle or process the batch as needed.
+
+        :param batch_size: The size of each batch to load.
+        :yield: Each batch as a list of downloaded items (id, data, item_info).
+        """
+        for bucket in kwargs["buckets"]:
+            offset = 0
+            while True:
+                current_batch = self._load_batch_with_offset(
+                    offset, batch_size, bucket=bucket
+                )
+                if not current_batch:
+                    break  # Stop yielding if no more data is returned.
+                yield current_batch
+                offset += batch_size
+
+    def total_count(self, **kwargs) -> Optional[int]:
+        return None

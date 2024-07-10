@@ -9,12 +9,14 @@ from embedding_studio.data_access.inference_deployment_tasks import (
     CRUDModelDeploymentTasks,
 )
 from embedding_studio.data_access.mongo.clickstream import MongoClickstreamDao
+from embedding_studio.data_access.upsertion_tasks import CRUDUpsertion
 from embedding_studio.db import mongo, postgres
 from embedding_studio.models.fine_tuning import FineTuningTaskInDb
 from embedding_studio.models.inference_deployment_tasks import (
     ModelDeletionTaskInDb,
     ModelDeploymentTaskInDb,
 )
+from embedding_studio.models.upsert import UpsertionTaskInDb
 from embedding_studio.vectordb.pgvector.vectordb import PgvectorDb
 from embedding_studio.vectordb.vectordb import VectorDb
 
@@ -23,6 +25,7 @@ from embedding_studio.vectordb.vectordb import VectorDb
 class AppContext:
     clickstream_dao: ClickstreamDao
     fine_tuning_task: CRUDFineTuning
+    upsertion_task: CRUDUpsertion
     deployment_task: CRUDModelDeploymentTasks
     deletion_task: CRUDModelDeletionTasks
     vectordb: VectorDb
@@ -30,22 +33,24 @@ class AppContext:
 
 context = AppContext(
     clickstream_dao=MongoClickstreamDao(
-        mongo_database=mongo.clckstream_mongo_database
+        mongo_database=mongo.clickstream_mongo_database
     ),
     fine_tuning_task=CRUDFineTuning(
         collection=mongo.finetuning_mongo_database["fine_tuning"],
         model=FineTuningTaskInDb,
         indexes=[("idempotency_key", pymongo.ASCENDING)],
     ),
+    upsertion_task=CRUDUpsertion(
+        collection=mongo.upsertion_mongo_database["upsertion"],
+        model=UpsertionTaskInDb,
+    ),
     deployment_task=CRUDModelDeploymentTasks(
-        collection=mongo.finetuning_mongo_database["deployment"],
+        collection=mongo.inference_deployment_mongo_database["deployment"],
         model=ModelDeploymentTaskInDb,
-        indexes=[("idempotency_key", pymongo.ASCENDING)],
     ),
     deletion_task=CRUDModelDeletionTasks(
-        collection=mongo.finetuning_mongo_database["deletion"],
+        collection=mongo.inference_deployment_mongo_database["deletion"],
         model=ModelDeletionTaskInDb,
-        indexes=[("idempotency_key", pymongo.ASCENDING)],
     ),
     vectordb=PgvectorDb(
         pg_database=postgres.pg_database,

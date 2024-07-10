@@ -39,6 +39,44 @@ class Settings(BaseSettings):
         f"{FINETUNING_MONGO_HOST}:{FINETUNING_MONGO_PORT}"
     )
 
+    UPSERTION_MONGO_HOST: str = os.getenv("UPSERTION_MONGO_HOST", "mongo")
+    UPSERTION_MONGO_PORT: int = os.getenv("UPSERTION_MONGO_PORT", 27017)
+    UPSERTION_MONGO_DB_NAME: str = os.getenv(
+        "UPSERTION_MONGO_DB_NAME", "embedding_studio"
+    )
+
+    UPSERTION_MONGO_USERNAME: str = os.getenv(
+        "UPSERTION_MONGO_USERNAME", "root"
+    )
+    UPSERTION_MONGO_PASSWORD: str = os.getenv(
+        "UPSERTION_MONGO_PASSWORD", "mongopassword"
+    )
+    UPSERTION_MONGO_URL: str = (
+        f"mongodb://{UPSERTION_MONGO_USERNAME}:{UPSERTION_MONGO_PASSWORD}@"
+        f"{UPSERTION_MONGO_HOST}:{UPSERTION_MONGO_PORT}"
+    )
+
+    INFERENCE_DEPLOYMENT_MONGO_HOST: str = os.getenv(
+        "INFERENCE_DEPLOYMENT_MONGO_HOST", "mongo"
+    )
+    INFERENCE_DEPLOYMENT_MONGO_PORT: int = os.getenv(
+        "INFERENCE_DEPLOYMENT_MONGO_PORT", 27017
+    )
+    INFERENCE_DEPLOYMENT_MONGO_DB_NAME: str = os.getenv(
+        "INFERENCE_DEPLOYMENT_MONGO_DB_NAME", "embedding_studio"
+    )
+
+    INFERENCE_DEPLOYMENT_MONGO_USERNAME: str = os.getenv(
+        "INFERENCE_DEPLOYMENT_MONGO_USERNAME", "root"
+    )
+    INFERENCE_DEPLOYMENT_MONGO_PASSWORD: str = os.getenv(
+        "INFERENCE_DEPLOYMENT_MONGO_PASSWORD", "mongopassword"
+    )
+    INFERENCE_DEPLOYMENT_MONGO_URL: str = (
+        f"mongodb://{INFERENCE_DEPLOYMENT_MONGO_USERNAME}:{INFERENCE_DEPLOYMENT_MONGO_PASSWORD}@"
+        f"{INFERENCE_DEPLOYMENT_MONGO_HOST}:{INFERENCE_DEPLOYMENT_MONGO_PORT}"
+    )
+
     CLICKSTREAM_MONGO_HOST: str = os.getenv("CLICKSTREAM_MONGO_HOST", "mongo")
     CLICKSTREAM_MONGO_PORT: int = os.getenv("CLICKSTREAM_MONGO_PORT", 27017)
     CLICKSTREAM_MONGO_DB_NAME: str = os.getenv(
@@ -91,9 +129,19 @@ class Settings(BaseSettings):
     #   a) Archive the current "blue" version.
     #   b) Delete the current "blue" version.
     # Option b) enables a quick revert in case something goes wrong with the new "blue" version.
-    INFERENCE_ARCHIVE_BLUE: bool = True
-    INFERENCE_HOST: str = os.getenv("INFERENCE_HOST", "triton")
-    INFERENCE_GRPC_PORT: int = os.getenv("INFERENCE_GRPC_PORT", 8002)
+    INFERENCE_HOST: str = os.getenv("INFERENCE_HOST", "localhost")
+    INFERENCE_GRPC_PORT: int = os.getenv("INFERENCE_GRPC_PORT", 8001)
+
+    # Upsertion
+    UPSERTION_BATCH_SIZE: int = 16
+    UPSERTION_IGNORE_FAILED_ITEMS: bool = True
+
+    UPSERTION_WORKER_MAX_RETRIES: int = os.getenv(
+        "UPSERTION_WORKER_MAX_RETRIES", 3
+    )
+    UPSERTION_WORKER_TIME_LIMIT: int = os.getenv(
+        "UPSERTION_WORKER_TIME_LIMIT", 18000000
+    )
 
     # Redis (broker for dramatiq)
     REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
@@ -163,6 +211,21 @@ class Settings(BaseSettings):
     )
     S3_DOWNLOAD_DATA_WAIT_TIME_SECONDS: float = os.getenv(
         "S3_DOWNLOAD_DATA_WAIT_TIME_SECONDS", DEFAULT_WAIT_TIME_SECONDS
+    )
+
+    # GCP
+    GCP_READ_CREDENTIALS_ATTEMPTS: int = os.getenv(
+        "GCP_READ_CREDENTIALS_ATTEMPTS", DEFAULT_MAX_ATTEMPTS
+    )
+    GCP_READ_WAIT_TIME_SECONDS: float = os.getenv(
+        "GCP_READ_WAIT_TIME_SECONDS", DEFAULT_WAIT_TIME_SECONDS
+    )
+
+    GCP_DOWNLOAD_DATA_ATTEMPTS: int = os.getenv(
+        "GCP_DOWNLOAD_DATA_ATTEMPTS", DEFAULT_MAX_ATTEMPTS
+    )
+    GCP_DOWNLOAD_DATA_WAIT_TIME_SECONDS: float = os.getenv(
+        "GCP_DOWNLOAD_DATA_WAIT_TIME_SECONDS", DEFAULT_WAIT_TIME_SECONDS
     )
 
     # Experiments manager
@@ -275,7 +338,7 @@ class Settings(BaseSettings):
 
     # postgres
     POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
-    POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", 5432)
+    POSTGRES_PORT: int = os.getenv("POSTGRES_PORT", 5432)
     POSTGRES_USER: str = os.getenv(
         "POSTGRES_USER",
         "embedding_studio",

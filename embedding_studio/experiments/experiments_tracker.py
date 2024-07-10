@@ -104,7 +104,7 @@ class ExperimentsManager(MLflowClientWrapper):
     # START: INITIAL MODEL MANAGEMENT
 
     def is_initial_run(self, run_id: str) -> bool:
-        """Check whether passed embedding_model_id is actually initial_run.
+        """Check whether passed run_id is actually initial_run.
 
         :param run_id: ID of a run to check.
         :return: True or False.
@@ -119,7 +119,7 @@ class ExperimentsManager(MLflowClientWrapper):
         return initial_run_id
 
     def is_initial_run(self, run_id: str) -> bool:
-        """Check whether passed embedding_model_id is actually initial_run.
+        """Check whether passed run_id is actually initial_run.
 
         :param run_id: ID of a run to check.
         :return: True or False.
@@ -234,7 +234,7 @@ class ExperimentsManager(MLflowClientWrapper):
 
         :return: Run ID, or None.
         """
-        if self.has_initial_model():
+        if not self.has_initial_model():
             logger.error("No initial model was found.")
             return None
 
@@ -345,7 +345,7 @@ class ExperimentsManager(MLflowClientWrapper):
         runs = self.get_runs(experiment_id, models_only=True)
 
         runs = runs[runs.status == MLflowStatus.FINISHED]
-        run_ids = runs["embedding_model_id"].tolist()
+        run_ids = runs["run_id"].tolist()
 
         for run_id in run_ids:
             self.delete_model(run_id, experiment_id)
@@ -429,7 +429,7 @@ class ExperimentsManager(MLflowClientWrapper):
         else:
             runs: pd.DataFrame = mlflow.search_runs()
 
-        runs = runs[runs["embedding_model_id"] == run_id]
+        runs = runs[runs["run_id"] == run_id]
         return runs
 
     def _get_best_previous_run_id(self) -> Tuple[Optional[str], bool]:
@@ -478,10 +478,8 @@ class ExperimentsManager(MLflowClientWrapper):
 
     @retry_method(name="log_params")
     def _save_params(self):
-        convert_value = (
-            lambda value: ", ".join(map(str, value))
-            if isinstance(value, list)
-            else value
+        convert_value = lambda value: (
+            ", ".join(map(str, value)) if isinstance(value, list) else value
         )
         for key, value in dict(self._tuning_iteration).items():
             mlflow.log_param(key, convert_value(value))
@@ -492,7 +490,7 @@ class ExperimentsManager(MLflowClientWrapper):
     def _set_run(self, params: FineTuningParams):
         self._start_run(params)
         if self._run_id is None:
-            self._run_id = self._run.info.embedding_model_id
+            self._run_id = self._run.info.run_id
             self._save_params()
             mlflow.log_metric("model_uploaded", 0)
             return True
@@ -701,7 +699,7 @@ class ExperimentsManager(MLflowClientWrapper):
             experiment_ids=[self._tuning_iteration_id],
             filter_string=self._get_model_exists_filter(),
         )
-        runs = runs[runs["embedding_model_id"] == self._run_id]
+        runs = runs[runs["run_id"] == self._run_id]
         return runs.shape[0] > 0
 
     def delete_model(self, run_id: str, experiment_id: Optional[str] = None):
@@ -901,14 +899,14 @@ class ExperimentsManager(MLflowClientWrapper):
                 else runs[self._metric_field].max()
             )
             best: pd.DataFrame = runs[runs[self._metric_field] == value][
-                ["embedding_model_id", self._metric_field]
+                ["run_id", self._metric_field]
             ]
             return list(best.itertuples(index=False, name=None))[0]
 
     def get_best_quality(self) -> Tuple[str, float]:
         """Get current fine-tuning iteration best quality
 
-        :return: embedding_model_id and best metric value
+        :return: run_id and best metric value
         """
         if self._tuning_iteration == self.initial_experiment_name:
             raise ValueError(

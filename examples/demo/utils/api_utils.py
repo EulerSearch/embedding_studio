@@ -45,7 +45,7 @@ def create_session_and_push_events(
             {
                 "object_id": result_info["item"]["file"],
                 "rank": result_info["rank"],
-                "meta": result_info["item"],
+                "item_info": result_info["item"],
             }
         )
         if result_info["is_click"]:

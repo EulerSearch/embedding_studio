@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import Dict, List
 
 import torch
 from torch import nn
@@ -21,9 +21,10 @@ class JitTraceTritonModelStorageManager(TritonModelStorageManager):
         ]
 
     def _save_model(
-        self, model: nn.Module, example_input: torch.Tensor, input_name: str
+        self, model: nn.Module, example_inputs: Dict[str, torch.Tensor]
     ):
-        traced_model = torch.jit.trace(model, example_input)
+        # Assumes model is prepared to accept inputs as a dictionary when traced
+        traced_model = torch.jit.trace(model, tuple(example_inputs.values()))
         torch.jit.save(
             traced_model,
             os.path.join(self._storage_info.model_version_path, "model.pt"),

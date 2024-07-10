@@ -1,6 +1,6 @@
 import os
 from abc import ABC, abstractmethod
-from typing import List
+from typing import Dict, List
 
 import torch
 from torch import nn
@@ -27,14 +27,10 @@ class TritonModelStorageManager(ABC):
 
     def is_model_deployed(self) -> bool:
         return all(
-            [
-                os.path.exists(
-                    os.path.join(
-                        self._storage_info.model_version_path, artifact
-                    )
-                )
-                for artifact in self._get_model_artifacts()
-            ]
+            os.path.exists(
+                os.path.join(self._storage_info.model_version_path, artifact)
+            )
+            for artifact in self._get_model_artifacts()
         )
 
     def _setup_folder_directory(self):
@@ -45,37 +41,42 @@ class TritonModelStorageManager(ABC):
         raise NotImplemented()
 
     def _generate_triton_config_model_input(
-        self, example_input: torch.Tensor, input_name: str
+        self, example_inputs: Dict[str, torch.Tensor]
     ) -> List[str]:
-        # Determine the data types for input and output
-        input_dtype = pytorch_dtype_to_triton_dtype(example_input.dtype)
-
-        # TODO: use google.protobuf
-        return [
-            "input [",
-            "  {",
-            '    name: "{}"'.format(input_name),
-            "    data_type: {}".format(input_dtype),
-            "    dims: [{}]".format(
-                ", ".join(map(str, example_input.shape[1:]))
-            ),
-            "  }",
-            "]",
-        ]
+        config_lines = ["input ["]
+        for i, (input_name, example_tensor) in enumerate(
+            example_inputs.items()
+        ):
+            input_dtype = pytorch_dtype_to_triton_dtype(example_tensor.dtype)
+            config_lines.extend(
+                [
+                    "  {",
+                    '    name: "{}"'.format(input_name),
+                    "    data_type: {}".format(input_dtype),
+                    "    dims: [{}]".format(
+                        ", ".join(map(str, example_tensor.shape[1:]))
+                    ),
+                    "  }",
+                ]
+            )
+            if i < len(example_inputs) - 1:
+                config_lines[-1] += ","
+        config_lines.append("]")
+        return config_lines
 
     def _generate_triton_config_model_output(
         self,
         model: nn.Module,
-        example_input: torch.Tensor,
+        example_inputs: Dict[str, torch.Tensor],
+        named_inputs: bool = False,
     ) -> List[str]:
         with torch.no_grad():
-            output = model(example_input)
-        # TODO: use google.protobuf
-        config_lines = [
-            "output [",
-        ]
-        # Handle models that return multiple outputs or a single output
-        if isinstance(output, tuple):  # Check if output is a tuple
+            if named_inputs:
+                output = model(**example_inputs)
+            else:
+                output = model(*list(example_inputs.values()))
+        config_lines = ["output ["]
+        if isinstance(output, tuple):
             for idx, out_tensor in enumerate(output):
                 out_dtype = pytorch_dtype_to_triton_dtype(out_tensor.dtype)
                 config_lines.extend(
@@ -89,6 +90,8 @@ class TritonModelStorageManager(ABC):
                         "  }",
                     ]
                 )
+                if idx < len(output):
+                    config_lines[-1] += ","
         else:
             out_dtype = pytorch_dtype_to_triton_dtype(output.dtype)
             config_lines.extend(
@@ -106,75 +109,74 @@ class TritonModelStorageManager(ABC):
         return config_lines
 
     def _generate_triton_config_inference_mode(self) -> List[str]:
-        # Determine configuration parameters
         kind = "KIND_GPU" if self._kind_gpu else "KIND_CPU"
-        gpus = (
-            list(range(torch.cuda.device_count())) if self._kind_gpu else None
-        )
-
-        # TODO: use google.protobuf
-        # Define template
-        template = """
-instance_group [
-  {{
-    count: 1
-    kind: {kind}{gpu_line}
-  }}
-]"""
-
-        # Format the GPU line if necessary
-        gpu_line = f"\n    gpus: {gpus}" if gpus is not None else ""
-
-        # Use the template to generate the configuration
-        config = template.format(kind=kind, gpu_line=gpu_line)
-        return config.strip().splitlines()
+        gpus = list(range(torch.cuda.device_count())) if self._kind_gpu else []
+        gpu_line = "\n    gpus: {}".format(gpus) if gpus else ""
+        return [
+            "instance_group [",
+            "  {",
+            f"    count: 1",
+            f"    kind: {kind}{gpu_line}",
+            "  }",
+            "]",
+        ]
 
     def _generate_triton_config_dynamic_batching(self) -> List[str]:
-        config_lines = []
-        # TODO: use google.protobuf
         if self.do_dynamic_batching:
-            config_lines.append("")
-            config_lines.append(
-                """dynamic_batching {
-  preferred_batch_size: [1, 2, 4, 8]
-  max_queue_delay_microseconds: 100
-}
-"""
-            )
-        return config_lines
+            return [
+                "dynamic_batching {",
+                "  preferred_batch_size: [1, 2, 4, 8]",
+                "  max_queue_delay_microseconds: 100",
+                "}",
+            ]
+        return []
 
     def _generate_triton_config_model_versions(self) -> List[str]:
-        # TODO: use google.protobuf
         return [
-            """version_policy {
-  latest {
-    num_versions: 2
-  }
+            "version_policy {",
+            "  latest {",
+            "    num_versions: 2",
+            "  }",
+            "}",
+        ]
+
+    def _generate_extra(self) -> List[str]:
+        return [
+            """parameters: {
+key: "ENABLE_JIT_EXECUTOR"
+    value: {
+    string_value: "false"
+    }
 }"""
         ]
 
     def _generate_triton_config(
-        self, model: nn.Module, example_input: torch.Tensor, input_name: str
+        self,
+        model: nn.Module,
+        example_inputs: Dict[str, torch.Tensor],
+        named_inputs: bool = False,
     ) -> str:
         config_lines = self._generate_triton_config_model_info()
         config_lines += self._generate_triton_config_model_input(
-            example_input, input_name
+            example_inputs
         )
         config_lines += self._generate_triton_config_model_output(
-            model, example_input
+            model, example_inputs, named_inputs
         )
         config_lines += self._generate_triton_config_inference_mode()
         config_lines += self._generate_triton_config_dynamic_batching()
         config_lines += self._generate_triton_config_model_versions()
-
+        config_lines += self._generate_extra()
         return "\n".join(config_lines)
 
     def _setup_triton_config(
-        self, model: nn.Module, example_input: torch.Tensor, input_name: str
+        self,
+        model: nn.Module,
+        example_inputs: Dict[str, torch.Tensor],
+        named_inputs: bool = False,
     ):
-        # Setup config.pbtxt file
         model_config = self._generate_triton_config(
-            model, example_input, input_name
+            model, example_inputs, named_inputs
         )
         with open(
             os.path.join(self._storage_info.model_path, "config.pbtxt"), "w"
@@ -183,14 +185,17 @@ instance_group [
 
     @abstractmethod
     def _save_model(
-        self, model: nn.Module, example_input: torch.Tensor, input_name: str
+        self, model: nn.Module, example_inputs: Dict[str, torch.Tensor]
     ):
         raise NotImplemented()
 
     def save_model(
-        self, model: nn.Module, example_input: torch.Tensor, input_name: str
+        self,
+        model: nn.Module,
+        example_inputs: Dict[str, torch.Tensor],
+        named_inputs: bool = False,
     ):
         if not self.is_model_deployed():
             self._setup_folder_directory()
-            self._setup_triton_config(model, example_input, input_name)
-            self._save_model(model, example_input, input_name)
+            self._setup_triton_config(model, example_inputs, named_inputs)
+            self._save_model(model, example_inputs)

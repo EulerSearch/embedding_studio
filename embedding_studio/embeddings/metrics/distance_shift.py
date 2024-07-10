@@ -96,14 +96,18 @@ class DistanceShift(MetricCalculator):
         return [
             MetricValue(
                 "not_irrelevant_dist_shift",
-                float(np.mean(not_irrelevenat_shifts))
-                if len(not_irrelevenat_shifts) > 0
-                else 0.0,
+                (
+                    float(np.mean(not_irrelevenat_shifts))
+                    if len(not_irrelevenat_shifts) > 0
+                    else 0.0
+                ),
             ),
             MetricValue(
                 "irrelevant_dist_shift",
-                float(np.mean(irrelevenat_shifts))
-                if len(irrelevenat_shifts) > 0
-                else 0.0,
+                (
+                    float(np.mean(irrelevenat_shifts))
+                    if len(irrelevenat_shifts) > 0
+                    else 0.0
+                ),
             ),
         ]

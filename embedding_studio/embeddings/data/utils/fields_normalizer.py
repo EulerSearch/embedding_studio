@@ -26,8 +26,8 @@ class DatasetFieldsNormalizer:
         self.item_field_name = item_field_name
 
     def __call__(self, dataset: DatasetDict) -> DatasetDict:
-        id_normalizer = (
-            lambda id_value: str(id_value.item())
+        id_normalizer = lambda id_value: (
+            str(id_value.item())
             if (
                 isinstance(id_value, Tensor)
                 or isinstance(id_value, FloatTensor)

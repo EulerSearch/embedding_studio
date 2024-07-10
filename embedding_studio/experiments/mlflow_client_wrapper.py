@@ -253,7 +253,7 @@ class MLflowClientWrapper:
         runs = runs[
             runs.status == MLflowStatus.FINISHED
         ]  # and only finished ones
-        specific_run = runs[runs["embedding_model_id"] == run_id]
+        specific_run = runs[runs["run_id"] == run_id]
 
         if specific_run.empty:
             logger.error(
@@ -281,7 +281,7 @@ class MLflowClientWrapper:
         :return: fine-tuning params.
         """
         runs: pd.DataFrame = mlflow.search_runs()
-        specific_run = runs[runs["embedding_model_id"] == run_id]
+        specific_run = runs[runs["run_id"] == run_id]
 
         if specific_run.empty:
             logger.error(f"No run with ID {run_id} was found.")
@@ -307,7 +307,7 @@ class MLflowClientWrapper:
         :return: experiment ID.
         """
         runs: pd.DataFrame = mlflow.search_runs()
-        specific_run = runs[runs["embedding_model_id"] == run_id]
+        specific_run = runs[runs["run_id"] == run_id]
 
         if specific_run.empty:
             logger.error(f"No run with ID {run_id} was found.")

@@ -1,4 +1,5 @@
 import gc
+import logging
 import os
 import tempfile
 
@@ -14,11 +15,12 @@ from embedding_studio.workers.inference.utils.file_locks import (
 from embedding_studio.workers.inference.utils.prepare_for_triton import (
     convert_for_triton,
 )
-from embedding_studio.workers.inference.worker import logger
 
 plugin_manager = PluginManager()
 # Initialize and discover plugins
 plugin_manager.discover_plugins(directory=settings.ES_PLUGINS_PATH)
+
+logger = logging.getLogger(__name__)
 
 
 def init_model_repo_for_plugin(model_repo: str, plugin_name: str):
@@ -27,12 +29,14 @@ def init_model_repo_for_plugin(model_repo: str, plugin_name: str):
     Uploads initial models or converts best models for Triton if necessary.
     """
     plugin = plugin_manager.get_plugin(plugin_name)
-    if not plugin.manager.has_initial_model():
+    experiments_manager = plugin.get_manager()
+    if not experiments_manager.has_initial_model():
         logger.info("No initial model found, uploading")
         plugin.upload_initial_model()
 
-    run_id = plugin.manager.get_initial_model_run_id()
-    model = plugin.manager.download_initial_model()
+    run_id = experiments_manager.get_initial_model_run_id()
+    logger.info(f"Initial model run_id: {run_id}")
+    model = experiments_manager.download_initial_model()
     convert_for_triton(model, plugin_name, model_repo, 1, run_id)
     del model
     gc.collect()

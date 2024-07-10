@@ -38,23 +38,24 @@ DB_MODELS: Dict[str, Type[DbObjectPartBase]] = {}
 
 
 def _make_db_model(collection_info: CollectionInfo):
-    emb_model = collection_info.embedding_model
+    collection_info.embedding_model
+    search_index = collection_info.search_index_info
 
     class DbObjectPart(DbObjectPartBase):
         __tablename__ = collection_info.collection_id
-        vector = mapped_column(Vector(emb_model.dimensions))
+        vector = mapped_column(Vector(search_index.dimensions))
 
         @staticmethod
         def hnsw_index():
-            if emb_model.metric_type is MetricType.COSINE:
+            if search_index.metric_type is MetricType.COSINE:
                 index_type = "vector_cosine_ops"
-            elif emb_model.metric_type is MetricType.DOT:
+            elif search_index.metric_type is MetricType.DOT:
                 index_type = "vector_ip_ops"
-            elif emb_model.metric_type is MetricType.EUCLID:
+            elif search_index.metric_type is MetricType.EUCLID:
                 index_type = "vector_l2_ops"
             else:
                 raise RuntimeError(
-                    f"Unknown metric type: {emb_model.metric_type}"
+                    f"Unknown metric type: {search_index.metric_type}"
                 )
 
             return Index(
@@ -62,8 +63,8 @@ def _make_db_model(collection_info: CollectionInfo):
                 DbObjectPart.vector,
                 postgresql_using="hnsw",
                 postgresql_with={
-                    "m": emb_model.hnsw.m,
-                    "ef_construction": emb_model.hnsw.ef_construction,
+                    "m": search_index.hnsw.m,
+                    "ef_construction": search_index.hnsw.ef_construction,
                 },
                 postgresql_ops={"vector": index_type},
             )
@@ -71,36 +72,40 @@ def _make_db_model(collection_info: CollectionInfo):
         @staticmethod
         def validate_dimensions(vector: List[float]):
             dim = len(vector)
-            if dim != emb_model.dimensions:
+            if dim != search_index.dimensions:
                 raise DimensionsMismatch(
                     f"Dimensions mismatch: "
-                    f"input vector({dim}), expected vector({emb_model.dimensions})"
+                    f"input vector({dim}), expected vector({search_index.dimensions})"
                 )
 
         @staticmethod
         def distance_expression(vector: List[float]):
             DbObjectPart.validate_dimensions(vector)
-            if emb_model.metric_type is MetricType.COSINE:
+            if search_index.metric_type is MetricType.COSINE:
                 return DbObjectPart.vector.cosine_distance(vector)
-            if emb_model.metric_type is MetricType.DOT:
+            if search_index.metric_type is MetricType.DOT:
                 return DbObjectPart.vector.max_inner_product(vector)
-            if emb_model.metric_type is MetricType.EUCLID:
+            if search_index.metric_type is MetricType.EUCLID:
                 return DbObjectPart.vector.l2_distance(vector)
             raise RuntimeError(
-                f"unknown metric type: {emb_model.metric_type.value}"
+                f"unknown metric type: {search_index.metric_type.value}"
             )
 
         @staticmethod
         def aggregated_distance_expression(vector: List[float]):
             dst = DbObjectPart.distance_expression(vector)
-            if emb_model.metric_aggregation_type is MetricAggregationType.AVG:
+            if (
+                search_index.metric_aggregation_type
+                is MetricAggregationType.AVG
+            ):
                 return func.avg(dst)
             elif (
-                emb_model.metric_aggregation_type is MetricAggregationType.MIN
+                search_index.metric_aggregation_type
+                is MetricAggregationType.MIN
             ):
                 return func.min(dst)
             raise RuntimeError(
-                f"unknown metric aggregation type: {emb_model.metric_aggregation_type.value}"
+                f"unknown metric aggregation type: {search_index.metric_aggregation_type.value}"
             )
 
         @staticmethod

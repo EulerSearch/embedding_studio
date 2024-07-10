@@ -112,6 +112,6 @@ class ExperimentsManagerWithAzureBlobBackend(ExperimentsManager):
                 return False
             else:
                 logger.exception(
-                    f"Error deleting model files from Azure Blob Storage: {e}"
+                    f"Error deleting embedding_model files from Azure Blob Storage: {e}"
                 )
                 raise e

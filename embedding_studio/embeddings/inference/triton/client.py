@@ -77,14 +77,14 @@ class TritonClient(ABC):
         return config
 
     @abstractmethod
-    def _prepare_query(self, query: Any) -> grpcclient.InferInput:
+    def _prepare_query(self, query: Any) -> List[grpcclient.InferInput]:
         """
         Prepare input for the Triton server.
         Must be implemented to handle different data types (e.g., images, text).
         """
 
     @abstractmethod
-    def _prepare_items(self, data: Any) -> grpcclient.InferInput:
+    def _prepare_items(self, data: Any) -> List[grpcclient.InferInput]:
         """
         Prepare input for the Triton server.
         Must be implemented to handle different data types (e.g., images, text).
@@ -92,12 +92,12 @@ class TritonClient(ABC):
 
     def forward_query(self, query: Any) -> np.ndarray:
         """Send a query to the Triton server and receive the output."""
-        input_tensor = self._prepare_query(query)
-        return self._send_query_request([input_tensor], is_query=True)
+        inputs = self._prepare_query(query)
+        return self._send_query_request(inputs)
 
     def forward_items(self, items: List[Any]) -> np.ndarray:
         """Send a list of items to the Triton server and receive the output."""
-        inputs = [self._prepare_items(item) for item in items]
+        inputs = self._prepare_items(items)
         return self._send_items_request(inputs)
 
     @retry_method(name="query_inference")

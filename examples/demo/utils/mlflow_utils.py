@@ -27,11 +27,9 @@ def get_run_id_by_name(experiment_id: str, run_name: str) -> str:
     # Filter runs by the given run name
     matching_runs = runs[runs.get("tags.mlflow.runName") == run_name]
 
-    # Return embedding_model_id if found, else return None
+    # Return model_id if found, else return None
     return (
-        matching_runs.iloc[0]["embedding_model_id"]
-        if not matching_runs.empty
-        else None
+        matching_runs.iloc[0]["model_id"] if not matching_runs.empty else None
     )
 
 
@@ -42,7 +40,7 @@ def get_mlflow_results_url(
 
     :param mlflow_url: MLFlow connection URL
     :param batch_id: released batch ID
-    :param model_id: starting embedding_model_id (embedding_model_id which contains a model)
+    :param model_id: starting model_id (model_id which contains a model)
     :return:
     """
     mlflow.set_tracking_uri(mlflow_url)

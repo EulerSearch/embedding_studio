@@ -15,3 +15,11 @@ services:
       - REDIS_HOST=redis
     volumes:
       - .:/embedding_studio:rw
+
+  upsertion_worker:
+    environment:
+      - MONGO_HOST=mongo
+      - REDIS_HOST=redis
+      - POSTGRES_HOST=pgvector
+    volumes:
+      - .:/embedding_studio:rw

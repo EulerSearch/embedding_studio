@@ -5,14 +5,21 @@ from fastapi import APIRouter, HTTPException, status
 
 from embedding_studio.api.api_v1.schemas.vectrordb import (
     CreateCollectionRequest,
+    CreateIndexRequest,
+    DeleteCollectionRequest,
     DeleteObjectRequest,
     FindObjectsByIdsRequest,
     FindSimilarObjectsRequest,
+    GetCollectionInfoRequest,
     InsertObjectsRequest,
     ListCollectionsResponse,
+    SetBlueCollectionRequest,
     UpsertObjectsRequest,
 )
 from embedding_studio.context.app_context import context
+from embedding_studio.core.config import settings
+from embedding_studio.core.plugin import PluginManager
+from embedding_studio.models.embeddings.models import EmbeddingModelInfo
 from embedding_studio.vectordb.exceptions import (
     CollectionNotFoundError,
     DeleteBlueCollectionError,
@@ -21,6 +28,10 @@ from embedding_studio.vectordb.exceptions import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+plugin_manager = PluginManager()
+# Initialize and discover plugins
+plugin_manager.discover_plugins(directory=settings.ES_PLUGINS_PATH)
 
 
 def get_blue_collection():
@@ -32,13 +43,13 @@ def get_blue_collection():
     return collection
 
 
-def get_collection(collection_id: Optional[str] = None):
-    if not collection_id:
+def get_collection(model: Optional[EmbeddingModelInfo] = None):
+    if not model:
         return get_blue_collection()
     try:
-        return context.vectordb.get_collection(collection_id)
+        return context.vectordb.get_collection(model)
     except CollectionNotFoundError:
-        msg = f"Collection with id={collection_id} not found"
+        msg = f"Collection with id={model.full_name} not found"
         logger.debug(msg)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -51,8 +62,10 @@ def get_collection(collection_id: Optional[str] = None):
     status_code=status.HTTP_200_OK,
 )
 def create_collection(body: CreateCollectionRequest):
+    plugin = plugin_manager.get_plugin(body.embedding_model.name)
+    search_index_info = plugin.get_search_index_info()
     collection = context.vectordb.create_collection(
-        body.model, body.collection_id
+        body.embedding_model, search_index_info
     )
     info = collection.get_state_info()
     logger.debug(f"collection created: {info.model_dump()}")
@@ -63,8 +76,8 @@ def create_collection(body: CreateCollectionRequest):
     "/collections/create-index",
     status_code=status.HTTP_200_OK,
 )
-def create_index(collection_id: str):
-    collection = get_collection(collection_id)
+def create_index(body: CreateIndexRequest):
+    collection = get_collection(body.embedding_model)
     collection.create_index()
 
 
@@ -72,16 +85,16 @@ def create_index(collection_id: str):
     "/collections/delete",
     status_code=status.HTTP_200_OK,
 )
-def delete_collection(collection_id: str):
+def delete_collection(body: DeleteCollectionRequest):
     try:
-        collection = get_collection(collection_id)
+        collection = get_collection(body.embedding_model)
         info = collection.get_state_info()
         logger.debug(f"Delete collection: {info}")
     except Exception:
         pass
 
     try:
-        context.vectordb.delete_collection(collection_id)
+        context.vectordb.delete_collection(body.embedding_model)
     except CollectionNotFoundError as err:
         logger.warning(f"Can't find collection wile deleting: {err}")
         return
@@ -91,7 +104,7 @@ def delete_collection(collection_id: str):
         )
 
     try:
-        collection = context.vectordb.get_collection(collection_id)
+        collection = context.vectordb.get_collection(body.embedding_model)
         info = collection.get_state_info()
         logger.error(f"Found deleted collection: {info}")
         raise HTTPException(
@@ -116,8 +129,8 @@ def list_collections():
     "/collections/get-info",
     status_code=status.HTTP_200_OK,
 )
-def get_collection_info(collection_id: str):
-    collection = get_collection(collection_id)
+def get_collection_info(body: GetCollectionInfoRequest):
+    collection = get_collection(body.embedding_model)
     info = collection.get_state_info()
     logger.debug(f"Found collection: {info}")
     return info
@@ -127,9 +140,9 @@ def get_collection_info(collection_id: str):
     "/collections/set-blue",
     status_code=status.HTTP_200_OK,
 )
-def set_blue_collection(collection_id: str):
+def set_blue_collection(body: SetBlueCollectionRequest):
     try:
-        context.vectordb.set_blue_collection(collection_id)
+        context.vectordb.set_blue_collection(body.embedding_model)
     except CollectionNotFoundError as err:
         logger.debug(f"Collection not found: {err}")
         raise HTTPException(
@@ -139,7 +152,12 @@ def set_blue_collection(collection_id: str):
     collection = get_blue_collection()
     info = collection.get_state_info()
     logger.debug(f"Blue collection set: {info}")
-    assert info.collection_id == collection_id
+    if info.collection_id != body.embedding_model.full_name:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Something went wrong collection_id {info.collection_id} != "
+            f"embedding model name {body.embedding_model.full_name}",
+        )
     return info
 
 
@@ -158,10 +176,8 @@ def get_blue_collection_info():
     "/collections/objects/insert",
     status_code=status.HTTP_200_OK,
 )
-def insert_objects(
-    body: InsertObjectsRequest, collection_id: Optional[str] = None
-):
-    collection = get_collection(collection_id)
+def insert_objects(body: InsertObjectsRequest):
+    collection = get_collection(body.embedding_model)
     collection.insert(body.objects)
 
 
@@ -169,10 +185,8 @@ def insert_objects(
     "/collections/objects/upsert",
     status_code=status.HTTP_200_OK,
 )
-def upsert_objects(
-    body: UpsertObjectsRequest, collection_id: Optional[str] = None
-):
-    collection = get_collection(collection_id)
+def upsert_objects(body: UpsertObjectsRequest):
+    collection = get_collection(body.embedding_model)
     collection.upsert(objects=body.objects, shrink_parts=body.shrink_parts)
 
 
@@ -180,10 +194,8 @@ def upsert_objects(
     "/collections/objects/delete",
     status_code=status.HTTP_200_OK,
 )
-def delete_objects(
-    body: DeleteObjectRequest, collection_id: Optional[str] = None
-):
-    collection = get_collection(collection_id)
+def delete_objects(body: DeleteObjectRequest):
+    collection = get_collection(body.embedding_model)
     collection.delete(body.object_ids)
 
 
@@ -191,10 +203,8 @@ def delete_objects(
     "/collections/objects/find-by-ids",
     status_code=status.HTTP_200_OK,
 )
-def find_objects_by_ids(
-    body: FindObjectsByIdsRequest, collection_id: Optional[str] = None
-):
-    collection = get_collection(collection_id)
+def find_objects_by_ids(body: FindObjectsByIdsRequest):
+    collection = get_collection(body.embedding_model)
     objects = collection.find_by_ids(body.object_ids)
     logger.debug(f"Found objects: {objects}")
     return objects
@@ -204,10 +214,8 @@ def find_objects_by_ids(
     "/collections/objects/find-similar",
     status_code=status.HTTP_200_OK,
 )
-def find_similar_objects(
-    body: FindSimilarObjectsRequest, collection_id: Optional[str] = None
-):
-    collection = get_collection(collection_id)
+def find_similar_objects(body: FindSimilarObjectsRequest):
+    collection = get_collection(body.embedding_model)
     objects = collection.find_similarities(
         query_vector=body.query_vector,
         limit=body.limit,

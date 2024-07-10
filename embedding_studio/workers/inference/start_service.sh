@@ -23,5 +23,5 @@ done
 echo "Model setup complete, starting Triton Server..."
 
 # Start Triton Server
-tritonserver --model-repository=$MODEL_REPOSITORY --model-control-mode=poll --repository-poll-secs=15 --log-verbose=2
+tritonserver --model-repository=$MODEL_REPOSITORY --model-control-mode=poll --repository-poll-secs=15 --log-verbose=2 --http-address=0.0.0.0
 tail -f README.md

@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Dict, Iterator, List, Optional, Tuple, Type
+from typing import Dict, Iterator, List, Optional, Type
 
 import numpy as np
 import torch
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 class TextToImageCLIPModel(EmbeddingsModelInterface):
     def __init__(self, clip_model: SentenceTransformer):
         """Wrapper to SentenceTransformer CLIP model.
-        Usage: model = TextToImageCLIPModel(SentenceTransformer('clip-ViT-B-32'))
+        Usage: embedding_model = TextToImageCLIPModel(SentenceTransformer('clip-ViT-B-32'))
 
         :param clip_model: clip model from SentenceTransformer package
         """
@@ -68,7 +68,7 @@ class TextToImageCLIPModel(EmbeddingsModelInterface):
         return self.vision_model.parameters()
 
     @torch.no_grad()
-    def get_query_model_input(self) -> Tuple[str, Tensor]:
+    def get_query_model_inputs(self, device=None) -> Dict[str, Tensor]:
         # Define an example text
         text = "Example text to be tokenized and input into the model."
 
@@ -82,12 +82,16 @@ class TextToImageCLIPModel(EmbeddingsModelInterface):
         )
 
         # Extract the input_ids tensor which will be used as the input to the model
-        return "input_ids", inputs["input_ids"]
+        return {
+            "input_ids": inputs["input_ids"].to(
+                device if device else self.device
+            )
+        }
 
     @torch.no_grad()
-    def get_items_model_input(
-        self, image: Optional[Image.Image] = None
-    ) -> Tuple[str, Tensor]:
+    def get_items_model_inputs(
+        self, image: Optional[Image.Image] = None, device=None
+    ) -> Dict[str, Tensor]:
         if image is None:
             # This comment underscores the necessity of providing a real image as example_input during tracing for Triton,
             # which is pivotal for model compilation using torch.jit.trace(model, example_input).
@@ -115,7 +119,11 @@ class TextToImageCLIPModel(EmbeddingsModelInterface):
         )
         image = resize_transform(image)
 
-        return "pixel_values", image.unsqueeze(0)
+        return {
+            "pixel_values": image.unsqueeze(0).to(
+                device if device else self.device
+            )
+        }
 
     def get_query_model_inference_manager_class(
         self,
@@ -192,8 +200,8 @@ class TextToImageCLIPModel(EmbeddingsModelInterface):
         if len(query) == 0:
             logger.warning("Provided query is empty")
 
-        tokenized = self.tokenize(query)
-        return self.text_model.forward(tokenized["input_ids"].to(self.device))
+        tokenized = self.tokenize(query).to(self.device)
+        return self.text_model.forward(tokenized["input_ids"])
 
     def forward_items(self, items: List[np.array]) -> FloatTensor:
         if len(items) == 0:

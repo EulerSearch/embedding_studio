@@ -23,6 +23,16 @@ finetuning_mongo_client = _mongo_env_client(
     uuidRepresentation=MONGODB_UUID_REPRESENTATION,
     tz_aware=True,
 )
+inference_deployment_mongo_client = _mongo_env_client(
+    settings.INFERENCE_DEPLOYMENT_MONGO_URL,
+    uuidRepresentation=MONGODB_UUID_REPRESENTATION,
+    tz_aware=True,
+)
+upsertion_mongo_client = _mongo_env_client(
+    settings.UPSERTION_MONGO_URL,
+    uuidRepresentation=MONGODB_UUID_REPRESENTATION,
+    tz_aware=True,
+)
 clickstream_mongo_client = _mongo_env_client(
     settings.CLICKSTREAM_MONGO_URL,
     uuidRepresentation=MONGODB_UUID_REPRESENTATION,
@@ -37,7 +47,13 @@ embeddings_mongo_client = _mongo_env_client(
 finetuning_mongo_database = finetuning_mongo_client[
     settings.FINETUNING_MONGO_DB_NAME
 ]
-clckstream_mongo_database = clickstream_mongo_client[
+inference_deployment_mongo_database = inference_deployment_mongo_client[
+    settings.INFERENCE_DEPLOYMENT_MONGO_DB_NAME
+]
+upsertion_mongo_database = upsertion_mongo_client[
+    settings.UPSERTION_MONGO_DB_NAME
+]
+clickstream_mongo_database = clickstream_mongo_client[
     settings.CLICKSTREAM_MONGO_DB_NAME
 ]
 embeddings_mongo_database = clickstream_mongo_client[

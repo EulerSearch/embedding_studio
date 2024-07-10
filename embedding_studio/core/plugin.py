@@ -3,7 +3,18 @@ import os
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
+from embedding_studio.data_storage.loaders.data_loader import DataLoader
+from embedding_studio.embeddings.inference.triton.client import (
+    TritonClientFactory,
+)
+from embedding_studio.embeddings.splitters.item_splitter import ItemSplitter
+from embedding_studio.embeddings.splitters.no_splitter import NoSplitter
+from embedding_studio.experiments.experiments_tracker import ExperimentsManager
 from embedding_studio.models.clickstream.sessions import SessionWithEvents
+from embedding_studio.models.embeddings.models import (
+    EmbeddingModelInfo,
+    SearchIndexInfo,
+)
 from embedding_studio.models.plugin import FineTuningBuilder, PluginMeta
 
 
@@ -14,6 +25,50 @@ class FineTuningMethod(ABC):
     """
 
     meta: PluginMeta
+
+    def get_items_splitter(self) -> ItemSplitter:
+        """Return an ItemSplitter instance.
+
+        By default, returns an NoSplitter instance.
+
+        :return: An instance of ItemSplitter.
+        """
+        return NoSplitter()
+
+    @abstractmethod
+    def get_data_loader(self) -> DataLoader:
+        """Return a DataLoader instance.
+
+        Method that should be implemented by subclasses to provide a
+        DataLoader instance.
+
+        :return: An instance of DataLoader.
+        """
+        raise NotImplementedError("Subclasses must implement get_data_loader")
+
+    @abstractmethod
+    def get_manager(self) -> ExperimentsManager:
+        """Return a ExperimentsManager instance.
+
+        Method that should be implemented by subclasses to provide a
+        ExperimentsManager instance.
+
+        :return: An instance of ExperimentsManager.
+        """
+        raise NotImplementedError("Subclasses must implement get_manager")
+
+    @abstractmethod
+    def get_inference_client_factory(self) -> TritonClientFactory:
+        """Return a TritonClientFactory instance.
+
+        Method that should be implemented by subclasses to provide a
+        TritonClientFactory instance.
+
+        :return: An instance of TritonClientFactory.
+        """
+        raise NotImplementedError(
+            "Subclasses must implement get_inference_client_factory"
+        )
 
     @abstractmethod
     def upload_initial_model(self) -> None:
@@ -42,6 +97,25 @@ class FineTuningMethod(ABC):
         """
         raise NotImplementedError(
             "Subclasses must implement get_fine_tuning_builder"
+        )
+
+    def get_embedding_model_info(self, id: str) -> EmbeddingModelInfo:
+        """Return a EmbeddingModelInfo instance.
+
+        :param id: ID of an embedding model in model storage system.
+        :return: An instance of EmbeddingModelInfo.
+        """
+        return EmbeddingModelInfo(name=self.meta.name, id=id)
+
+    @abstractmethod
+    def get_search_index_info(self) -> SearchIndexInfo:
+        """Return a SearchIndexInfo instance. Define a parameters of vectordb index.
+
+        Method that should be implemented by subclasses to provide a
+        SearchIndexInfo instance.
+        """
+        raise NotImplementedError(
+            "Subclasses must implement get_search_index_info"
         )
 
 

@@ -15,6 +15,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      pgvector:
+        condition: service_healthy
     networks:
         - internal
         - public
@@ -78,6 +80,24 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [ gpu ]
+
+  upsertion_worker:
+    build:
+      context: .
+      dockerfile: worker.upsertion_worker.Dockerfile
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      pgvector:
+        condition: service_healthy
+    networks:
+      - internal
+      - public
 
   redis:
     image: redis:6.2-alpine
@@ -252,7 +272,7 @@ services:
     healthcheck:
       test: [
         "CMD-SHELL",
-        "pg_isready -U postgres"
+        "pg_isready -U embedding_studio"
       ]
       interval: 10s
       timeout: 5s

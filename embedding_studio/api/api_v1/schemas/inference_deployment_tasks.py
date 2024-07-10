@@ -9,9 +9,9 @@ from embedding_studio.models.inference_deployment_tasks import (
 
 
 class ModelDeploymentRequest(BaseModel):
-    model_id: str = Field(..., description="Model to deploy")
+    model_id: str = Field(description="Model to deploy")
     fine_tuning_method: str = Field(
-        ..., description="Plugin name, which model to deploy"
+        description="Plugin name, which model to deploy"
     )
 
 
@@ -29,9 +29,9 @@ class ModelDeploymentResponse(ModelDeploymentBaseResponse):
 
 
 class ModelDeletionRequest(BaseModel):
-    embedding_model_id: str = Field(..., description="Model to delete")
+    embedding_model_id: str = Field(description="Model to delete")
     fine_tuning_method: str = Field(
-        ..., description="Plugin name, which model to deploy"
+        description="Plugin name, which model to deploy"
     )
 
 

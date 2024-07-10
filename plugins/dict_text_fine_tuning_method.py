@@ -16,6 +16,7 @@ from embedding_studio.clickstream_storage.text_query_retriever import (
 )
 from embedding_studio.core.config import settings
 from embedding_studio.core.plugin import FineTuningMethod
+from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.data_storage.loaders.s3.s3_json_loader import (
     AwsS3JSONLoader,
 )
@@ -37,6 +38,9 @@ from embedding_studio.embeddings.data.storages.producers.dict import (
 )
 from embedding_studio.embeddings.data.utils.fields_normalizer import (
     DatasetFieldsNormalizer,
+)
+from embedding_studio.embeddings.inference.triton.client import (
+    TritonClientFactory,
 )
 from embedding_studio.embeddings.inference.triton.text_to_text.e5 import (
     TextToTextE5TritonClientFactory,
@@ -61,6 +65,11 @@ from embedding_studio.experiments.finetuning_settings import FineTuningSettings
 from embedding_studio.experiments.initial_params.clip import INITIAL_PARAMS
 from embedding_studio.experiments.metrics_accumulator import MetricsAccumulator
 from embedding_studio.models.clickstream.sessions import SessionWithEvents
+from embedding_studio.models.embeddings.models import (
+    MetricAggregationType,
+    MetricType,
+    SearchIndexInfo,
+)
 from embedding_studio.models.plugin import FineTuningBuilder, PluginMeta
 from embedding_studio.workers.fine_tuning.data.prepare_data import prepare_data
 
@@ -175,6 +184,15 @@ class DefaultDictTextFineTuningMethod(FineTuningMethod):
         model = TextToTextE5Model(SentenceTransformer(self.model_name))
         self.manager.upload_initial_model(model)
 
+    def get_data_loader(self) -> DataLoader:
+        return self.data_loader
+
+    def get_manager(self) -> ExperimentsManager:
+        return self.manager
+
+    def get_inference_client_factory(self) -> TritonClientFactory:
+        return self.inference_client_factory
+
     def get_fine_tuning_builder(
         self, clickstream: List[SessionWithEvents]
     ) -> FineTuningBuilder:
@@ -201,3 +219,11 @@ class DefaultDictTextFineTuningMethod(FineTuningMethod):
             initial_max_evals=2,
         )
         return fine_tuning_builder
+
+    def get_search_index_info(self) -> SearchIndexInfo:
+        """Return a SearchIndexInfo instance. Define a parameters of vectordb index."""
+        return SearchIndexInfo(
+            dimensions=1024,
+            metric_type=MetricType.COSINE,
+            metric_aggregation_type=MetricAggregationType.AVG,
+        )

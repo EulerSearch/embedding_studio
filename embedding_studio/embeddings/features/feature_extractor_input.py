@@ -60,10 +60,12 @@ class FineTuningInput(BaseModel):
     @validator("results", "results", pre=True, always=True)
     def preprocess_ids(cls, value):
         return [
-            str(item[0])
-            if isinstance(item, tuple)
-            else str(item.item())
-            if isinstance(item, Tensor)
-            else str(item)
+            (
+                str(item[0])
+                if isinstance(item, tuple)
+                else (
+                    str(item.item()) if isinstance(item, Tensor) else str(item)
+                )
+            )
             for item in value
         ]

@@ -98,5 +98,7 @@ class ExperimentsManagerWithGCPBackend(ExperimentsManager):
             return True
 
         except NotFound as e:
-            logger.exception(f"Error deleting model files from GCP: {e}")
+            logger.exception(
+                f"Error deleting embedding_model files from GCP: {e}"
+            )
             return False

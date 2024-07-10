@@ -26,7 +26,7 @@ curl -X POST 'http://localhost:5000/api/v1/clickstream/session' \
         {
             "object_id": "2f827cbb9fe544cdaca44b2dafd37785",
             "rank": 0.3
-            "meta": {}
+            "item_info": {}
         },
         {
             "object_id": "e000f005dc1343ea8ddf234c557832a5"
@@ -68,14 +68,14 @@ curl -X POST 'http://localhost:5000/api/v1/clickstream/session/events' \
         {
             "event_id": "472cc4232af2449a97317d0057c9a2cf",
             "object_id": "2f827cbb9fe544cdaca44b2dafd37785",
-            "meta": {},
+            "item_info": {},
             "event_type": "click",
             "created_at": 1703376873
         },
         {
             "event_id": "124b6bc39e9f43e7b5be6b992d94f505",
             "object_id": "2f827cbb9fe544cdaca44b2dafd37785",
-            "meta": {},
+            "item_info": {},
             "created_at": 1703376874
         },
         {

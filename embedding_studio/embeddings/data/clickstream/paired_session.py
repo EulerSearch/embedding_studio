@@ -103,9 +103,7 @@ class PairedClickstreamDataset(Dataset):
             len(self.irrelevant_indexes), len(self.not_irrelevant_indexes)
         )
 
-    def __getitem__(
-        self, idx
-    ) -> Tuple[
+    def __getitem__(self, idx) -> Tuple[
         Union[FineTuningInput, Dict, None],
         Union[FineTuningInput, Dict, None],
     ]:
