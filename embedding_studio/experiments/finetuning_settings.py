@@ -31,9 +31,9 @@ class FineTuningSettings(BaseModel):
 
     loss_func: RankingLossInterface
     metric_calculators: Optional[List[MetricCalculator]] = None
-    ranker: Optional[Callable[[FloatTensor, FloatTensor], FloatTensor]] = (
-        COSINE_SIMILARITY
-    )
+    ranker: Optional[
+        Callable[[FloatTensor, FloatTensor], FloatTensor]
+    ] = COSINE_SIMILARITY
     is_similarity: Optional[bool] = True
     confidence_calculator: Optional[Callable] = dummy_confidences
     step_size: Optional[int] = 500

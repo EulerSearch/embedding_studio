@@ -11,4 +11,5 @@ class CRUDUpsertion(
         UpsertionTaskCreateRequest,
         UpsertionTask,
     ]
-): ...
+):
+    ...

@@ -17,8 +17,8 @@ from embedding_studio.clickstream_storage.text_query_retriever import (
 from embedding_studio.core.config import settings
 from embedding_studio.core.plugin import FineTuningMethod
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
-from embedding_studio.data_storage.loaders.s3.s3_text_loader import (
-    AwsS3TextLoader,
+from embedding_studio.data_storage.loaders.gcp.gcp_text_loader import (
+    GCPTextLoader,
 )
 from embedding_studio.embeddings.augmentations.compose import (
     AugmentationsComposition,
@@ -85,16 +85,15 @@ class DefaultTextFineTuningMethod(FineTuningMethod):
     def __init__(self):
         # uncomment and pass your credentials to use your own s3 bucket
         # creds = {
-        #     "role_arn": "arn:aws:iam::123456789012:role/some_data"
-        #     "aws_access_key_id": "TESTACCESSKEIDTEST11",
-        #     "aws_secret_access_key": "QWERTY1232qdsadfasfg5349BBdf30ekp23odk03",
+        #     "credentials_path": "./etc/your-gcp-credentials.json",
+        #     "use_system_info": False
         # }
         # self.data_loader = AwsS3DataLoader(**creds)
 
-        self.model_name = "intfloat/multilingual-e5-large"
+        self.model_name = "intfloat/multilingual-e5-base"
         # with empty creds, use anonymous session
-        creds = {}
-        self.data_loader = AwsS3TextLoader(**creds)
+        creds = {"use_system_info": True}
+        self.data_loader = GCPTextLoader(**creds)
 
         self.retriever = TextQueryRetriever()
         self.parser = AWSS3ClickstreamParser(
@@ -194,6 +193,18 @@ class DefaultTextFineTuningMethod(FineTuningMethod):
     def get_inference_client_factory(self) -> TritonClientFactory:
         return self.inference_client_factory
 
+    def get_items_splitter(self) -> ItemSplitter:
+        return DummySentenceSplitter()
+
+    def get_data_loader(self) -> DataLoader:
+        return self.data_loader
+
+    def get_manager(self) -> ExperimentsManager:
+        return self.manager
+
+    def get_inference_client_factory(self) -> TritonClientFactory:
+        return self.inference_client_factory
+
     def get_fine_tuning_builder(
         self, clickstream: List[SessionWithEvents]
     ) -> FineTuningBuilder:
@@ -224,7 +235,7 @@ class DefaultTextFineTuningMethod(FineTuningMethod):
     def get_search_index_info(self) -> SearchIndexInfo:
         """Return a SearchIndexInfo instance. Define a parameters of vectordb index."""
         return SearchIndexInfo(
-            dimensions=1024,
+            dimensions=768,
             metric_type=MetricType.COSINE,
             metric_aggregation_type=MetricAggregationType.AVG,
         )

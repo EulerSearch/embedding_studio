@@ -61,11 +61,13 @@ class CRUDModelDeploymentTasks(
     CRUDModelStageTasks[
         ModelDeploymentTaskInDb, ModelDeploymentRequest, ModelDeploymentTask
     ]
-): ...
+):
+    ...
 
 
 class CRUDModelDeletionTasks(
     CRUDModelStageTasks[
         ModelDeletionTaskInDb, ModelDeletionRequest, ModelDeletionTask
     ]
-): ...
+):
+    ...

@@ -26,6 +26,7 @@ class SearchIndexInfo(BaseModel):
     hnsw: HnswParameters = HnswParameters()
 
 
+
 class EmbeddingModelInfo(BaseModel):
     name: str
     id: str

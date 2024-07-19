@@ -49,8 +49,8 @@ def get_collection(
     :return: Collection instance or None if retrieval/creation fails.
     """
     try:
-        embedding_model_info = plugin.get_embedding_model_info(
-            id=task.embedding_model_id
+        embedding_model_info = plugin.get_embedding_model_factory().create_embedding_model_instance(
+            task.embedding_model_id
         )
 
         logger.info(
@@ -60,10 +60,7 @@ def get_collection(
             logger.warning(
                 f"Collection with name: {embedding_model_info.full_name} does not exist [task ID: {task.id}]"
             )
-            search_index_info = plugin.get_search_index_info()
-            collection = vector_db.create_collection(
-                embedding_model_info, search_index_info
-            )
+            collection = vector_db.create_collection(embedding_model_info)
         else:
             collection = vector_db.get_collection(embedding_model_info)
 
@@ -227,7 +224,7 @@ def handle_upsert(task: UpsertionTaskInDb):
             len(task.items),
         )
 
-        if end <= len(task.items) and start != end:
+        if end <= len(task.items):
             batch = task.items[start:end]
 
             upsert_batch(

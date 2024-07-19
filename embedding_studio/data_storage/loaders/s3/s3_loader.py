@@ -310,10 +310,10 @@ class AwsS3DataLoader(DataLoader):
         )
 
         batch = []
-        try:
-            for page in page_iterator:
-                for item in page.get("Contents", []):
-                    key = item["Key"]
+        for page in page_iterator:
+            for item in page.get("Contents", []):
+                key = item["Key"]
+                try:
                     response = s3_client.get_object(
                         Bucket=kwargs["bucket"], Key=key
                     )
@@ -327,9 +327,10 @@ class AwsS3DataLoader(DataLoader):
                     )
                     if len(batch) >= batch_size:
                         return batch
-        except ClientError as e:
-            logger.error(f"Error fetching batch from S3: {e}")
-            raise
+                except ClientError as e:
+                    # TODO: pass failed_ids and related exceptions to the worker status
+                    logger.exception(f"Error fetching batch item {key} from S3")
+
         return batch
 
     def load_all(

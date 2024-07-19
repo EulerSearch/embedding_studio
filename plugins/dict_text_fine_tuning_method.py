@@ -193,6 +193,15 @@ class DefaultDictTextFineTuningMethod(FineTuningMethod):
     def get_inference_client_factory(self) -> TritonClientFactory:
         return self.inference_client_factory
 
+    def get_data_loader(self) -> DataLoader:
+        return self.data_loader
+
+    def get_manager(self) -> ExperimentsManager:
+        return self.manager
+
+    def get_inference_client_factory(self) -> TritonClientFactory:
+        return self.inference_client_factory
+
     def get_fine_tuning_builder(
         self, clickstream: List[SessionWithEvents]
     ) -> FineTuningBuilder:

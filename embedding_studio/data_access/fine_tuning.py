@@ -10,4 +10,5 @@ from embedding_studio.models.fine_tuning import (
 
 class CRUDFineTuning(
     CRUDBase[FineTuningTaskInDb, FineTuningTaskCreateRequest, FineTuningTask]
-): ...
+):
+    ...

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Union
 
 from pydantic import BaseModel, validator
 from torch import Tensor
@@ -56,6 +56,23 @@ class FineTuningInput(BaseModel):
             return self.part_to_object_dict.get(id, id)
         else:
             return id
+
+    def remove_results(self, ids: Union[List[str], Set[str]]):
+        if self.part_to_object_dict is not  None:
+            ids_to_remove = set([part_id for part_id in self.part_to_object_dict.keys() if self.part_to_object_dict[part_id] in ids])
+            self.part_to_object_dict = {part_id: object_id for part_id, object_id in self.part_to_object_dict.items() if part_id not in ids_to_remove}
+
+        else:
+            ids_to_remove = ids
+
+        self.results = [id_ for id_ in self.results if id_ not in ids_to_remove]
+        self.events = [id_ for id_ in self.events if id_ not in ids_to_remove]
+
+        self.is_irrelevant = (
+                len(self.events) == 0
+        )  # TODO: will be passed later and not be calculated
+
+        self.ranks = {id_: rank for id_, rank in self.ranks.items() if id_ not in ids_to_remove}
 
     @validator("results", "results", pre=True, always=True)
     def preprocess_ids(cls, value):

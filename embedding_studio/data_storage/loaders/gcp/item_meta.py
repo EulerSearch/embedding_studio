@@ -3,5 +3,5 @@ from embedding_studio.data_storage.loaders.bucket_file_meta import (
 )
 
 
-class S3FileMeta(BucketFileMeta):
+class GCPFileMeta(BucketFileMeta):
     ...

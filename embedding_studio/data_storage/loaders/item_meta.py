@@ -4,6 +4,26 @@ from typing import Any, Dict, Optional
 from pydantic import BaseModel
 
 
+
+# object_id
+# What it is: An optional attribute that can be set for an instance of ItemMeta.
+# Why it's needed: It is used as a unique identifier for the item if set. This can be a predefined or external identifier (e.g., UUID, database ID, etc.).
+# When it is used: When there is a direct and explicit way to uniquely identify the item.
+#
+# derived_id
+# What it is: An abstract property that subclasses of ItemMeta must implement.
+# Why it's needed: Allows creating a unique identifier based on the item's properties if object_id is not set. This ensures that each item has a unique identifier.
+# When it is used: When object_id is absent and an identifier needs to be created based on other properties (e.g., file path or bucket name).
+#
+# id
+# What it is: A property that returns either object_id or derived_id.
+# Why it's needed: A universal way to get a unique identifier for the item, whether it is directly set or calculated.
+# When it is used: Always, when a unique identifier for the item is needed.
+#
+# Hash
+# Why it's needed: So that instances of ItemMeta can be used as keys in dictionaries or stored in sets. The hash is calculated based on the id, ensuring uniqueness.
+# When it is used: When storing or comparing multiple items, allowing it to be done efficiently and correctly.
+
 class ItemMeta(BaseModel):
     object_id: Optional[str] = None
     payload: Optional[Dict[str, Any]] = None
