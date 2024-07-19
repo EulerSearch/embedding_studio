@@ -5,12 +5,14 @@ from typing import Callable, List, Optional, Set, Union
 from datasets import DatasetDict
 from sklearn.model_selection import train_test_split
 
-from embedding_studio.clickstream_storage.raw_session import FineTuningInput
 from embedding_studio.embeddings.augmentations.clickstream_augmentation_applier import (
     ClickstreamQueryAugmentationApplier,
 )
 from embedding_studio.embeddings.data.clickstream.paired_session import (
     PairedClickstreamDataset,
+)
+from embedding_studio.embeddings.features.feature_extractor_input import (
+    FineTuningInput,
 )
 
 logger = logging.getLogger(__name__)

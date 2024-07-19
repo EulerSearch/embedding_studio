@@ -1,9 +1,11 @@
 from copy import deepcopy
 from typing import List
 
-from embedding_studio.clickstream_storage.raw_session import FineTuningInput
 from embedding_studio.embeddings.augmentations.augmentation_with_random_selection import (
     AugmentationWithRandomSelection,
+)
+from embedding_studio.embeddings.features.feature_extractor_input import (
+    FineTuningInput,
 )
 
 # TODO:

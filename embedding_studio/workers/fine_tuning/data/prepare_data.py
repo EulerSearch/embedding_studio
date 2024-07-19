@@ -1,13 +1,13 @@
 import logging
 from typing import Dict, List, Set, Union
 
-from embedding_studio.clickstream_storage.parsers.parser import (
-    ClickstreamParser,
+from embedding_studio.clickstream_storage.converters.converter import (
+    ClickstreamSessionConverter,
+)
+from embedding_studio.clickstream_storage.input_with_items import (
+    FineTuningInputWithItems,
 )
 from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
-from embedding_studio.clickstream_storage.raw_session import (
-    RawClickstreamSession,
-)
 from embedding_studio.data_storage.loaders.downloaded_item import (
     DownloadedItem,
 )
@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 
 def prepare_data(
-    clickstream_sessions: List[Union[Dict, SessionWithEvents]],
-    parser: ClickstreamParser,
+    fine_tuning_inputs: List[Union[Dict, SessionWithEvents]],
+    converter: ClickstreamSessionConverter,
     clickstream_splitter: TrainTestSplitter,
     query_retriever: QueryRetriever,
     loader: DataLoader,
@@ -38,35 +38,27 @@ def prepare_data(
 ) -> RankingData:
     """Prepare fine-tuning data.
 
-    :param clickstream_sessions: clickstream inputs
-    :param parser: how to parse a clickstream session
+    :param fine_tuning_inputs: clickstream inputs
+    :param converter: how to converter a clickstream session into fine-tuning input
     :param clickstream_splitter: how to split clickstream inputs
     :param query_retriever: retrieve query item
     :param loader: load items data
     :param storage_producer: get train/test datasets
     :return: train / test clickstream sessiobs and dataset dict
     """
-    if len(clickstream_sessions) == 0:
+    if len(fine_tuning_inputs) == 0:
         raise ValueError("Empty clickstream inputs list")
 
     logger.info("Parse clickstream inputs data")
-    raw_clickstream_sessions: List[RawClickstreamSession] = [
-        (
-            parser.parse(session)
-            if isinstance(session, dict)
-            else parser.parse_from_mongo(session)
-        )
-        for session in clickstream_sessions
+    input_with_items: List[FineTuningInputWithItems] = [
+        converter.convert(session) for session in fine_tuning_inputs
     ]
 
-    clickstream_sessions: List[FineTuningInput] = [
-        r.get_fine_tuning_input() for r in raw_clickstream_sessions
-    ]
 
     logger.info("Get list of files to be loaded")
     files_to_load: Set[ItemMeta] = set()
-    for session in raw_clickstream_sessions:
-        files_to_load.update(set([r.item for r in session.results]))
+    for obj in input_with_items:
+        files_to_load.update(set(obj.items))
 
     if len(files_to_load) == 0:
         raise ValueError("Empty clickstream inputs")
@@ -77,6 +69,7 @@ def prepare_data(
     if len(downloaded) == 0:
         raise ValueError('No data was downloaded.')
 
+    inputs = [obj.input for obj in input_with_items]
     if len(downloaded) != len(files_to_load):
         logger.info("Remove items failed to be downloaded.")
         ids_to_load = set()
@@ -90,28 +83,27 @@ def prepare_data(
         # TODO: pass failed_ids and related exceptions to the worker status
         failed_ids = ids_to_load.difference(downloaded_ids)
 
-        filtered_clickstream_sessions = []
-        for fine_tuning_input in clickstream_sessions:
+        filtered_inputs = []
+        for fine_tuning_input in inputs:
             fine_tuning_input.remove_results(failed_ids)
 
             if len(fine_tuning_input.results) >= 2:
-                filtered_clickstream_sessions.append(fine_tuning_input)
+                filtered_inputs.append(fine_tuning_input)
 
-        clickstream_sessions = filtered_clickstream_sessions
-
+        inputs = filtered_inputs
 
     logger.info("Retrieve queries")
-    query_retriever.get_queries(clickstream_sessions)
+    query_retriever.get_queries(inputs)
 
     logger.info("Split clickstream inputs into train / test")
-    clickstream_dataset = clickstream_splitter.split(clickstream_sessions)
+    training_dataset = clickstream_splitter.split(inputs)
     logger.info(
-        f'Splitting is finished, train: {len(clickstream_dataset["train"])} / test: {len(clickstream_dataset["test"])}'
+        f'Splitting is finished, train: {len(training_dataset["train"])} / test: {len(training_dataset["test"])}'
     )
 
 
     dataset, clickstream_dataset = storage_producer(
-        downloaded, clickstream_dataset
+        downloaded, training_dataset
     )
 
     return RankingData(clickstream_dataset, dataset)

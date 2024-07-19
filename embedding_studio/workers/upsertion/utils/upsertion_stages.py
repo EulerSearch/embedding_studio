@@ -129,18 +129,15 @@ def upload_vectors(
     """
     try:
         objects = []
-        shift = 0
         for item in items:
             parts = []
             for part_index in object_to_parts[item.meta.object_id]:
                 parts.append(
                     ObjectPart(
                         vector=vectors[part_index].tolist(),
-                        part_id=f"{item.meta.object_id}:{part_index - shift}",
+                        part_id=f"{item.meta.object_id}:{part_index}",
                     )
                 )
-
-            shift = len(parts)
 
             objects.append(
                 Object(

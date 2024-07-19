@@ -6,7 +6,6 @@ import pytorch_lightning as pl
 import torch
 from torch import FloatTensor, Tensor
 
-from embedding_studio.clickstream_storage.raw_session import FineTuningInput
 from embedding_studio.embeddings.data.storages.storage import ItemsStorage
 from embedding_studio.embeddings.features.clicks_aggregator.clicks_aggregator import (
     ClicksAggregator,
@@ -16,6 +15,9 @@ from embedding_studio.embeddings.features.clicks_aggregator.max_aggregator impor
 )
 from embedding_studio.embeddings.features.event_confidences import (
     dummy_confidences,
+)
+from embedding_studio.embeddings.features.feature_extractor_input import (
+    FineTuningInput,
 )
 from embedding_studio.embeddings.features.ranks_aggregators.mean_aggregator import (
     MeanAggregator,

@@ -57,7 +57,7 @@ def __init__(self):
     self.data_loader = AWSS3DataLoader(**creds)
 
     self.retriever = TextQueryRetriever()
-    self.parser = AWSS3ClickstreamParser(
+    self.sessions_converter = AWSS3ClickstreamParser(
         TextQueryItem, SearchResult, DummyEventType
     )
     self.splitter = ClickstreamSessionsSplitter()
@@ -114,7 +114,7 @@ def get_fine_tuning_builder(
 ) -> FineTuningBuilder:
     ranking_dataset = prepare_data(
         clickstream,
-        self.parser,
+        self.sessions_converter,
         self.splitter,
         self.retriever,
         self.data_loader,
@@ -123,7 +123,7 @@ def get_fine_tuning_builder(
     fine_tuning_builder = FineTuningBuilder(
         data_loader=self.data_loader,
         query_retriever=self.retriever,
-        clickstream_parser=self.parser,
+        clickstream_parser=self.sessions_converter,
         clickstream_sessions_splitter=self.splitter,
         dataset_fields_normalizer=self.normalizer,
         item_storage_producer=self.storage_producer,

@@ -3,20 +3,16 @@ from typing import List
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer
 
-from embedding_studio.clickstream_storage.parsers.s3_parser import (
-    AWSS3ClickstreamParser,
+from embedding_studio.clickstream_storage.converters.converter import (
+    ClickstreamSessionConverter,
 )
-from embedding_studio.clickstream_storage.search_event import (
-    DummyEventType,
-    SearchResult,
-)
-from embedding_studio.clickstream_storage.text_query_item import TextQueryItem
 from embedding_studio.clickstream_storage.text_query_retriever import (
     TextQueryRetriever,
 )
 from embedding_studio.core.config import settings
 from embedding_studio.core.plugin import FineTuningMethod
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
+from embedding_studio.data_storage.loaders.s3.item_meta import S3FileMeta
 from embedding_studio.data_storage.loaders.s3.s3_json_loader import (
     AwsS3JSONLoader,
 )
@@ -97,8 +93,8 @@ class DefaultDictTextFineTuningMethod(FineTuningMethod):
         self.field_names = []  # Provide your dict field names here
 
         self.retriever = TextQueryRetriever()
-        self.parser = AWSS3ClickstreamParser(
-            TextQueryItem, SearchResult, DummyEventType
+        self.sessions_converter = ClickstreamSessionConverter(
+            item_type=S3FileMeta
         )
         self.splitter = TrainTestSplitter()
         self.normalizer = DatasetFieldsNormalizer("item", "item_id")
@@ -207,7 +203,7 @@ class DefaultDictTextFineTuningMethod(FineTuningMethod):
     ) -> FineTuningBuilder:
         ranking_dataset = prepare_data(
             clickstream,
-            self.parser,
+            self.sessions_converter,
             self.splitter,
             self.retriever,
             self.data_loader,
@@ -216,7 +212,7 @@ class DefaultDictTextFineTuningMethod(FineTuningMethod):
         fine_tuning_builder = FineTuningBuilder(
             data_loader=self.data_loader,
             query_retriever=self.retriever,
-            clickstream_parser=self.parser,
+            clickstream_sessions_converter=self.sessions_converter,
             clickstream_sessions_splitter=self.splitter,
             dataset_fields_normalizer=self.normalizer,
             item_storage_producer=self.storage_producer,

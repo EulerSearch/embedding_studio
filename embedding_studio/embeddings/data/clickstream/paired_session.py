@@ -5,7 +5,9 @@ from typing import Any, Dict, List, Set, Tuple, Union
 
 from torch.utils.data import Dataset
 
-from embedding_studio.clickstream_storage.raw_session import FineTuningInput
+from embedding_studio.embeddings.features.feature_extractor_input import (
+    FineTuningInput,
+)
 
 logger = logging.getLogger(__name__)
 

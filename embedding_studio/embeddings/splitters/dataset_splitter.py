@@ -3,11 +3,13 @@ from typing import Dict, Iterator, List, Tuple
 
 from datasets import Dataset, DatasetDict
 
-from embedding_studio.clickstream_storage.raw_session import FineTuningInput
 from embedding_studio.embeddings.data.clickstream.paired_session import (
     PairedClickstreamDataset,
 )
 from embedding_studio.embeddings.data.storages.storage import ItemsStorage
+from embedding_studio.embeddings.features.feature_extractor_input import (
+    FineTuningInput,
+)
 from embedding_studio.embeddings.splitters.item_splitter import ItemSplitter
 
 

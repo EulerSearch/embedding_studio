@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, FieldValidationInfo, field_validator
 
-from embedding_studio.clickstream_storage.parsers.parser import (
-    ClickstreamParser,
+from embedding_studio.clickstream_storage.converters.converter import (
+    ClickstreamSessionConverter,
 )
 from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
@@ -45,7 +45,7 @@ class PluginMeta(BaseModel):
 class FineTuningBuilder:
     data_loader: DataLoader
     query_retriever: QueryRetriever
-    clickstream_parser: ClickstreamParser
+    clickstream_sessions_converter: ClickstreamSessionConverter
     clickstream_sessions_splitter: TrainTestSplitter
     dataset_fields_normalizer: DatasetFieldsNormalizer
     item_storage_producer: ItemStorageProducer
