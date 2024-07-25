@@ -55,7 +55,7 @@ def get_deploy_task(
 ) -> Any:
     """Get details of a specific green deployment.
 
-    :param id: ID of the model.
+    :param embedding_model_id: ID of the model.
     :return: Task details.
     """
     task = context.deployment_task.get_by_model_id(embedding_model_id)
@@ -102,7 +102,7 @@ def get_delete_task(
 ) -> Any:
     """Get details of a specific deployment revert.
 
-    :param id: ID of the task.
+    :param embedding_model_id: ID of the task.
     :return: Task details.
     """
     task = context.deployment_task.get_by_model_id(embedding_model_id)

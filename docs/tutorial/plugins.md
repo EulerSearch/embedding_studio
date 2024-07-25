@@ -50,27 +50,40 @@ def __init__(self):
     #     "aws_secret_access_key": "QWERTY1232qdsadfasfg5349BBdf30ekp23odk03",
     # }
     # self.data_loader = AwsS3DataLoader(**creds)
-
+    self.model_name = "clip-ViT-B-32"
     # with empty creds, use anonymous session
-    creds = {
-    }
-    self.data_loader = AWSS3DataLoader(**creds)
+    creds = {}
+    self.data_loader = AwsS3ImageLoader(**creds)
 
     self.retriever = TextQueryRetriever()
-    self.sessions_converter = AWSS3ClickstreamParser(
-        TextQueryItem, SearchResult, DummyEventType
+    self.sessions_converter = ClickstreamSessionConverter(
+        item_type=S3FileMeta
     )
-    self.splitter = ClickstreamSessionsSplitter()
+    self.splitter = TrainTestSplitter()
     self.normalizer = DatasetFieldsNormalizer("item", "item_id")
-    self.storage_producer = CLIPItemStorageProducer(self.normalizer)
+    self.items_set_manager = CLIPItemSetManager(self.normalizer)
 
     self.accumulators = [
-        MetricsAccumulator("train_loss", True, True, True, True),
         MetricsAccumulator(
-            "train_not_irrelevant_dist_shift", True, True, True, True
+            "train_loss",
+            calc_mean=True,
+            calc_sliding=True,
+            calc_min=True,
+            calc_max=True,
         ),
         MetricsAccumulator(
-            "train_irrelevant_dist_shift", True, True, True, True
+            "train_not_irrelevant_dist_shift",
+            calc_mean=True,
+            calc_sliding=True,
+            calc_min=True,
+            calc_max=True,
+        ),
+        MetricsAccumulator(
+            "train_irrelevant_dist_shift",
+            calc_mean=True,
+            calc_sliding=True,
+            calc_min=True,
+            calc_max=True,
         ),
         MetricsAccumulator("test_loss"),
         MetricsAccumulator("test_not_irrelevant_dist_shift"),
@@ -80,6 +93,7 @@ def __init__(self):
     self.manager = ExperimentsManager(
         tracking_uri=settings.MLFLOW_TRACKING_URI,
         main_metric="test_not_irrelevant_dist_shift",
+        plugin_name=self.meta.name,
         accumulators=self.accumulators,
     )
 
@@ -101,8 +115,15 @@ def __init__(self):
     self.settings = FineTuningSettings(
         loss_func=CosineProbMarginRankingLoss(),
         step_size=35,
-        test_each_n_sessions=0.5,
+        test_each_n_inputs=0.5,
         num_epochs=3,
+    )
+
+    self.inference_client_factory = CLIPModelTritonClientFactory(
+        f"{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}",
+        plugin_name=self.meta.name,
+        transform=self.items_set_manager.preprocessor,
+        model_name=self.model_name,
     )
 ```
 
@@ -110,7 +131,7 @@ Finally, let's look at the `get_fine_tuning_builder` method:
 
 ```python
 def get_fine_tuning_builder(
-        self, clickstream: List[SessionWithEvents]
+    self, clickstream: List[SessionWithEvents]
 ) -> FineTuningBuilder:
     ranking_dataset = prepare_data(
         clickstream,
@@ -118,15 +139,15 @@ def get_fine_tuning_builder(
         self.splitter,
         self.retriever,
         self.data_loader,
-        self.storage_producer,
+        self.items_set_manager,
     )
     fine_tuning_builder = FineTuningBuilder(
         data_loader=self.data_loader,
         query_retriever=self.retriever,
-        clickstream_parser=self.sessions_converter,
+        clickstream_sessions_converter=self.sessions_converter,
         clickstream_sessions_splitter=self.splitter,
         dataset_fields_normalizer=self.normalizer,
-        item_storage_producer=self.storage_producer,
+        items_set_manager=self.items_set_manager,
         accumulators=self.accumulators,
         experiments_manager=self.manager,
         fine_tuning_settings=self.settings,

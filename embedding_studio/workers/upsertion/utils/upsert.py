@@ -49,7 +49,7 @@ def get_collection(
     :return: Collection instance or None if retrieval/creation fails.
     """
     try:
-        embedding_model_info = plugin.get_embedding_model_factory().create_embedding_model_instance(
+        embedding_model_info = plugin.get_embedding_model_info(
             task.embedding_model_id
         )
 

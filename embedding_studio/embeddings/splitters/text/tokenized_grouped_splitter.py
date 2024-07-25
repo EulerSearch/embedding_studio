@@ -13,11 +13,11 @@ class TokenGroupTextSplitter(ItemSplitter):
         max_tokens: Optional[int] = None,
         split_sentences: bool = True,
     ):
-        """The items_storage_splitter wrapper, which group chunks the way count of tokens
+        """The items_set_splitter wrapper, which group chunks the way count of tokens
          in each chunk is less than tokenizer max_tokens.
 
         :param tokenizer: tokenizer used in embedding model
-        :param blocks_splitter: original text items_storage_splitter
+        :param blocks_splitter: original text items_set_splitter
         :param max_tokens: maximum count of tokens in each chunk (default: None)
                            default value means using tokenizer.model_max_length
         :param split_sentences: should algorithm break a solid sentence if it's longer than max_tokens

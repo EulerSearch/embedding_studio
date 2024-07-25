@@ -3,8 +3,6 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel
 
-
-
 # object_id
 # What it is: An optional attribute that can be set for an instance of ItemMeta.
 # Why it's needed: It is used as a unique identifier for the item if set. This can be a predefined or external identifier (e.g., UUID, database ID, etc.).
@@ -23,6 +21,7 @@ from pydantic import BaseModel
 # Hash
 # Why it's needed: So that instances of ItemMeta can be used as keys in dictionaries or stored in sets. The hash is calculated based on the id, ensuring uniqueness.
 # When it is used: When storing or comparing multiple items, allowing it to be done efficiently and correctly.
+
 
 class ItemMeta(BaseModel):
     object_id: Optional[str] = None
@@ -54,7 +53,7 @@ class ItemMeta(BaseModel):
 
         The `id` property serves as a universal getter for an item's unique identifier, abstracting away
         the details of how this identifier is constructed, whether directly provided or derived.
-        This design allows easy storage, retrieval, and comparison of items in data structures or when logging,
+        This design allows easy items_set, retrieval, and comparison of items in data structures or when logging,
         regardless of the item's specific type or source.
         """
         return self.object_id or self.derived_id

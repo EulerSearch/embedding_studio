@@ -11,7 +11,7 @@ from embedding_studio.clickstream_storage.search_event import (
 )
 from embedding_studio.clickstream_storage.text_query_item import TextQueryItem
 from embedding_studio.data_storage.loaders.item_meta import ItemMeta
-from embedding_studio.embeddings.features.feature_extractor_input import (
+from embedding_studio.embeddings.features.fine_tuning_input import (
     FineTuningInput,
 )
 from embedding_studio.models.clickstream.sessions import SessionWithEvents

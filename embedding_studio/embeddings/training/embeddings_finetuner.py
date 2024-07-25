@@ -18,11 +18,11 @@ from embedding_studio.embeddings.features.extractor import (
     COSINE_SIMILARITY,
     FeaturesExtractor,
 )
-from embedding_studio.embeddings.features.feature_extractor_input import (
-    FineTuningInput,
+from embedding_studio.embeddings.features.fine_tuning_features import (
+    FineTuningFeatures,
 )
-from embedding_studio.embeddings.features.session_features import (
-    SessionFeatures,
+from embedding_studio.embeddings.features.fine_tuning_input import (
+    FineTuningInput,
 )
 from embedding_studio.embeddings.losses.ranking_loss_interface import (
     RankingLossInterface,
@@ -44,7 +44,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
     def __init__(
         self,
         model: EmbeddingsModelInterface,
-        items_storages: DatasetDict,
+        items_sets: DatasetDict,
         query_retriever: QueryRetriever,
         loss_func: RankingLossInterface,
         fine_tuning_params: FineTuningParams,
@@ -62,7 +62,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
         designed in the way to be use PytorchLightning Trainer.
 
         :param model: embedding model itself
-        :param items_storages:  items storage related to a given iteration, as a datasetdict with train and test keys
+        :param items_sets:  items items_set related to a given iteration, as a datasetdict with train and test keys
         :param query_retriever: object to get item related to query, that can be used in "forward"
         :param loss_func: loss object for a ranking task
         :param fine_tuning_params: hyper params of fine-tuning task
@@ -80,8 +80,8 @@ class EmbeddingsFineTuner(pl.LightningModule):
                 "model must be an instance of EmbeddingsModelInterface"
             )
 
-        if not isinstance(items_storages, DatasetDict):
-            raise TypeError("items_storages must be a DatasetDict")
+        if not isinstance(items_sets, DatasetDict):
+            raise TypeError("items_sets must be a DatasetDict")
 
         if not isinstance(query_retriever, QueryRetriever):
             raise TypeError(
@@ -119,7 +119,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
             fine_tuning_params.max_abs_difference_threshold,
             confidence_calculator,
         )
-        self.items_storages = items_storages
+        self.items_sets = items_sets
         self.query_retriever = query_retriever
 
         if not metric_calculators:
@@ -150,27 +150,31 @@ class EmbeddingsFineTuner(pl.LightningModule):
 
         self.automatic_optimization = False
 
-    def preprocess_sessions(self, clickstream_dataset: DatasetDict):
+    def preprocess_inputs(self, clickstream_dataset: DatasetDict):
         for key in clickstream_dataset.keys():
-            item_storage = self.items_storages[key]
+            items_set = self.items_sets[key]
             logger.info(
-                f"Calculate ranks for {key} not irrelevant clickstream sessions"
+                f"Calculate ranks for {key} not irrelevant fine-tuning inputs"
             )
-            for session in clickstream_dataset[key].not_irrelevant:
-                unique_values = set(session.ranks.values())
+            for fine_tuning_input in clickstream_dataset[key].not_irrelevant:
+                unique_values = set(fine_tuning_input.ranks.values())
                 if len(unique_values) == 0 or None in unique_values:
-                    session.ranks = self.features_extractor.calculate_ranks(
-                        session, item_storage, self.query_retriever
+                    fine_tuning_input.ranks = (
+                        self.features_extractor.calculate_ranks(
+                            fine_tuning_input, items_set, self.query_retriever
+                        )
                     )
 
             logger.info(
-                f"Calculate ranks for {key} irrelevant clickstream sessions"
+                f"Calculate ranks for {key} irrelevant fine-tuning inputs"
             )
-            for session in clickstream_dataset[key].irrelevant:
-                unique_values = set(session.ranks.values())
+            for fine_tuning_input in clickstream_dataset[key].irrelevant:
+                unique_values = set(fine_tuning_input.ranks.values())
                 if len(unique_values) == 0 or None in unique_values:
-                    session.ranks = self.features_extractor.calculate_ranks(
-                        session, item_storage, self.query_retriever
+                    fine_tuning_input.ranks = (
+                        self.features_extractor.calculate_ranks(
+                            fine_tuning_input, items_set, self.query_retriever
+                        )
                     )
 
     # Standart LightningModule methods to be overrided to be used in PytorchLightning Trainer
@@ -219,12 +223,13 @@ class EmbeddingsFineTuner(pl.LightningModule):
         if not (
             isinstance(batch, (list, tuple))
             and all(
-                isinstance(session, tuple) and len(session) == 2
-                for session in batch
+                isinstance(fine_tuning_input, tuple)
+                and len(fine_tuning_input) == 2
+                for fine_tuning_input in batch
             )
         ):
             raise ValueError(
-                "batch must be a list or tuple, and each element must be a tuple of two ClickstreamSessions"
+                "batch must be a list or tuple, and each element must be a tuple of two FineTuningInputs."
             )
 
         if isinstance(batch, tuple):
@@ -246,8 +251,8 @@ class EmbeddingsFineTuner(pl.LightningModule):
 
         # Calculate features and loss
         # TODO: encapsulate all inference
-        features: SessionFeatures = self.features_extractor.forward(
-            batch, self.items_storages["train"]
+        features: FineTuningFeatures = self.features_extractor.forward(
+            batch, self.items_sets["train"]
         )
         loss: FloatTensor = self.loss_func(features)
         # Gradient backward step
@@ -267,7 +272,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
                 for metric in calculator(
                     batch,
                     self.features_extractor,
-                    self.items_storages["train"],
+                    self.items_sets["train"],
                     self.query_retriever,
                 ):
                     self.tracker.save_metric(metric.add_prefix("train"))
@@ -284,12 +289,13 @@ class EmbeddingsFineTuner(pl.LightningModule):
         if not (
             isinstance(batch, (list, tuple))
             and all(
-                isinstance(session, tuple) and len(session) == 2
-                for session in batch
+                isinstance(fine_tuning_input, tuple)
+                and len(fine_tuning_input) == 2
+                for fine_tuning_input in batch
             )
         ):
             raise ValueError(
-                "batch must be a list or tuple, and each element must be a tuple of two ClickstreamSessions"
+                "batch must be a list or tuple, and each element must be a tuple of two FineTuningInputs"
             )
 
         if isinstance(batch, tuple):
@@ -298,8 +304,8 @@ class EmbeddingsFineTuner(pl.LightningModule):
             ]
 
         # TODO: encapsulate all inference
-        features: SessionFeatures = self.features_extractor.forward(
-            batch, self.items_storages["test"]
+        features: FineTuningFeatures = self.features_extractor.forward(
+            batch, self.items_sets["test"]
         )
         loss: FloatTensor = self.loss_func(features)
 
@@ -311,7 +317,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
             for metric in calculator(
                 batch,
                 self.features_extractor,
-                self.items_storages["test"],
+                self.items_sets["test"],
                 self.query_retriever,
             ):
                 self._validation_metrics[metric.name].append(metric.value)
@@ -347,7 +353,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
 
         :param model: embedding model itself
         :param settings: fine-tuning settings
-        :param items_storages:  items storage related to a given iteration, as a datasetdict with train and test keys
+        :param items_storages:  items items_set related to a given iteration, as a datasetdict with train and test keys
         :param query_retriever: object to get item related to query, that can be used in "forward"
         :param fine_tuning_params: hyper params of fine-tuning task
         :param tracker: experiment management object
@@ -355,7 +361,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
         """
         return EmbeddingsFineTuner(
             model=model,
-            items_storages=items_storages,
+            items_sets=items_storages,
             query_retriever=query_retriever,
             loss_func=settings.loss_func,
             fine_tuning_params=fine_tuning_params,

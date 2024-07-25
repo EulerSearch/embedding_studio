@@ -46,6 +46,7 @@ mkdocs-minify-plugin = "0.7.2"
 [tool.poetry.group.ml.dependencies]
 boto3 = "1.26.67"
 google-cloud-storage = "2.17.0"
+google-api-core = "2.15.0"
 urllib3 = "1.26.7"
 datasets = "2.15.0"
 hyperopt = "0.2.7"
@@ -73,8 +74,7 @@ transformers = "4.33.0"
 minio = "7.2.0"
 
 [tool.poetry.group.google-backend.dependencies]
-google-api-core = "1.34.0"
-google-api-python-client = "1.8.0"
+google-api-python-client = "2.137.0"
 
 [tool.poetry.group.databricks-backend.dependencies]
 databricks-cli = "0.18.0"

@@ -61,7 +61,7 @@ def fine_tuning_mocked_worker(task_id: str):
                 f"Fine tuning plugin with name `{task.fine_tuning_method}` "
                 f"not found"
             )
-        if not fine_tuning_plugin.manager.has_initial_model():
+        if not fine_tuning_plugin.get_manager().has_initial_model():
             logger.info("No initial model found, uploading.")
             logger.info(f"Upload initial model...")
             fine_tuning_plugin.upload_initial_model()
@@ -69,11 +69,11 @@ def fine_tuning_mocked_worker(task_id: str):
 
         iteration = FineTuningIteration(
             batch_id="mocked-batch",
-            run_id=fine_tuning_plugin.manager.get_initial_run_id(),
+            run_id=fine_tuning_plugin.get_manager().get_initial_run_id(),
             plugin_name="DefaultFineTuningMethod",
         )
 
-        fine_tuning_plugin.manager.set_iteration(iteration)
+        fine_tuning_plugin.get_manager().set_iteration(iteration)
         params = FineTuningParams(
             num_fixed_layers=6,
             query_lr=0.1,
@@ -84,21 +84,27 @@ def fine_tuning_mocked_worker(task_id: str):
             not_irrelevant_only=True,
             negative_downsampling=0.5,
         )
-        _ = fine_tuning_plugin.manager.set_run(params)
-        fine_tuning_plugin.manager.save_metric(
+        _ = fine_tuning_plugin.get_manager().set_run(params)
+        fine_tuning_plugin.get_manager().save_metric(
             MetricValue("not_irrelevant_dist_shift", 0.1).add_prefix("test")
         )
 
-        inital_model = fine_tuning_plugin.manager.download_initial_model()
-        fine_tuning_plugin.manager.save_model(inital_model, True)
+        inital_model = (
+            fine_tuning_plugin.get_manager().download_initial_model()
+        )
+        fine_tuning_plugin.get_manager().save_model(inital_model, True)
 
-        best_run_id = fine_tuning_plugin.manager.get_best_current_run_id()
-        best_model_url = fine_tuning_plugin.manager.get_current_model_url()
+        best_run_id = (
+            fine_tuning_plugin.get_manager().get_best_current_run_id()
+        )
+        best_model_url = (
+            fine_tuning_plugin.get_manager().get_current_model_url()
+        )
 
         task.best_model_id = best_run_id
         task.best_model_url = best_model_url
 
-        fine_tuning_plugin.manager.finish_run()
+        fine_tuning_plugin.get_manager().finish_run()
 
     except Exception:
         try:

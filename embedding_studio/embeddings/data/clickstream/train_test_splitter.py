@@ -8,10 +8,10 @@ from sklearn.model_selection import train_test_split
 from embedding_studio.embeddings.augmentations.clickstream_augmentation_applier import (
     ClickstreamQueryAugmentationApplier,
 )
-from embedding_studio.embeddings.data.clickstream.paired_session import (
-    PairedClickstreamDataset,
+from embedding_studio.embeddings.data.clickstream.paired_fine_tuning_inputs import (
+    PairedFineTuningInputsDataset,
 )
-from embedding_studio.embeddings.features.feature_extractor_input import (
+from embedding_studio.embeddings.features.fine_tuning_input import (
     FineTuningInput,
 )
 
@@ -36,7 +36,7 @@ class TrainTestSplitter:
 
         :param test_size_ratio: ratio of test split size (default: 0.2)
         :param shuffle: to shuffle or not paired clickstream inputs (default: True)
-        :param random_state: random state to sklearn items_storage_splitter (default: None)
+        :param random_state: random state to sklearn items_set_splitter (default: None)
         :param augmenter: function to augment clickstream inputs by augmenting queries (default: None)
         :param do_augment_test: do test split augmentation (default: False)
         """
@@ -64,12 +64,12 @@ class TrainTestSplitter:
         self._do_augment_test = do_augment_test
 
     def _augment_clickstream(
-        self, sessions: List[FineTuningInput]
+        self, inputs: List[FineTuningInput]
     ) -> List[FineTuningInput]:
         if self._augmenter is None:
-            return sessions
+            return inputs
 
-        return self._augmenter.apply_augmentation(sessions)
+        return self._augmenter.apply_augmentation(inputs)
 
     @property
     def shuffle(self) -> bool:
@@ -83,16 +83,14 @@ class TrainTestSplitter:
         """
         # Get all IDs
         all_result_ids: Set[str] = set()
-        for session in inputs:
-            all_result_ids.update(session.results)
+        for input in inputs:
+            all_result_ids.update(input.results)
 
         if len(all_result_ids) == 0:
-            raise ValueError("Sessions list is empty")
+            raise ValueError("Inputs list is empty")
 
         # Ensure a minimum number of unique result IDs in each set
-        min_unique_test_sessions: int = int(
-            self._test_size_ratio * len(inputs)
-        )
+        min_unique_test_inputs: int = int(self._test_size_ratio * len(inputs))
 
         # Split the result IDs into train and test sets
         train_result_ids, test_result_ids = train_test_split(
@@ -106,49 +104,48 @@ class TrainTestSplitter:
         train_inputs: List[FineTuningInput] = []
         test_inputs: List[FineTuningInput] = []
 
-        for session in inputs:
-            if len(session.results) == 0:
+        for input in inputs:
+            if len(input.results) == 0:
                 continue
 
             if (
-                len(set(session.results) & test_result_ids)
-                / len(session.results)
+                len(set(input.results) & test_result_ids) / len(input.results)
                 <= 0.5
             ):
                 # If less than 50% of result IDs intersect with the test set, add to the train set
-                train_inputs.append(session)
+                train_inputs.append(input)
             else:
-                test_inputs.append(session)
+                test_inputs.append(input)
 
-        if len(test_inputs) < min_unique_test_sessions:
+        if len(test_inputs) < min_unique_test_inputs:
             logger.warning(
                 f"Clickstream inputs intersects highly, so they are not split well"
             )
-            random_train_session_indexess: List[int] = random.choices(
+            random_train_input_indexess: List[int] = random.choices(
                 list(range(len(train_inputs))),
-                k=min_unique_test_sessions - len(test_inputs),
+                k=min_unique_test_inputs - len(test_inputs),
             )
-            for i in reversed(sorted(random_train_session_indexess)):
+            for i in reversed(sorted(random_train_input_indexess)):
                 test_inputs.append(train_inputs.pop(i))
 
         if len(test_inputs) + len(train_inputs) < len(inputs):
-            missed_sessions_count = len(inputs) - (
+            missed_inputs_count = len(inputs) - (
                 len(test_inputs) + len(train_inputs)
             )
             logger.warning(
-                f"Clickstream inputs weren't split correctly, add {missed_sessions_count} more inputs to the train split."
+                f"Fine-tuning inputs weren't split correctly, add {missed_inputs_count} more inputs to the train split."
             )
 
-            for session in inputs:
-                if session not in train_inputs and session not in test_inputs:
-                    train_inputs.append(session)
+            for input in inputs:
+                if input not in train_inputs and input not in test_inputs:
+                    train_inputs.append(input)
 
         return DatasetDict(
             {
-                "train": PairedClickstreamDataset(
+                "train": PairedFineTuningInputsDataset(
                     self._augment_clickstream(train_inputs), self.shuffle
                 ),
-                "test": PairedClickstreamDataset(
+                "test": PairedFineTuningInputsDataset(
                     self._augment_clickstream(test_inputs),
                     self.shuffle,
                 ),

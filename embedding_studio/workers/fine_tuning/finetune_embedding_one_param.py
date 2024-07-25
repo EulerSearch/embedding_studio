@@ -101,7 +101,7 @@ def fine_tune_embedding_model_one_param(
             logger.info("Trying to move to the device...")
             fine_tuner.to(device)
             logger.info("Trying to move to the device... OK")
-            fine_tuner.preprocess_sessions(ranking_data.clickstream)
+            fine_tuner.preprocess_inputs(ranking_data.clickstream)
 
             # Init train / test clickstream data loaders
             train_dataloader: DataLoader = DataLoader(
@@ -127,8 +127,8 @@ def fine_tune_embedding_model_one_param(
             )
 
             logger.info("Start fine-tuning")
-            if 0 < settings.test_each_n_sessions <= 1:
-                settings.test_each_n_sessions *= len(
+            if 0 < settings.test_each_n_inputs <= 1:
+                settings.test_each_n_inputs *= len(
                     ranking_data.clickstream["train"]
                 )
             # Start fine-tuning
@@ -136,8 +136,8 @@ def fine_tune_embedding_model_one_param(
                 max_epochs=settings.num_epochs,
                 callbacks=[early_stop_callback],
                 val_check_interval=int(
-                    settings.test_each_n_sessions
-                    if settings.test_each_n_sessions > 0
+                    settings.test_each_n_inputs
+                    if settings.test_each_n_inputs > 0
                     else len(train_dataloader)
                 ),
             )

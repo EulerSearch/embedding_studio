@@ -4,7 +4,7 @@ from typing import List
 from embedding_studio.embeddings.augmentations.augmentation_with_random_selection import (
     AugmentationWithRandomSelection,
 )
-from embedding_studio.embeddings.features.feature_extractor_input import (
+from embedding_studio.embeddings.features.fine_tuning_input import (
     FineTuningInput,
 )
 
@@ -40,18 +40,18 @@ class ClickstreamQueryAugmentationApplier:
         self.augmentation = augmentation
 
     def apply_augmentation(
-        self, sessions: List[FineTuningInput]
+        self, inputs: List[FineTuningInput]
     ) -> List[FineTuningInput]:
         """Apply the augmentation and return a list of both original and augmented clickstream inputs.
 
-        :param sessions: A list of FineTuningInput objects containing the original inputs.
+        :param inputs: A list of FineTuningInput objects containing the original inputs.
         :return: A list of FineTuningInput objects containing both the original and the augmented inputs.
         """
-        augmented_sessions = []
-        for session in sessions:
-            for new_query in self.augmentation.transform(session.query):
-                augmented_session = deepcopy(session)
-                augmented_session.query = new_query
-                augmented_sessions.append(augmented_session)
+        augmented_inputs = []
+        for input in inputs:
+            for new_query in self.augmentation.transform(input.query):
+                augmented_input = deepcopy(input)
+                augmented_input.query = new_query
+                augmented_inputs.append(augmented_input)
 
-        return sessions + augmented_sessions
+        return inputs + augmented_inputs

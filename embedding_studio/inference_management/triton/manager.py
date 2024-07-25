@@ -31,7 +31,6 @@ class TritonModelStorageManager(ABC):
                 os.path.join(self._storage_info.model_version_path, artifact)
             )
             for artifact in self._get_model_artifacts()
-            for artifact in self._get_model_artifacts()
         )
 
     def _setup_folder_directory(self):

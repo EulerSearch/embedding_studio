@@ -311,8 +311,7 @@ class GCPDataLoader(DataLoader):
 
         return result
 
-
-    @retry_method(name='download_data')
+    @retry_method(name="download_data")
     def _download_blob(self, blob: Blob) -> Any:
         content = io.BytesIO()
         blob.download_to_file(content)
@@ -320,7 +319,7 @@ class GCPDataLoader(DataLoader):
 
         return content
 
-    @retry_method(name='download_data')
+    @retry_method(name="download_data")
     def _list_blobs(self, bucket: str) -> List[Blob]:
         """
         List all blobs in a specified GCP Cloud Storage bucket.
@@ -362,9 +361,11 @@ class GCPDataLoader(DataLoader):
                         ),
                     )
                 )
-            except Exception as e:
+            except Exception:
                 # TODO: pass failed_ids and related exceptions to the worker status
-                logger.exception(f"Error fetching batch item {blob.name} from GCP")
+                logger.exception(
+                    f"Error fetching batch item {blob.name} from GCP"
+                )
 
         return batch
 
@@ -400,6 +401,6 @@ class GCPDataLoader(DataLoader):
         total = 0
         gcp_client = self._get_client()
         for bucket_name in kwargs["buckets"]:
-            bucket = gcp_client.bucket(bucket_name)
+            gcp_client.bucket(bucket_name)
             total += sum(1 for _ in self._list_blobs(kwargs["bucket"]))
         return total

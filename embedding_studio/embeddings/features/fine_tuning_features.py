@@ -4,7 +4,7 @@ import torch
 from torch import FloatTensor, Tensor
 
 
-class SessionFeatures:
+class FineTuningFeatures:
     def __init__(
         self,
         positive_ranks: Optional[FloatTensor] = None,
@@ -13,7 +13,7 @@ class SessionFeatures:
         positive_confidences: Optional[FloatTensor] = None,
         negative_confidences: Optional[FloatTensor] = None,
     ):
-        """Extracted features of clickstream session using embeddings.
+        """Extracted features of fine-tuning inputs using embeddings.
 
         :param positive_ranks: ranks of positive results
         :param negative_ranks: ranks of negative results
@@ -124,24 +124,26 @@ class SessionFeatures:
         elif other_var is not None:
             return other_var
 
-    def __iadd__(self, other):
-        """Accumulate features from another session
+    def __iadd__(self, other: "FineTuningFeatures"):
+        """Accumulate features from another fine-tuning input
 
-        :param other: other session
+        :param other: other fine-tuning input
         :return: aggregates features
         """
 
-        self._positive_ranks = SessionFeatures._accumulate(
+        self._positive_ranks = FineTuningFeatures._accumulate(
             self._positive_ranks, other._positive_ranks
         )
-        self._negative_ranks = SessionFeatures._accumulate(
+        self._negative_ranks = FineTuningFeatures._accumulate(
             self._negative_ranks, other._negative_ranks
         )
-        self._target = SessionFeatures._accumulate(self._target, other._target)
-        self._positive_confidences = SessionFeatures._accumulate(
+        self._target = FineTuningFeatures._accumulate(
+            self._target, other._target
+        )
+        self._positive_confidences = FineTuningFeatures._accumulate(
             self._positive_confidences, other._positive_confidences
         )
-        self._negative_confidences = SessionFeatures._accumulate(
+        self._negative_confidences = FineTuningFeatures._accumulate(
             self._negative_confidences, other._negative_confidences
         )
 
@@ -176,11 +178,11 @@ class SessionFeatures:
             self._negative_confidences = self._negative_confidences[examples]
             self._check_lengths()
 
-    def use_positive_from(self, other):
-        """If session is fully irrelevant, to use positive pairs from another session.
+    def use_positive_from(self, other: "FineTuningFeatures"):
+        """If fine-tuning input is fully irrelevant, to use positive pairs from another fine-tuning input.
         This way "triple loss" becomes "contrastive"
 
-        :param other: not irrelevant session with positive evidences
+        :param other: not irrelevant fine-tuning input with positive evidences
         """
         other._check_types()
         other._check_lengths()

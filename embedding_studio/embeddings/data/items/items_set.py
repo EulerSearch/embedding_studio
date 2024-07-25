@@ -5,17 +5,17 @@ from typing import Any, List, Optional, Tuple
 from datasets import Dataset
 
 
-class ItemsStorage(Dataset):
+class ItemsSet(Dataset):
     def __init__(
         self, dataset: Dataset, item_field_name: str, id_field_name: str
     ):
-        """Dataset wrapper to represent storage of search result items
+        """Dataset wrapper to represent set of search result items
 
         :param dataset: items huggingface like dataset
         :param item_field_name: field represents item to be passed to embedding model
         :param id_field_name: ID of item
         """
-        super(ItemsStorage, self).__init__(
+        super(ItemsSet, self).__init__(
             arrow_table=dataset._data,
             info=dataset._info,
             split=dataset._split,
@@ -99,7 +99,7 @@ class ItemsStorage(Dataset):
         """
         Get a slice of items from the dataset based on a list of ids.
 
-        :param indices: List of indices to retrieve items.
+        :param ids: List of ids to retrieve items.
         :return: List of items corresponding to the given ids, and list of ids related to items.
         """
         rows = self.rows_by_ids(ids)

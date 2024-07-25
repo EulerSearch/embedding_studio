@@ -93,7 +93,7 @@ We put the result of generation into the public reading-available S3 repository:
 # Used constants
 DEFAULT_FINE_TUNING_METHOD_NAME = "Default Fine Tuning Method"
 BUCKET_NAME = "embedding-studio-experiments"
-# We use the easiest one of generated inputs batch:
+# We use the easiest one of generated sessions batch:
 # 1. Minimal probability of a mistake: 0.01
 # 2. 50 search results in each session
 # 3. from 0.4 to 0.6 of random positives were picked
@@ -108,7 +108,7 @@ def emulate_clickstream(
     aws_secret_access_key: Optional[str] = None,
     test_sessions_count: int = 600,
 ):
-    """This is a function to run the order of http-requests to the clisktream storage service.
+    """This is a function to run the order of http-requests to the clisktream items_set service.
 
     The service has 2 types of methods: internal and external.
 
@@ -120,7 +120,7 @@ def emulate_clickstream(
     - Mark session as irrelevant (e.g. search results are completely nonsense)
 
     Internal methods:
-    - Release batch of inputs. After this method, new sessions will be created with a new batch ID. We need this mechanism
+    - Release batch of sessions. After this method, new sessions will be created with a new batch ID. We need this mechanism
       to run fine-tuning only on new sessions, not included in previous run. (**Important**: later we are going to provide a mechanism to customize it).
     - Get sessions related to a batch.
 

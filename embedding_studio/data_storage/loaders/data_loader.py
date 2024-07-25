@@ -23,6 +23,11 @@ class DataLoader(ABC):
     def item_meta_cls(self) -> Type[ItemMeta]:
         raise NotImplemented
 
+    @property
+    @abstractmethod
+    def item_meta_cls(self) -> Type[ItemMeta]:
+        raise NotImplemented
+
     @abstractmethod
     def load(self, items_data: List[ItemMeta]) -> Dataset:
         raise NotImplemented

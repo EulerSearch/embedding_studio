@@ -12,10 +12,8 @@ from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.embeddings.data.clickstream.train_test_splitter import (
     TrainTestSplitter,
 )
+from embedding_studio.embeddings.data.items.manager import ItemSetManager
 from embedding_studio.embeddings.data.ranking_data import RankingData
-from embedding_studio.embeddings.data.storages.producer import (
-    ItemStorageProducer,
-)
 from embedding_studio.embeddings.data.utils.fields_normalizer import (
     DatasetFieldsNormalizer,
 )
@@ -48,7 +46,7 @@ class FineTuningBuilder:
     clickstream_sessions_converter: ClickstreamSessionConverter
     clickstream_sessions_splitter: TrainTestSplitter
     dataset_fields_normalizer: DatasetFieldsNormalizer
-    item_storage_producer: ItemStorageProducer
+    items_set_manager: ItemSetManager
     accumulators: List[MetricsAccumulator]
     experiments_manager: ExperimentsManager
     fine_tuning_settings: FineTuningSettings

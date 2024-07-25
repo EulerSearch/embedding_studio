@@ -8,21 +8,16 @@ from embedding_studio.clickstream_storage.input_with_items import (
     FineTuningInputWithItems,
 )
 from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
+from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.data_storage.loaders.downloaded_item import (
     DownloadedItem,
 )
-from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.data_storage.loaders.item_meta import ItemMeta
 from embedding_studio.embeddings.data.clickstream.train_test_splitter import (
     TrainTestSplitter,
 )
+from embedding_studio.embeddings.data.items.manager import ItemSetManager
 from embedding_studio.embeddings.data.ranking_data import RankingData
-from embedding_studio.embeddings.data.storages.producer import (
-    ItemStorageProducer,
-)
-from embedding_studio.embeddings.features.feature_extractor_input import (
-    FineTuningInput,
-)
 from embedding_studio.models.clickstream.sessions import SessionWithEvents
 
 logger = logging.getLogger(__name__)
@@ -34,7 +29,7 @@ def prepare_data(
     clickstream_splitter: TrainTestSplitter,
     query_retriever: QueryRetriever,
     loader: DataLoader,
-    storage_producer: ItemStorageProducer,
+    items_set_manager: ItemSetManager,
 ) -> RankingData:
     """Prepare fine-tuning data.
 
@@ -43,7 +38,7 @@ def prepare_data(
     :param clickstream_splitter: how to split clickstream inputs
     :param query_retriever: retrieve query item
     :param loader: load items data
-    :param storage_producer: get train/test datasets
+    :param items_set_manager: get train/test datasets
     :return: train / test clickstream sessiobs and dataset dict
     """
     if len(fine_tuning_inputs) == 0:
@@ -53,7 +48,6 @@ def prepare_data(
     input_with_items: List[FineTuningInputWithItems] = [
         converter.convert(session) for session in fine_tuning_inputs
     ]
-
 
     logger.info("Get list of files to be loaded")
     files_to_load: Set[ItemMeta] = set()
@@ -67,7 +61,7 @@ def prepare_data(
     files_to_load: List[ItemMeta] = list(files_to_load)
     downloaded: List[DownloadedItem] = loader.load(files_to_load)
     if len(downloaded) == 0:
-        raise ValueError('No data was downloaded.')
+        raise ValueError("No data was downloaded.")
 
     inputs = [obj.input for obj in input_with_items]
     if len(downloaded) != len(files_to_load):
@@ -101,8 +95,7 @@ def prepare_data(
         f'Splitting is finished, train: {len(training_dataset["train"])} / test: {len(training_dataset["test"])}'
     )
 
-
-    dataset, clickstream_dataset = storage_producer(
+    dataset, clickstream_dataset = items_set_manager(
         downloaded, training_dataset
     )
 

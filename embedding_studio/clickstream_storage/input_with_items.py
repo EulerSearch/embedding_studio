@@ -1,7 +1,7 @@
 from typing import List
 
 from embedding_studio.data_storage.loaders.item_meta import ItemMeta
-from embedding_studio.embeddings.features.feature_extractor_input import (
+from embedding_studio.embeddings.features.fine_tuning_input import (
     FineTuningInput,
 )
 

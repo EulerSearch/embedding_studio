@@ -1,6 +1,6 @@
 from typing import List
 
-from embedding_studio.embeddings.features.feature_extractor_input import (
+from embedding_studio.embeddings.features.fine_tuning_input import (
     FineTuningInput,
 )
 
@@ -15,5 +15,5 @@ class QueryRetriever(object):
 
     """
 
-    def get_queries(self, clickstream_sessions: List[FineTuningInput]):
+    def get_queries(self, inputs: List[FineTuningInput]):
         pass

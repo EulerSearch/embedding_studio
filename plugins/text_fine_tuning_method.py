@@ -15,11 +15,12 @@ from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.data_storage.loaders.gcp.gcp_text_loader import (
     GCPTextLoader,
 )
+from embedding_studio.data_storage.loaders.gcp.item_meta import GCPFileMeta
 from embedding_studio.embeddings.augmentations.compose import (
     AugmentationsComposition,
 )
-from embedding_studio.embeddings.augmentations.items_storage_augmentation_applier import (
-    ItemsStorageAugmentationApplier,
+from embedding_studio.embeddings.augmentations.items_set_augmentation_applier import (
+    ItemsSetAugmentationApplier,
 )
 from embedding_studio.embeddings.augmentations.text.cases import ChangeCases
 from embedding_studio.embeddings.augmentations.text.misspellings import (
@@ -28,8 +29,8 @@ from embedding_studio.embeddings.augmentations.text.misspellings import (
 from embedding_studio.embeddings.data.clickstream.train_test_splitter import (
     TrainTestSplitter,
 )
-from embedding_studio.embeddings.data.storages.producers.text import (
-    TextItemStorageProducer,
+from embedding_studio.embeddings.data.items.managers.text import (
+    TextItemSetManager,
 )
 from embedding_studio.embeddings.data.utils.fields_normalizer import (
     DatasetFieldsNormalizer,
@@ -47,7 +48,7 @@ from embedding_studio.embeddings.models.text_to_text.e5 import (
     TextToTextE5Model,
 )
 from embedding_studio.embeddings.splitters.dataset_splitter import (
-    ItemsStorageSplitter,
+    ItemsSetSplitter,
 )
 from embedding_studio.embeddings.splitters.item_splitter import ItemSplitter
 from embedding_studio.embeddings.splitters.text.dummy_sentence_splitter import (
@@ -67,7 +68,7 @@ from embedding_studio.models.embeddings.models import (
     SearchIndexInfo,
 )
 from embedding_studio.models.plugin import FineTuningBuilder, PluginMeta
-from embedding_studio.workers.fine_tuning.data.prepare_data import prepare_data
+from embedding_studio.workers.fine_tuning.prepare_data import prepare_data
 
 
 class DefaultTextFineTuningMethod(FineTuningMethod):
@@ -92,19 +93,19 @@ class DefaultTextFineTuningMethod(FineTuningMethod):
 
         self.retriever = TextQueryRetriever()
         self.sessions_converter = ClickstreamSessionConverter(
-            item_type=S3FileMeta
+            item_type=GCPFileMeta
         )
         self.splitter = TrainTestSplitter()
         self.normalizer = DatasetFieldsNormalizer("item", "item_id")
-        self.storage_producer = TextItemStorageProducer(
+        self.items_set_manager = TextItemSetManager(
             self.normalizer,
-            items_storage_splitter=ItemsStorageSplitter(
+            items_set_splitter=ItemsSetSplitter(
                 TokenGroupTextSplitter(
                     tokenizer=AutoTokenizer.from_pretrained(self.model_name),
                     blocks_splitter=DummySentenceSplitter(),
                 )
             ),
-            augmenter=ItemsStorageAugmentationApplier(
+            augmenter=ItemsSetAugmentationApplier(
                 AugmentationsComposition([ChangeCases(5), Misspellings(5)])
             ),
             do_augment_test=False,
@@ -168,28 +169,13 @@ class DefaultTextFineTuningMethod(FineTuningMethod):
         self.inference_client_factory = TextToTextE5TritonClientFactory(
             f"{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}",
             plugin_name=self.meta.name,
-            preprocessor=self.storage_producer.preprocessor,
+            preprocessor=self.items_set_manager.preprocessor,
             model_name=self.model_name,
         )
 
     def upload_initial_model(self) -> None:
         model = TextToTextE5Model(SentenceTransformer(self.model_name))
         self.manager.upload_initial_model(model)
-
-    def get_items_splitter(self) -> ItemSplitter:
-        return DummySentenceSplitter()
-
-    def get_items_splitter(self) -> ItemSplitter:
-        return DummySentenceSplitter()
-
-    def get_data_loader(self) -> DataLoader:
-        return self.data_loader
-
-    def get_manager(self) -> ExperimentsManager:
-        return self.manager
-
-    def get_inference_client_factory(self) -> TritonClientFactory:
-        return self.inference_client_factory
 
     def get_items_splitter(self) -> ItemSplitter:
         return DummySentenceSplitter()
@@ -212,7 +198,7 @@ class DefaultTextFineTuningMethod(FineTuningMethod):
             self.splitter,
             self.retriever,
             self.data_loader,
-            self.storage_producer,
+            self.items_set_manager,
         )
         fine_tuning_builder = FineTuningBuilder(
             data_loader=self.data_loader,
@@ -220,7 +206,7 @@ class DefaultTextFineTuningMethod(FineTuningMethod):
             clickstream_sessions_converter=self.sessions_converter,
             clickstream_sessions_splitter=self.splitter,
             dataset_fields_normalizer=self.normalizer,
-            item_storage_producer=self.storage_producer,
+            items_set_manager=self.items_set_manager,
             accumulators=self.accumulators,
             experiments_manager=self.manager,
             fine_tuning_settings=self.settings,

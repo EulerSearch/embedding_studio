@@ -20,8 +20,8 @@ from embedding_studio.data_storage.loaders.s3.s3_image_loader import (
 from embedding_studio.embeddings.data.clickstream.train_test_splitter import (
     TrainTestSplitter,
 )
-from embedding_studio.embeddings.data.storages.producers.clip import (
-    CLIPItemStorageProducer,
+from embedding_studio.embeddings.data.items.managers.clip import (
+    CLIPItemSetManager,
 )
 from embedding_studio.embeddings.data.utils.fields_normalizer import (
     DatasetFieldsNormalizer,
@@ -49,7 +49,7 @@ from embedding_studio.models.embeddings.models import (
     SearchIndexInfo,
 )
 from embedding_studio.models.plugin import FineTuningBuilder, PluginMeta
-from embedding_studio.workers.fine_tuning.data.prepare_data import prepare_data
+from embedding_studio.workers.fine_tuning.prepare_data import prepare_data
 
 
 class DefaultFineTuningMethod(FineTuningMethod):
@@ -78,7 +78,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
         )
         self.splitter = TrainTestSplitter()
         self.normalizer = DatasetFieldsNormalizer("item", "item_id")
-        self.storage_producer = CLIPItemStorageProducer(self.normalizer)
+        self.items_set_manager = CLIPItemSetManager(self.normalizer)
 
         self.accumulators = [
             MetricsAccumulator(
@@ -132,14 +132,14 @@ class DefaultFineTuningMethod(FineTuningMethod):
         self.settings = FineTuningSettings(
             loss_func=CosineProbMarginRankingLoss(),
             step_size=35,
-            test_each_n_sessions=0.5,
+            test_each_n_inputs=0.5,
             num_epochs=3,
         )
 
         self.inference_client_factory = CLIPModelTritonClientFactory(
             f"{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}",
             plugin_name=self.meta.name,
-            transform=self.storage_producer.preprocessor,
+            transform=self.items_set_manager.preprocessor,
             model_name=self.model_name,
         )
 
@@ -159,15 +159,6 @@ class DefaultFineTuningMethod(FineTuningMethod):
     def get_inference_client_factory(self) -> TritonClientFactory:
         return self.inference_client_factory
 
-    def get_data_loader(self) -> DataLoader:
-        return self.data_loader
-
-    def get_manager(self) -> ExperimentsManager:
-        return self.manager
-
-    def get_inference_client_factory(self) -> TritonClientFactory:
-        return self.inference_client_factory
-
     def get_fine_tuning_builder(
         self, clickstream: List[SessionWithEvents]
     ) -> FineTuningBuilder:
@@ -177,7 +168,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
             self.splitter,
             self.retriever,
             self.data_loader,
-            self.storage_producer,
+            self.items_set_manager,
         )
         fine_tuning_builder = FineTuningBuilder(
             data_loader=self.data_loader,
@@ -185,7 +176,7 @@ class DefaultFineTuningMethod(FineTuningMethod):
             clickstream_sessions_converter=self.sessions_converter,
             clickstream_sessions_splitter=self.splitter,
             dataset_fields_normalizer=self.normalizer,
-            item_storage_producer=self.storage_producer,
+            items_set_manager=self.items_set_manager,
             accumulators=self.accumulators,
             experiments_manager=self.manager,
             fine_tuning_settings=self.settings,

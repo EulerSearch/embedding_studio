@@ -327,9 +327,11 @@ class AwsS3DataLoader(DataLoader):
                     )
                     if len(batch) >= batch_size:
                         return batch
-                except ClientError as e:
+                except ClientError:
                     # TODO: pass failed_ids and related exceptions to the worker status
-                    logger.exception(f"Error fetching batch item {key} from S3")
+                    logger.exception(
+                        f"Error fetching batch item {key} from S3"
+                    )
 
         return batch
 

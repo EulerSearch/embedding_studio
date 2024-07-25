@@ -1,8 +1,8 @@
 import torch
 from torch import FloatTensor, Tensor
 
-from embedding_studio.embeddings.features.session_features import (
-    SessionFeatures,
+from embedding_studio.embeddings.features.fine_tuning_features import (
+    FineTuningFeatures,
 )
 from embedding_studio.embeddings.losses.ranking_loss_interface import (
     RankingLossInterface,
@@ -40,7 +40,7 @@ class ProbMarginRankingLoss(RankingLossInterface):
     def __adjust(self, adjusted_diff: FloatTensor) -> FloatTensor:
         return -1 * adjusted_diff
 
-    def forward(self, features: SessionFeatures) -> Tensor:
+    def forward(self, features: FineTuningFeatures) -> Tensor:
         # Calculate positive - negative pair confidence
         confidences: FloatTensor = torch.min(
             features.positive_confidences, features.negative_confidences
@@ -66,5 +66,5 @@ class ProbMarginRankingLoss(RankingLossInterface):
         losses: FloatTensor = 1 / (1 + torch.exp(self.__adjust(adjusted_diff)))
         return torch.mean(losses * confidences) + fine
 
-    def __call__(self, features: SessionFeatures) -> Tensor:
+    def __call__(self, features: FineTuningFeatures) -> Tensor:
         return self.forward(features)

@@ -72,10 +72,10 @@ class FineTuningMethod(ABC):
 
     @abstractmethod
     def upload_initial_model(self) -> None:
-        """Upload the initial model to the storage.
+        """Upload the initial model to the items_set.
 
         Method that should be implemented by subclasses to upload the
-        initial model to the storage.
+        initial model to the items_set.
         """
         raise NotImplementedError(
             "Subclasses must implement upload_initial_model"

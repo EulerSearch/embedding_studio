@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Set, Tuple, Union
 
 from torch.utils.data import Dataset
 
-from embedding_studio.embeddings.features.feature_extractor_input import (
+from embedding_studio.embeddings.features.fine_tuning_input import (
     FineTuningInput,
 )
 
@@ -25,30 +25,30 @@ def _make_lists_equal_size(
     return equal_size_list1, equal_size_list2
 
 
-class PairedClickstreamDataset(Dataset):
+class PairedFineTuningInputsDataset(Dataset):
     def __init__(
         self,
-        sessions: List[FineTuningInput],
+        inputs: List[FineTuningInput],
         randomize: bool = False,
-        session_count: int = -1,
+        inputs_count: int = -1,
     ):
-        """Irrelevant clickstream inputs are quite unuseful, combine them with
+        """Irrelevant fine-tuning inputs are quite unuseful, combine them with
         usual inputs to extract useful information for the future.
 
-        :param sessions: clickstream inputs to group
+        :param inputs: fine-tuning inputs to group
         :param randomize: shuffle inputs or not (default: False)
-        :param session_count: maximum session pairs to use (default: -1)
+        :param inputs_count: maximum input pairs to use (default: -1)
         """
         self.randomize = randomize
-        self.session_count = session_count
+        self.inputs_count = inputs_count
 
         self.irrelevant: List[FineTuningInput] = []
         self.not_irrelevant: List[FineTuningInput] = []
-        for session in sessions:
-            if session.is_irrelevant:
-                self.irrelevant.append(session)
+        for fine_tuning_input in inputs:
+            if fine_tuning_input.is_irrelevant:
+                self.irrelevant.append(fine_tuning_input)
             else:
-                self.not_irrelevant.append(session)
+                self.not_irrelevant.append(fine_tuning_input)
 
         self.irrelevant_indexes: List[int] = list(range(len(self.irrelevant)))
         self.not_irrelevant_indexes: List[int] = list(
@@ -72,12 +72,12 @@ class PairedClickstreamDataset(Dataset):
                 random.shuffle(self.irrelevant_indexes)
                 random.shuffle(self.not_irrelevant_indexes)
 
-            if session_count > 0:
+            if inputs_count > 0:
                 self.irrelevant_indexes = self.irrelevant_indexes[
-                    :session_count
+                    :inputs_count
                 ]
                 self.not_irrelevant_indexes = self.not_irrelevant_indexes[
-                    :session_count
+                    :inputs_count
                 ]
 
         elif len(self.irrelevant) == 0:
@@ -87,12 +87,12 @@ class PairedClickstreamDataset(Dataset):
             raise ValueError("List of not irrelevant inputs is empty")
 
         self.irrelevant_ids: Set[str] = set()
-        for session in self.irrelevant:
-            self.irrelevant_ids.update(session.results)
+        for fine_tuning_input in self.irrelevant:
+            self.irrelevant_ids.update(fine_tuning_input.results)
 
         self.not_irrelevant_ids: Set[str] = set()
-        for session in self.not_irrelevant:
-            self.not_irrelevant_ids.update(session.results)
+        for fine_tuning_input in self.not_irrelevant:
+            self.not_irrelevant_ids.update(fine_tuning_input.results)
 
     def __len__(self) -> int:
         if len(self.irrelevant) == 0:

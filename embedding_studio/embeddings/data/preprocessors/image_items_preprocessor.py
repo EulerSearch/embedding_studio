@@ -4,10 +4,10 @@ import numpy as np
 from datasets import DatasetDict
 from PIL.Image import Image
 
+from embedding_studio.embeddings.data.items.items_set import ItemsSet
 from embedding_studio.embeddings.data.preprocessors.preprocessor import (
     ItemsDatasetDictPreprocessor,
 )
-from embedding_studio.embeddings.data.storages.storage import ItemsStorage
 from embedding_studio.embeddings.data.transforms.image.center_padded import (
     resize_by_longest_and_pad_transform,
 )
@@ -28,7 +28,7 @@ class ImageItemsDatasetDictPreprocessor(ItemsDatasetDictPreprocessor):
         n_pixels: int = 224,
         transform: Optional[Callable] = resize_by_longest_and_pad_transform,
     ):
-        """Preprocessor for image data storages.
+        """Preprocessor for image data items.
 
         :param field_normalizer: how to normalize field names
         :param n_pixels: side size
@@ -51,24 +51,24 @@ class ImageItemsDatasetDictPreprocessor(ItemsDatasetDictPreprocessor):
         return self._field_normalizer.id_field_name
 
     def convert(self, dataset: DatasetDict) -> DatasetDict:
-        """Normalize fields, apply image transforms and create items storages.
+        """Normalize fields, apply image transforms and create items sets.
 
         :param dataset: dataset dict to be preprocessed
-        :return: train/test DatasetDict with ItemsStorage as values
+        :return: train/test DatasetDict with ItemsSet as values
         """
         dataset: DatasetDict = self._field_normalizer(dataset)
 
-        storages: Dict[ItemsStorage] = {}
+        sets: Dict[ItemsSet] = {}
         # TODO: use more optimal way to iterate over DatasetDict
         for key in dataset.keys():
-            storages[key] = ItemsStorage(
+            sets[key] = ItemsSet(
                 dataset[key],
                 ImageItemsDatasetDictPreprocessor.IMAGES_FEATURE_PIXEL_NAME,
                 self._field_normalizer.id_field_name,
             )
 
-        storages: DatasetDict = DatasetDict(storages)
-        storages = storages.with_transform(
+        sets: DatasetDict = DatasetDict(sets)
+        sets = sets.with_transform(
             lambda examples: image_transforms(
                 examples,
                 transform=self._transform,
@@ -78,4 +78,4 @@ class ImageItemsDatasetDictPreprocessor(ItemsDatasetDictPreprocessor):
             )
         )
 
-        return storages
+        return sets

@@ -34,7 +34,8 @@ class AugmentationsComposition(AugmentationWithRandomSelection):
         """
         if isinstance(object, list):
             logger.warning(
-                f"The object you've passed is a list, please double check the input. If it is expected input type - everything is ok."
+                f"The object you've passed is a list, please double check the input. "
+                f"If it is expected input type - everything is ok."
             )
         objects = [
             object,
