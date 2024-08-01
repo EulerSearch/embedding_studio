@@ -1,10 +1,11 @@
 import logging
-from typing import Any, List, Optional
+from typing import List, Optional
 
 import sqlalchemy
 
 from embedding_studio.models.embeddings.collections import CollectionStateInfo
 from embedding_studio.models.embeddings.objects import Object, SearchResults
+from embedding_studio.models.payload.models import PayloadFilter
 from embedding_studio.vectordb.collection import Collection
 from embedding_studio.vectordb.collection_info_cache import CollectionInfoCache
 from embedding_studio.vectordb.exceptions import CollectionNotFoundError
@@ -78,7 +79,7 @@ class PgvectorCollection(Collection):
         limit: int,
         offset: Optional[int] = None,
         max_distance: Optional[float] = None,
-        filter: Optional[Any] = None,
+        payload_filter: Optional[PayloadFilter] = None,
     ) -> SearchResults:
         with self.Session() as session:
             search_st = self.DbModel.similarity_search_statement(
@@ -86,10 +87,35 @@ class PgvectorCollection(Collection):
                 limit=limit,
                 offset=offset,
                 max_distance=max_distance,
+                payload_filter=payload_filter,
             )
             logger.debug(f"Search statement: {search_st}")
             rows = session.execute(search_st)
             found_objects = self.DbModel.similar_objects_from_db(rows)
+            logger.debug(f"found db_object_parts: {found_objects}")
+            next_offset: Optional[int] = None
+            if len(found_objects) == limit:
+                next_offset = limit + (offset or 0)
+            return SearchResults(
+                found_objects=found_objects,
+                next_offset=next_offset,
+            )
+
+    def find_by_payload_filter(
+        self,
+        payload_filter: PayloadFilter,
+        limit: int,
+        offset: Optional[int] = None,
+    ) -> SearchResults:
+        with self.Session() as session:
+            search_st = self.DbModel.payload_search_statement(
+                payload_filter=payload_filter,
+                limit=limit,
+                offset=offset,
+            )
+            logger.debug(f"Search statement: {search_st}")
+            rows = session.execute(search_st)
+            found_objects = self.DbModel.found_objects_from_db(rows)
             logger.debug(f"found db_object_parts: {found_objects}")
             next_offset: Optional[int] = None
             if len(found_objects) == limit:

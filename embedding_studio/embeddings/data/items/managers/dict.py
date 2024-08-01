@@ -38,7 +38,7 @@ class DictItemSetManager(ItemSetManager):
         """Manager of ItemsSet ready to be used for fine-tuning of text-to-text model.
         Input data is a dataset with not single text containing values, and several columns (not ID) are used.
 
-        :param field_normalizer: object of DatasetFieldsNormalizer class (unify column names of training data)
+        :param field_normalizer: a function to unify column names in DatasetDict
         :param id_field_name: name of field with ID (default: None)
                None value means that every column except ID will be used to format a solid string,
                fields will be sorted by names in descending order.

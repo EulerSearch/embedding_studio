@@ -2,7 +2,8 @@ import logging
 from typing import Any, Dict, List, Optional, Type
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Index, String, asc, delete, insert, select
+from sqlalchemy import Index, String, and_, asc, delete, insert, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -13,9 +14,14 @@ from embedding_studio.models.embeddings.models import (
     MetricType,
 )
 from embedding_studio.models.embeddings.objects import (
+    FoundObject,
     Object,
     ObjectPart,
     SimilarObject,
+)
+from embedding_studio.models.payload.models import PayloadFilter
+from embedding_studio.vectordb.pgvector.query_to_sql import (
+    translate_query_to_orm_filters,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,6 +50,15 @@ def _make_db_model(collection_info: CollectionInfo):
     class DbObjectPart(DbObjectPartBase):
         __tablename__ = collection_info.collection_id
         vector = mapped_column(Vector(search_index.dimensions))
+        payload = mapped_column(JSONB)
+
+        __table_args__ = (
+            Index(
+                f"idx_{collection_info.collection_id}",
+                "payload",
+                postgresql_using="gin",
+            ),
+        )
 
         @staticmethod
         def hnsw_index():
@@ -114,6 +129,7 @@ def _make_db_model(collection_info: CollectionInfo):
                 DbObjectPart.object_id,
                 DbObjectPart.part_id,
                 DbObjectPart.vector,
+                DbObjectPart.payload,
             ).where(DbObjectPart.object_id.in_(object_ids))
 
         @staticmethod
@@ -122,6 +138,7 @@ def _make_db_model(collection_info: CollectionInfo):
             limit: int,
             offset: Optional[int] = None,
             max_distance: Optional[float] = None,
+            payload_filter: Optional[PayloadFilter] = None,
         ):
             adist_expr = DbObjectPart.aggregated_distance_expression(
                 query_vector
@@ -131,17 +148,60 @@ def _make_db_model(collection_info: CollectionInfo):
                     DbObjectPart.object_id,
                     adist_expr.label("distance"),
                     func.count(DbObjectPart.part_id).label("parts_found"),
+                    DbObjectPart.payload,
                 )
-                .group_by(DbObjectPart.object_id)
+                .group_by(DbObjectPart.object_id, DbObjectPart.payload)
                 .order_by(asc("distance"))
                 .limit(limit)
             )
-            if max_distance:
+            conditions = []
+            if max_distance is not None:
                 dist_expr = DbObjectPart.distance_expression(query_vector)
-                select_st = select_st.where(dist_expr < max_distance)
-            if offset:
+                conditions.append(dist_expr < max_distance)
+
+            if payload_filter:
+                payload_conditions = translate_query_to_orm_filters(
+                    payload_filter, prefix="payload"
+                )
+                conditions += payload_conditions
+
+            # Apply conditions to the select statement
+            if conditions:
+                select_st = select_st.where(and_(*conditions))
+
+            # Adding offset if specified
+            if offset is not None:
                 select_st = select_st.offset(offset)
+
             return select_st
+
+        @staticmethod
+        def payload_search_statement(
+            payload_filter: PayloadFilter,
+            limit: int,
+            offset: Optional[int] = None,
+        ):
+            # Translate the payload query into a SQL condition and convert it to a SQLAlchemy text clause
+            payload_conditions = translate_query_to_orm_filters(
+                payload_filter, prefix="payload"
+            )
+
+            # Create the base select statement
+            select_statement = (
+                select(
+                    DbObjectPart.object_id,
+                    func.count(DbObjectPart.part_id).label("parts_found"),
+                    DbObjectPart.payload,
+                )
+                .where(and_(*payload_conditions))
+                .group_by(DbObjectPart.object_id, DbObjectPart.payload)
+                .limit(limit)
+            )
+
+            if offset is not None:
+                select_statement = select_statement.offset(offset)
+
+            return select_statement
 
         @staticmethod
         def insert_statement(db_object_parts: List["DbObjectPart"]):
@@ -153,7 +213,10 @@ def _make_db_model(collection_info: CollectionInfo):
             insert_st = DbObjectPart.insert_statement(db_object_parts)
             return insert_st.on_conflict_do_update(
                 index_elements=[DbObjectPart.part_id],
-                set_=dict(vector=insert_st.excluded.vector),
+                set_=dict(
+                    vector=insert_st.excluded.vector,
+                    payload=insert_st.excluded.payload,
+                ),
             )
 
         @staticmethod
@@ -179,6 +242,7 @@ def _make_db_model(collection_info: CollectionInfo):
                             object_id=obj.object_id,
                             part_id=part_id,
                             vector=part.vector,
+                            payload=obj.payload,
                         )
                     )
             return result
@@ -203,7 +267,11 @@ def _make_db_model(collection_info: CollectionInfo):
                     row.object_id, Object(object_id=row.object_id, parts=[])
                 )
                 obj.parts.append(
-                    ObjectPart(part_id=row.part_id, vector=row.vector)
+                    ObjectPart(
+                        part_id=row.part_id,
+                        vector=row.vector,
+                        payload=obj.payload,
+                    )
                 )
             return list(objects_by_id.values())
 
@@ -214,6 +282,18 @@ def _make_db_model(collection_info: CollectionInfo):
                     object_id=row.object_id,
                     distance=row.distance,
                     parts_found=row.parts_found,
+                    payload=row.payload,
+                )
+                for row in rows
+            ]
+
+        @staticmethod
+        def found_objects_from_db(rows) -> List[FoundObject]:
+            return [
+                FoundObject(
+                    object_id=row.object_id,
+                    parts_found=row.parts_found,
+                    payload=row.payload,
                 )
                 for row in rows
             ]

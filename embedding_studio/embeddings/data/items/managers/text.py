@@ -33,7 +33,7 @@ class TextItemSetManager(ItemSetManager):
     ):
         """Manager of ItemsSet ready to be used for fine-tuning of text-to-text model.
 
-        :param field_normalizer: object of DatasetFieldsNormalizer class (unify column names of training data)
+        :param field_normalizer: a function to unify column names in DatasetDict
         :param id_field_name: specified field name ID (default: None)
         :param items_set_splitter: class to split the items in subparts(default: None)
         :param augmenter: function that add additional augmented rows to an item items_set (default: None)

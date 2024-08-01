@@ -14,13 +14,16 @@ class Object(BaseModel):
     payload: Optional[Dict[str, Any]] = None
 
 
-class SimilarObject(BaseModel):
+class FoundObject(BaseModel):
     object_id: str
-    distance: float  # aggregated
     parts_found: int
     payload: Optional[Dict[str, Any]] = None
 
 
+class SimilarObject(FoundObject):
+    distance: float  # aggregated
+
+
 class SearchResults(BaseModel):
-    found_objects: List[SimilarObject]
+    found_objects: List[Union[FoundObject, SimilarObject]]
     next_offset: Optional[Union[str, int]] = None

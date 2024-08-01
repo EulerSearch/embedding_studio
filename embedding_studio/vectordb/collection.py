@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from embedding_studio.models.embeddings.collections import CollectionStateInfo
 from embedding_studio.models.embeddings.objects import Object, SearchResults
+from embedding_studio.models.payload.models import PayloadFilter
 
 
 class Collection(ABC):
@@ -40,6 +41,15 @@ class Collection(ABC):
         limit: int,
         offset: Optional[int] = None,
         max_distance: Optional[float] = None,
-        filter: Optional[Any] = None,
+        payload_filter: Optional[PayloadFilter] = None,
+    ) -> SearchResults:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def find_by_payload_filter(
+        self,
+        payload_filter: PayloadFilter,
+        limit: int,
+        offset: Optional[int] = None,
     ) -> SearchResults:
         raise NotImplementedError()

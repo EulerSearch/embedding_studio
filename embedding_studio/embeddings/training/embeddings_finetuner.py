@@ -344,7 +344,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
     def create(
         model: EmbeddingsModelInterface,
         settings: FineTuningSettings,
-        items_storages: DatasetDict,
+        items_sets: DatasetDict,
         query_retriever: QueryRetriever,
         fine_tuning_params: FineTuningParams,
         tracker: ExperimentsManager,
@@ -353,7 +353,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
 
         :param model: embedding model itself
         :param settings: fine-tuning settings
-        :param items_storages:  items items_set related to a given iteration, as a datasetdict with train and test keys
+        :param items_sets:  items items_set related to a given iteration, as a datasetdict with train and test keys
         :param query_retriever: object to get item related to query, that can be used in "forward"
         :param fine_tuning_params: hyper params of fine-tuning task
         :param tracker: experiment management object
@@ -361,7 +361,7 @@ class EmbeddingsFineTuner(pl.LightningModule):
         """
         return EmbeddingsFineTuner(
             model=model,
-            items_sets=items_storages,
+            items_sets=items_sets,
             query_retriever=query_retriever,
             loss_func=settings.loss_func,
             fine_tuning_params=fine_tuning_params,

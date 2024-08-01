@@ -60,7 +60,10 @@ def get_collection(
             logger.warning(
                 f"Collection with name: {embedding_model_info.full_name} does not exist [task ID: {task.id}]"
             )
-            collection = vector_db.create_collection(embedding_model_info)
+            search_index_info = plugin.get_search_index_info()
+            collection = vector_db.create_collection(
+                embedding_model_info, search_index_info
+            )
         else:
             collection = vector_db.get_collection(embedding_model_info)
 
