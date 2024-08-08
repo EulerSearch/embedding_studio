@@ -144,6 +144,7 @@ def upload_vectors(
                     object_id=item.meta.object_id,
                     parts=parts,
                     payload=item.meta.payload,
+                    storage_meta=item.meta.dict(),
                 )
             )
 

@@ -26,7 +26,7 @@ class PgvectorCollection(Collection):
             raise CollectionNotFoundError(collection_id)
         self._collection_id = collection_id
         self._collection_info_cache = collection_info_cache
-        self.DbModel = make_db_model(collection_info)
+        self.DbObject, self.DbObjectPart = make_db_model(collection_info)
         self._pg_database = pg_database
         self.Session = sqlalchemy.orm.sessionmaker(pg_database)
 
@@ -34,44 +34,109 @@ class PgvectorCollection(Collection):
         return self._collection_info_cache.get_collection(self._collection_id)
 
     def insert(self, objects: List[Object]) -> None:
-        with self.Session() as session:
-            db_object_parts = self.DbModel.objects_to_db(objects)
-            logger.debug(f"db_object_parts to insert: {db_object_parts}")
-            insert_st = self.DbModel.insert_statement(db_object_parts)
-            logger.debug(f"insert statement: {insert_st}")
-            session.execute(insert_st)
-            session.commit()
+        db_objects = [
+            self.DbObject(
+                object_id=obj.object_id,
+                payload=obj.payload,
+                storage_meta=obj.storage_meta,
+            )
+            for obj in objects
+        ]
+        db_parts = [
+            self.DbObjectPart(
+                object_id=obj.object_id,
+                part_id=part.part_id,
+                vector=part.vector,
+                object=db_objects[i],
+            )
+            for i, obj in enumerate(objects)
+            for part in obj.parts
+        ]
+
+        with self.Session() as session, session.begin():
+            try:
+                # Insert objects
+                insert_st = self.DbObject.insert_objects_statement(db_objects)
+                session.execute(insert_st)
+
+                # Insert parts
+                insert_st = self.DbObjectPart.insert_parts_statement(db_parts)
+                session.execute(insert_st)
+
+            except Exception as e:
+                logger.error(f"Failed to insert objects with parts: {e}")
+                raise
 
     def create_index(self) -> None:
-        index = self.DbModel.hnsw_index()
+        index = self.DbObjectPart.hnsw_index()
         index.create(self._pg_database, checkfirst=True)
         self._collection_info_cache.set_index_state(
             self._collection_id, created=True
         )
 
     def upsert(self, objects: List[Object], shrink_parts: bool = True) -> None:
-        with self.Session() as session:
-            db_object_parts = self.DbModel.objects_to_db(objects)
-            logger.debug(f"db_object_parts to upsert: {db_object_parts}")
-            if shrink_parts:
-                object_ids = [obj.object_id for obj in objects]
-                session.execute(self.DbModel.delete_statement(object_ids))
-                session.execute(self.DbModel.insert_statement(db_object_parts))
-            else:
-                session.execute(self.DbModel.upsert_statement(db_object_parts))
-            session.commit()
+        db_objects = [
+            self.DbObject(
+                object_id=obj.object_id,
+                payload=obj.payload,
+                storage_meta=obj.storage_meta,
+            )
+            for obj in objects
+        ]
+        db_parts = [
+            self.DbObjectPart(
+                object_id=obj.object_id,
+                part_id=part.part_id,
+                vector=part.vector,
+                object=db_objects[i],
+            )
+            for i, obj in enumerate(objects)
+            for part in obj.parts
+        ]
+
+        with self.Session() as session, session.begin():
+            try:
+                # Upsert objects
+                upsert_st = self.DbObject.upsert_objects_statement(db_objects)
+                session.execute(upsert_st)
+
+                if shrink_parts:
+                    # Get object IDs
+                    object_ids = [obj.object_id for obj in objects]
+
+                    # Delete old parts
+                    delete_parts_st = self.DbObjectPart.delete_statement(
+                        object_ids
+                    )
+                    session.execute(delete_parts_st)
+
+                    # Insert new parts
+                    insert_parts_st = self.DbObjectPart.insert_parts_statement(
+                        db_parts
+                    )
+                    session.execute(insert_parts_st)
+                else:
+                    # Upsert parts without deletion
+                    upsert_parts_st = self.DbObjectPart.upsert_parts_statement(
+                        db_parts
+                    )
+                    session.execute(upsert_parts_st)
+
+            except Exception as e:
+                logger.exception(f"Failed to upsert objects with parts: {e}")
+                raise
 
     def delete(self, object_ids: List[str]) -> None:
-        with self.Session() as session:
-            session.execute(self.DbModel.delete_statement(object_ids))
-            session.commit()
+        with self.Session() as session, session.begin():
+            session.execute(self.DbObjectPart.delete_statement(object_ids))
+            session.execute(self.DbObject.delete_statement(object_ids))
 
     def find_by_ids(self, object_ids: List[str]) -> List[Object]:
-        with self.Session() as session:
+        with self.Session() as session, session.begin():
             rows = session.execute(
-                self.DbModel.find_by_id_statement(object_ids)
+                self.DbObject.find_by_id_statement(object_ids)
             )
-            return self.DbModel.objects_from_db(rows)
+            return self.DbObject.objects_from_db(rows)
 
     def find_similarities(
         self,
@@ -81,8 +146,8 @@ class PgvectorCollection(Collection):
         max_distance: Optional[float] = None,
         payload_filter: Optional[PayloadFilter] = None,
     ) -> SearchResults:
-        with self.Session() as session:
-            search_st = self.DbModel.similarity_search_statement(
+        with self.Session() as session, session.begin():
+            search_st = self.DbObjectPart.similarity_search_statement(
                 query_vector=query_vector,
                 limit=limit,
                 offset=offset,
@@ -91,7 +156,7 @@ class PgvectorCollection(Collection):
             )
             logger.debug(f"Search statement: {search_st}")
             rows = session.execute(search_st)
-            found_objects = self.DbModel.similar_objects_from_db(rows)
+            found_objects = self.DbObjectPart.similar_objects_from_db(rows)
             logger.debug(f"found db_object_parts: {found_objects}")
             next_offset: Optional[int] = None
             if len(found_objects) == limit:
@@ -107,15 +172,15 @@ class PgvectorCollection(Collection):
         limit: int,
         offset: Optional[int] = None,
     ) -> SearchResults:
-        with self.Session() as session:
-            search_st = self.DbModel.payload_search_statement(
+        with self.Session() as session, session.begin():
+            search_st = self.DbObjectPart.payload_search_statement(
                 payload_filter=payload_filter,
                 limit=limit,
                 offset=offset,
             )
             logger.debug(f"Search statement: {search_st}")
             rows = session.execute(search_st)
-            found_objects = self.DbModel.found_objects_from_db(rows)
+            found_objects = self.DbObjectPart.found_objects_from_db(rows)
             logger.debug(f"found db_object_parts: {found_objects}")
             next_offset: Optional[int] = None
             if len(found_objects) == limit:

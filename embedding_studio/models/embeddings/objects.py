@@ -12,12 +12,14 @@ class Object(BaseModel):
     object_id: str
     parts: List[ObjectPart]
     payload: Optional[Dict[str, Any]] = None
+    storage_meta: Dict[str, Any]
 
 
 class FoundObject(BaseModel):
     object_id: str
     parts_found: int
     payload: Optional[Dict[str, Any]] = None
+    storage_meta: Dict[str, Any]
 
 
 class SimilarObject(FoundObject):

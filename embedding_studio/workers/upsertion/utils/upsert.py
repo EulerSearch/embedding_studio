@@ -229,6 +229,8 @@ def handle_upsert(task: UpsertionTaskInDb):
 
         if end <= len(task.items):
             batch = task.items[start:end]
+            if len(batch) == 0:
+                continue
 
             upsert_batch(
                 batch=batch,

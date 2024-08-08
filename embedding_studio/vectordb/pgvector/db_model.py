@@ -1,11 +1,21 @@
 import logging
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Tuple, Type
 
+import sqlalchemy
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Index, String, and_, asc, delete, insert, select
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import (
+    ForeignKey,
+    Index,
+    String,
+    and_,
+    asc,
+    delete,
+    insert,
+    select,
+)
+from sqlalchemy.dialects.postgresql import JSONB, insert as pg_insert
+from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.sql import func
 
 from embedding_studio.models.embeddings.collections import CollectionInfo
@@ -34,23 +44,56 @@ class DimensionsMismatch(Exception):
 Base = declarative_base()
 
 
+class DbObjectBase(Base):
+    __abstract__ = True
+
+    @declared_attr
+    def object_id(cls):
+        return mapped_column(String(128), primary_key=True)
+
+    @declared_attr
+    def payload(cls):
+        return mapped_column(JSONB, index=True)
+
+    @declared_attr
+    def storage_meta(cls):
+        return mapped_column(JSONB)
+
+
 class DbObjectPartBase(Base):
     __abstract__ = True
-    part_id: Mapped[str] = mapped_column(String(128), primary_key=True)
-    object_id: Mapped[str] = mapped_column(String(128), index=True)
+
+    @declared_attr
+    def part_id(cls):
+        return mapped_column(String(128), primary_key=True)
+
+    @declared_attr
+    def object_id(cls):
+        return mapped_column(
+            String(128),
+            ForeignKey(f"dbo_{cls.__tablename__[5:]}.object_id"),
+            index=True,
+        )
+
+    @declared_attr
+    def vector(cls):
+        return mapped_column(Vector)
 
 
-DB_MODELS: Dict[str, Type[DbObjectPartBase]] = {}
+DB_MODELS: Dict[str, Tuple[Type[DbObjectBase], Type[DbObjectPartBase]]] = {}
 
 
 def _make_db_model(collection_info: CollectionInfo):
-    collection_info.embedding_model
     search_index = collection_info.search_index_info
 
-    class DbObjectPart(DbObjectPartBase):
-        __tablename__ = collection_info.collection_id
-        vector = mapped_column(Vector(search_index.dimensions))
-        payload = mapped_column(JSONB)
+    class DbObject(DbObjectBase):
+        __tablename__ = f"dbo_{collection_info.collection_id}"
+
+        parts = relationship(
+            "DbObjectPart",
+            back_populates="object",
+            cascade="all, delete-orphan",
+        )
 
         __table_args__ = (
             Index(
@@ -59,6 +102,60 @@ def _make_db_model(collection_info: CollectionInfo):
                 postgresql_using="gin",
             ),
         )
+
+        @classmethod
+        def create_table(cls, pg_database: sqlalchemy.Engine):
+            cls.__table__.create(pg_database, checkfirst=True)
+
+        @staticmethod
+        def insert_objects_statement(db_objects: List["DbObject"]):
+            db_dicts = DbObject.db_objects_to_dicts(db_objects)
+            return insert(DbObject).values(db_dicts)
+
+        @staticmethod
+        def upsert_objects_statement(db_objects: List["DbObject"]):
+            db_dicts = DbObject.db_objects_to_dicts(db_objects)
+            insert_st = pg_insert(DbObject).values(db_dicts)
+            update_dict = {
+                "payload": insert_st.excluded.payload,
+                "storage_meta": insert_st.excluded.storage_meta,
+            }
+            return insert_st.on_conflict_do_update(
+                index_elements=[DbObject.object_id],
+                set_=update_dict,
+            )
+
+        @staticmethod
+        def db_object_to_dict(db_object: "DbObject") -> Dict[str, Any]:
+            return {
+                "object_id": db_object.object_id,
+                "payload": db_object.payload,
+                "storage_meta": db_object.storage_meta,
+            }
+
+        @staticmethod
+        def db_objects_to_dicts(
+            db_objects: List["DbObject"],
+        ) -> List[Dict[str, Any]]:
+            return [DbObject.db_object_to_dict(obj) for obj in db_objects]
+
+        @staticmethod
+        def delete_statement(object_ids: List[str]):
+            return delete(DbObject).where(DbObject.object_id.in_(object_ids))
+
+    class DbObjectPart(DbObjectPartBase):
+        __tablename__ = f"dbop_{collection_info.collection_id}"
+        object_id = mapped_column(
+            String(128),
+            ForeignKey(f"dbo_{collection_info.collection_id}.object_id"),
+            index=True,
+        )
+        vector = mapped_column(Vector(search_index.dimensions))
+        object = relationship("DbObject", back_populates="parts")
+
+        @classmethod
+        def create_table(cls, pg_database: sqlalchemy.Engine):
+            cls.__table__.create(pg_database, checkfirst=True)
 
         @staticmethod
         def hnsw_index():
@@ -125,12 +222,17 @@ def _make_db_model(collection_info: CollectionInfo):
 
         @staticmethod
         def find_by_id_statement(object_ids: List[float]):
-            return select(
-                DbObjectPart.object_id,
-                DbObjectPart.part_id,
-                DbObjectPart.vector,
-                DbObjectPart.payload,
-            ).where(DbObjectPart.object_id.in_(object_ids))
+            return (
+                select(
+                    DbObject.object_id,
+                    DbObjectPart.part_id,
+                    DbObjectPart.vector,
+                    DbObject.payload,
+                    DbObject.storage_meta,
+                )
+                .join(DbObject)
+                .where(DbObject.object_id.in_(object_ids))
+            )
 
         @staticmethod
         def similarity_search_statement(
@@ -145,12 +247,16 @@ def _make_db_model(collection_info: CollectionInfo):
             )
             select_st = (
                 select(
-                    DbObjectPart.object_id,
+                    DbObject.object_id,
                     adist_expr.label("distance"),
                     func.count(DbObjectPart.part_id).label("parts_found"),
-                    DbObjectPart.payload,
+                    DbObject.payload,
+                    DbObject.storage_meta,
                 )
-                .group_by(DbObjectPart.object_id, DbObjectPart.payload)
+                .join(DbObject)
+                .group_by(
+                    DbObject.object_id, DbObject.payload, DbObject.storage_meta
+                )
                 .order_by(asc("distance"))
                 .limit(limit)
             )
@@ -189,12 +295,16 @@ def _make_db_model(collection_info: CollectionInfo):
             # Create the base select statement
             select_statement = (
                 select(
-                    DbObjectPart.object_id,
+                    DbObject.object_id,
                     func.count(DbObjectPart.part_id).label("parts_found"),
-                    DbObjectPart.payload,
+                    DbObject.payload,
+                    DbObject.storage_meta,
                 )
+                .join(DbObject)
                 .where(and_(*payload_conditions))
-                .group_by(DbObjectPart.object_id, DbObjectPart.payload)
+                .group_by(
+                    DbObject.object_id, DbObject.payload, DbObject.storage_meta
+                )
                 .limit(limit)
             )
 
@@ -204,19 +314,25 @@ def _make_db_model(collection_info: CollectionInfo):
             return select_statement
 
         @staticmethod
-        def insert_statement(db_object_parts: List["DbObjectPart"]):
-            db_dicts = DbObjectPart.db_objects_to_dicts(db_object_parts)
+        def insert_parts_statement(db_parts: List["DbObjectPart"]):
+            db_dicts = DbObjectPart.db_parts_to_dicts(
+                db_parts, with_metadata=False
+            )
             return insert(DbObjectPart).values(db_dicts)
 
         @staticmethod
-        def upsert_statement(db_object_parts: List["DbObjectPart"]):
-            insert_st = DbObjectPart.insert_statement(db_object_parts)
+        def upsert_parts_statement(db_parts: List["DbObjectPart"]):
+            db_dicts = DbObjectPart.db_parts_to_dicts(
+                db_parts, with_metadata=False
+            )
+
+            insert_st = pg_insert(DbObjectPart).values(db_dicts)
+            update_dict = {
+                "vector": insert_st.excluded.vector,
+            }
             return insert_st.on_conflict_do_update(
                 index_elements=[DbObjectPart.part_id],
-                set_=dict(
-                    vector=insert_st.excluded.vector,
-                    payload=insert_st.excluded.payload,
-                ),
+                set_=update_dict,
             )
 
         @staticmethod
@@ -227,8 +343,14 @@ def _make_db_model(collection_info: CollectionInfo):
 
         @staticmethod
         def objects_to_db(objects: List[Object]) -> List["DbObjectPart"]:
-            result: List[DbObjectPart] = []
+            db_objects = []
             for obj in objects:
+                db_object = DbObject(
+                    object_id=obj.object_id,
+                    payload=obj.payload,
+                    storage_meta=obj.storage_meta,
+                )
+                db_objects.append(db_object)
                 for i, part in enumerate(obj.parts):
                     part_id = part.part_id or f"{obj.object_id}_{i}"
                     try:
@@ -237,27 +359,52 @@ def _make_db_model(collection_info: CollectionInfo):
                         raise RuntimeError(
                             f"Failed to load object part {part_id}"
                         ) from err
-                    result.append(
+                    db_objects.append(
                         DbObjectPart(
                             object_id=obj.object_id,
                             part_id=part_id,
                             vector=part.vector,
-                            payload=obj.payload,
+                            object=db_object,
                         )
                     )
-            return result
+            return db_objects
 
         @staticmethod
-        def db_object_to_dict(db_object: "DbObjectPart") -> Dict[str, Any]:
-            result = db_object.__dict__
-            result.pop("_sa_instance_state")
-            return result
+        def validate_dimensions(vector: List[float]):
+            dim = len(vector)
+            if dim != search_index.dimensions:
+                raise DimensionsMismatch(
+                    f"Dimensions mismatch: "
+                    f"input vector({dim}), expected vector({search_index.dimensions})"
+                )
 
         @staticmethod
-        def db_objects_to_dicts(
-            db_objects: List["DbObjectPart"],
+        def db_part_to_dict(
+            db_part: "DbObjectPart", with_metadata: bool = True
+        ) -> Dict[str, Any]:
+            if with_metadata:
+                return {
+                    "part_id": db_part.part_id,
+                    "object_id": db_part.object_id,
+                    "vector": db_part.vector,
+                    "payload": db_part.object.payload,
+                    "storage_meta": db_part.object.storage_meta,
+                }
+            else:
+                return {
+                    "part_id": db_part.part_id,
+                    "object_id": db_part.object_id,
+                    "vector": db_part.vector,
+                }
+
+        @staticmethod
+        def db_parts_to_dicts(
+            db_parts: List["DbObjectPart"], with_metadata: bool = True
         ) -> List[Dict[str, Any]]:
-            return [DbObjectPart.db_object_to_dict(obj) for obj in db_objects]
+            return [
+                DbObjectPart.db_part_to_dict(part, with_metadata)
+                for part in db_parts
+            ]
 
         @staticmethod
         def objects_from_db(rows) -> List[Object]:
@@ -283,6 +430,7 @@ def _make_db_model(collection_info: CollectionInfo):
                     distance=row.distance,
                     parts_found=row.parts_found,
                     payload=row.payload,
+                    storage_meta=row.storage_meta,
                 )
                 for row in rows
             ]
@@ -294,17 +442,18 @@ def _make_db_model(collection_info: CollectionInfo):
                     object_id=row.object_id,
                     parts_found=row.parts_found,
                     payload=row.payload,
+                    storage_meta=row.storage_meta,
                 )
                 for row in rows
             ]
 
-    return DbObjectPart
+    return DbObject, DbObjectPart
 
 
 def make_db_model(collection_info: CollectionInfo):
     col_id = collection_info.collection_id
     if col_id in DB_MODELS:
         return DB_MODELS[col_id]
-    model = _make_db_model(collection_info)
-    DB_MODELS[col_id] = model
-    return model
+    object_model, object_part_model = _make_db_model(collection_info)
+    DB_MODELS[col_id] = (object_model, object_part_model)
+    return object_model, object_part_model

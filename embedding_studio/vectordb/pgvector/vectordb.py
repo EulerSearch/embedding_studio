@@ -76,8 +76,10 @@ class PgvectorDb(VectorDb):
             embedding_model=embedding_model,
             search_index_info=search_index_info,
         )
-        db_model = make_db_model(collection_info)
-        db_model.__table__.create(self._pg_database, checkfirst=True)
+        db_object_model, db_object_part_model = make_db_model(collection_info)
+        db_object_model.create_table(self._pg_database)
+        db_object_part_model.create_table(self._pg_database)
+
         # TODO: protect from race condition
         # TODO: protect from inconsistent state (after crash at this point)
         created_collection_info = self._collection_info_cache.add_collection(
@@ -104,8 +106,11 @@ class PgvectorDb(VectorDb):
             raise CollectionNotFoundError(embedding_model.full_name)
         if col_info.work_state == CollectionWorkState.BLUE:
             raise DeleteBlueCollectionError()
-        db_model = make_db_model(col_info)
-        db_model.__table__.drop(self._pg_database, checkfirst=True)
+
+        db_object_model, db_object_part_model = make_db_model(col_info)
+        db_object_part_model.__table__.drop(self._pg_database, checkfirst=True)
+        db_object_model.__table__.drop(self._pg_database, checkfirst=True)
+
         # TODO: protect from inconsistent state (after crash at this point)
         self._collection_info_cache.delete_collection(
             embedding_model.full_name
