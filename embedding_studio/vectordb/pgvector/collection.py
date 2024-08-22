@@ -1,14 +1,23 @@
 import logging
+import time
+from contextlib import contextmanager
 from typing import List, Optional
 
 import sqlalchemy
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from embedding_studio.models.embeddings.collections import CollectionStateInfo
 from embedding_studio.models.embeddings.objects import Object, SearchResults
 from embedding_studio.models.payload.models import PayloadFilter
 from embedding_studio.vectordb.collection import Collection
-from embedding_studio.vectordb.collection_info_cache import CollectionInfoCache
-from embedding_studio.vectordb.exceptions import CollectionNotFoundError
+from embedding_studio.vectordb.collection_info_cache import (
+    CollectionInfo,
+    CollectionInfoCache,
+)
+from embedding_studio.vectordb.exceptions import (
+    CollectionNotFoundError,
+    LockAcquisitionError,
+)
 from embedding_studio.vectordb.pgvector.db_model import make_db_model
 
 logger = logging.getLogger(__name__)
@@ -30,8 +39,76 @@ class PgvectorCollection(Collection):
         self._pg_database = pg_database
         self.Session = sqlalchemy.orm.sessionmaker(pg_database)
 
+    @property
+    def get_info(self) -> CollectionInfo:
+        return self._collection_info_cache.get_collection(self._collection_id)
+
     def get_state_info(self) -> CollectionStateInfo:
         return self._collection_info_cache.get_collection(self._collection_id)
+
+    @contextmanager
+    def lock_objects(
+        self,
+        object_ids: List[str],
+        max_attempts: int = 5,
+        wait_time: float = 1.0,
+    ):
+        """
+        Context manager to lock the specified objects within a transaction.
+
+        :param object_ids: List of object IDs to lock.
+        :param max_attempts: Maximum number of attempts to acquire the lock.
+        :param wait_time: Time to wait between attempts (in seconds).
+        """
+        attempt = 0
+
+        with self.Session() as session:
+            session.begin()  # Begin transaction
+
+            while attempt < max_attempts:
+                try:
+                    # Try to lock the objects
+                    lock_statement = sqlalchemy.text(
+                        f'SELECT 1 FROM "{self.DbObject.__tablename__}" '
+                        f"WHERE object_id = ANY(:object_ids) FOR UPDATE NOWAIT"
+                    ).bindparams(object_ids=object_ids)
+                    session.execute(lock_statement)
+                    break  # Lock acquired successfully
+
+                except OperationalError as e:
+                    if "55P03" in str(
+                        e.orig.pgcode
+                    ):  # "55P03" is the lock not available error code
+                        attempt += 1
+                        if attempt >= max_attempts:
+                            logger.error(
+                                f"Failed to obtain lock for objects after {max_attempts} attempts: {object_ids}"
+                            )
+                            raise LockAcquisitionError(
+                                f"Could not obtain lock for objects: {object_ids}"
+                            )
+                        logger.warning(
+                            f"Could not obtain lock, attempt {attempt}/{max_attempts}. Waiting {wait_time} seconds before retry."
+                        )
+                        time.sleep(wait_time)
+                    else:
+                        raise
+                except SQLAlchemyError as e:
+                    logger.exception(f"Unexpected SQLAlchemy error: {e}")
+                    session.rollback()
+                    raise
+
+            # Yield control back to the caller while holding the lock
+            try:
+                yield session
+
+                # Commit the transaction after the operations
+                session.commit()
+
+            except Exception as e:
+                logger.exception(f"Error during operation: {e}")
+                session.rollback()
+                raise
 
     def insert(self, objects: List[Object]) -> None:
         db_objects = [
@@ -128,8 +205,19 @@ class PgvectorCollection(Collection):
 
     def delete(self, object_ids: List[str]) -> None:
         with self.Session() as session, session.begin():
-            session.execute(self.DbObjectPart.delete_statement(object_ids))
-            session.execute(self.DbObject.delete_statement(object_ids))
+            try:
+                # Delete from DbObjectPart first to avoid deadlocks
+                session.execute(self.DbObjectPart.delete_statement(object_ids))
+
+                # Then delete from DbObject
+                session.execute(self.DbObject.delete_statement(object_ids))
+
+            except Exception as e:
+                logger.error(f"Failed to delete objects: {e}")
+                session.rollback()
+                raise
+            else:
+                session.commit()
 
     def find_by_ids(self, object_ids: List[str]) -> List[Object]:
         with self.Session() as session, session.begin():

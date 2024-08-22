@@ -166,12 +166,6 @@ class DefaultTextFineTuningMethod(FineTuningMethod):
             test_each_n_sessions=0.5,
             num_epochs=3,
         )
-        self.inference_client_factory = TextToTextE5TritonClientFactory(
-            f"{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}",
-            plugin_name=self.meta.name,
-            preprocessor=self.items_set_manager.preprocessor,
-            model_name=self.model_name,
-        )
 
     def upload_initial_model(self) -> None:
         model = TextToTextE5Model(SentenceTransformer(self.model_name))
@@ -187,7 +181,12 @@ class DefaultTextFineTuningMethod(FineTuningMethod):
         return self.manager
 
     def get_inference_client_factory(self) -> TritonClientFactory:
-        return self.inference_client_factory
+        return TextToTextE5TritonClientFactory(
+            f"{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}",
+            plugin_name=self.meta.name,
+            preprocessor=self.items_set_manager.preprocessor,
+            model_name=self.model_name,
+        )
 
     def get_fine_tuning_builder(
         self, clickstream: List[SessionWithEvents]

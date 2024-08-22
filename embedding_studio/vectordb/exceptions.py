@@ -17,6 +17,19 @@ class CreateCollectionConflictError(VectorDbError):
         )
 
 
+class LockAcquisitionError(Exception):
+    """
+    Exception raised when a lock cannot be acquired after multiple attempts.
+    """
+
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return f"LockAcquisitionError: {self.message}"
+
+
 class DeleteBlueCollectionError(VectorDbError):
     def __init__(
         self,

@@ -1,7 +1,8 @@
 class BestParamsNotFoundError(Exception):
     def __init__(self, experiment_id: str):
         super(BestParamsNotFoundError, self).__init__(
-            f"Cannot retrieve best params list for the experiment with ID {experiment_id}"
+            f"Cannot retrieve best params list "
+            f"for the experiment with ID {experiment_id}"
         )
         self.experiment_id = experiment_id
 

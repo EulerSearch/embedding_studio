@@ -137,16 +137,28 @@ class CRUDBase(Generic[SchemaInDbType, CreateSchemaType, UpdateSchemaType]):
         return self.model.model_validate(obj)
 
     def create(
-        self, schema: CreateSchemaType, return_obj: bool = False
+        self,
+        schema: CreateSchemaType,
+        id: Optional[Union[str, ObjectId]] = None,
+        return_obj: bool = False,
     ) -> Optional[Union[SchemaInDbType, ObjectId]]:
-        """Create a new object.
+        """Create a new object with an optional custom id.
 
         :param schema: Pydantic model instance for creation.
-        :param return_obj: Flag to indicate if the created object should be
-            returned.
+        :param id: Custom id value (can be a string, ObjectId, or None).
+        :param return_obj: Flag to indicate if the created object should be returned.
         :return: Created object or ID.
         """
-        new_obj = self.collection.insert_one(schema.model_dump())
+        data = schema.model_dump(exclude_unset=True)
+
+        # Assign the provided id, or generate one if not provided
+        if id:
+            data["_id"] = self.to_object_id(id)
+        else:
+            data["_id"] = ObjectId()  # or uuid.uuid4() if you prefer UUIDs
+
+        new_obj = self.collection.insert_one(data)
+
         if return_obj:
             created_new_obj = self.collection.find_one(
                 {self._MONGODB_ID: new_obj.inserted_id}
@@ -154,6 +166,7 @@ class CRUDBase(Generic[SchemaInDbType, CreateSchemaType, UpdateSchemaType]):
             if created_new_obj:
                 return self.model.model_validate(created_new_obj)
             return None
+
         return new_obj.inserted_id
 
     def update(

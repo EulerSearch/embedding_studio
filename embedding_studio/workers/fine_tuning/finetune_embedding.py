@@ -75,7 +75,8 @@ def _finetune_embedding_model_one_step_hyperopt(
         )
     except Exception as e:
         logger.error(
-            f"Failed hyperopt run with exception: {str(e)}\nTraceback:\t{traceback.format_exc()}"
+            f"Failed hyperopt run with exception:"
+            f" {str(e)}\nTraceback:\t{traceback.format_exc()}"
         )
 
     return quality if tracker.is_loss else -1 * quality
@@ -95,7 +96,8 @@ def finetune_embedding_model(
     :param iteration: fine-tuning iteration info
     :param settings: fine-tuning settings
     :param ranking_data: dataset with clickstream and items
-    :param query_retriever: object to get item related to query, that can be used in "forward"
+    :param query_retriever: object to get item related to query,
+                            that can be used in "forward"
     :param tracker: experiment management object
     :param initial_params: initial huperparams
     :param initial_max_evals: max initial hyperparams (default: 100)
@@ -129,7 +131,8 @@ def finetune_embedding_model(
         ] = tracker.get_top_params_by_experiment_id(starting_run_experiment_id)
         if best_params is None:
             logger.error(
-                f"Cannot get fine-tuning params for starting experiment with ID: {starting_run_experiment_id}"
+                f"Cannot get fine-tuning params for starting "
+                f"experiment with ID: {starting_run_experiment_id}"
             )
             raise BestParamsNotFoundError(starting_run_experiment_id)
 
@@ -155,7 +158,8 @@ def finetune_embedding_model(
 
             if not best_params:
                 logger.info(
-                    "Looks like this is the initial run, so hyperopt will be run over provided initial_params"
+                    "Looks like this is the initial run, so hyperopt "
+                    "will be run over provided initial_params"
                 )
                 initial_hyper_params: Dict[str, Any] = dict()
                 for key, value in initial_params.items():
@@ -183,7 +187,8 @@ def finetune_embedding_model(
 
             else:
                 logger.info(
-                    f"Use {len(best_params)} best parameters from the previous fine-tuning iteration"
+                    f"Use {len(best_params)} best parameters from the previous"
+                    f" fine-tuning iteration"
                 )
                 failed_runs_count = 0
                 for index, finetuning_params in enumerate(best_params):
@@ -202,7 +207,8 @@ def finetune_embedding_model(
                         )
                     except Exception as e:
                         logger.exception(
-                            f"Failed {index + 1} / {len(best_params)} run with exception: {str(e)}\nTraceback:\t{traceback.format_exc()}"
+                            f"Failed {index + 1} / {len(best_params)} run with"
+                            f" exception: {str(e)}\nTraceback:\t{traceback.format_exc()}"
                         )
                         failed_runs_count += 1
 
@@ -214,7 +220,8 @@ def finetune_embedding_model(
 
         except Exception as e:
             logger.exception(
-                f"Iteration is failed due to exception: {str(e)}\nTraceback:\t{traceback.format_exc()}"
+                f"Iteration is failed due to exception:"
+                f" {str(e)}\nTraceback:\t{traceback.format_exc()}"
             )
 
         if os.path.exists(initial_model_path):

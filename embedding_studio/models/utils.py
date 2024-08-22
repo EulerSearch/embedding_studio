@@ -1,8 +1,18 @@
+from embedding_studio.models.delete import FailedItemIdWithDetail
 from embedding_studio.models.upsert import (
     DataItem,
     FailedDataItem,
     UpsertionFailureStage,
 )
+
+
+def create_failed_deletion_data_item(
+    object_id: str, detail: str
+) -> FailedItemIdWithDetail:
+    return FailedItemIdWithDetail(
+        object_id=object_id,
+        detail=detail,
+    )
 
 
 def create_failed_data_item(

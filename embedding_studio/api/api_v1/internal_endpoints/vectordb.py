@@ -3,7 +3,8 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, status
 
-from embedding_studio.api.api_v1.schemas.vectrordb import (
+import embedding_studio.workers.upsertion.utils.collection
+from embedding_studio.api.api_v1.internal_schemas.vectrordb import (
     CreateCollectionRequest,
     CreateIndexRequest,
     DeleteCollectionRequest,
@@ -47,7 +48,11 @@ def get_collection(model: Optional[EmbeddingModelInfo] = None):
     if not model:
         return get_blue_collection()
     try:
-        return context.vectordb.get_collection(model)
+        return (
+            embedding_studio.workers.upsertion.utils.collection.get_collection(
+                model
+            )
+        )
     except CollectionNotFoundError:
         msg = f"Collection with id={model.full_name} not found"
         logger.debug(msg)
@@ -104,7 +109,11 @@ def delete_collection(body: DeleteCollectionRequest):
         )
 
     try:
-        collection = context.vectordb.get_collection(body.embedding_model)
+        collection = (
+            embedding_studio.workers.upsertion.utils.collection.get_collection(
+                body.embedding_model
+            )
+        )
         info = collection.get_state_info()
         logger.error(f"Found deleted collection: {info}")
         raise HTTPException(

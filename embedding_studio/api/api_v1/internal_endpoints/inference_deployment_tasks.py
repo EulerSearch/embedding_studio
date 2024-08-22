@@ -3,13 +3,15 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 
-from embedding_studio.api.api_v1.schemas.inference_deployment_tasks import (
+from embedding_studio.api.api_v1.internal_schemas.inference_deployment_tasks import (
     ModelDeletionRequest,
     ModelDeletionResponse,
     ModelDeploymentRequest,
     ModelDeploymentResponse,
 )
 from embedding_studio.context.app_context import context
+from embedding_studio.utils.dramatiq_task_handler import create_and_send_task
+from embedding_studio.utils.tasks import convert_to_response
 from embedding_studio.workers.inference.worker import (
     deletion_worker,
     deployment_worker,
@@ -34,14 +36,21 @@ def deploy(
     :return: The result of the deployment process.
     """
     logger.debug(f"POST /deploy: {body}")
-    deployment_task = context.deployment_task.create(
+    deployment_task = context.model_deployment_task.create(
         schema=body, return_obj=True
     )
-    message = deployment_worker.send(str(deployment_task.id))
-    logger.debug(f"Green deployment message: {message}")
-    deployment_task.broker_id = message.message_id
-    context.deployment_task.update(obj=deployment_task)
-    return deployment_task
+
+    # Use create_and_send_task instead of manual sending and updating
+    updated_task = create_and_send_task(deployment_worker, deployment_task)
+
+    if updated_task:
+        return convert_to_response(updated_task, ModelDeploymentResponse)
+    else:
+        # If create_and_send_task returns None, it means there was an error
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create and send model deployment task",
+        )
 
 
 @router.get(
@@ -58,9 +67,9 @@ def get_deploy_task(
     :param embedding_model_id: ID of the model.
     :return: Task details.
     """
-    task = context.deployment_task.get_by_model_id(embedding_model_id)
+    task = context.model_deployment_task.get_by_model_id(embedding_model_id)
     if task is not None:
-        return task
+        return convert_to_response(task, ModelDeploymentResponse)
 
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -79,16 +88,25 @@ def delete(
 ) -> Any:
     """Delete a model.
 
-    :param body: The deployment request body.
-    :return: The result of the deployment process.
+    :param body: The deletion request body.
+    :return: The result of the deletion process.
     """
     logger.debug(f"POST /delete: {body}")
-    deletion_task = context.deletion_task.create(schema=body, return_obj=True)
-    message = deletion_worker.send(str(deletion_task.id))
-    logger.debug(f"Revert deployment message: {message}")
-    deletion_task.broker_id = message.message_id
-    context.deletion_task.update(obj=deletion_task)
-    return deletion_task
+    deletion_task = context.model_deletion_task.create(
+        schema=body, return_obj=True
+    )
+
+    # Use create_and_send_task instead of manual sending and updating
+    updated_task = create_and_send_task(deletion_worker, deletion_task)
+
+    if updated_task:
+        return convert_to_response(updated_task, ModelDeletionResponse)
+    else:
+        # If create_and_send_task returns None, it means there was an error
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create and send model deletion task",
+        )
 
 
 @router.get(
@@ -105,9 +123,9 @@ def get_delete_task(
     :param embedding_model_id: ID of the task.
     :return: Task details.
     """
-    task = context.deployment_task.get_by_model_id(embedding_model_id)
+    task = context.model_deployment_task.get_by_model_id(embedding_model_id)
     if task is not None:
-        return task
+        return convert_to_response(task, ModelDeletionResponse)
 
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,

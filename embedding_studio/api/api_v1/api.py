@@ -3,13 +3,58 @@ from fastapi import APIRouter
 from embedding_studio.api.api_v1.endpoints import (
     clickstream_client,
     clickstream_internal,
+    delete,
     fine_tuning,
     ping,
+    upsert,
 )
+from embedding_studio.api.api_v1.internal_api import add_internal_endpoints
+from embedding_studio.api.api_v1.mocked_api import add_mocked_endpoints
+from embedding_studio.api.api_v1.schemas.delete import DeletionTaskResponse
+from embedding_studio.api.api_v1.schemas.upsert import UpsertionTaskResponse
+from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
+from embedding_studio.utils import tasks
+from embedding_studio.workers.upsertion.worker import (
+    deletion_worker,
+    upsertion_worker,
+)
 
 api_router = APIRouter()
 api_router.include_router(ping.router, tags=["ping"])
+
+# Use the create_task_helpers_router for deletion tasks
+deletion_helpers_router = tasks.create_task_helpers_router(
+    task_crud=context.deletion_task,
+    response_model=DeletionTaskResponse,
+    worker_func=deletion_worker,
+)
+api_router.include_router(
+    deletion_helpers_router,
+    prefix="/embeddings/deletion-tasks",
+    tags=["deletion-tasks"],
+)
+api_router.include_router(
+    delete.router, prefix="/embeddings/deletion-tasks", tags=["deletion-tasks"]
+)
+
+# Use the create_task_helpers_router for upsertion tasks
+upsertion_helpers_router = tasks.create_task_helpers_router(
+    task_crud=context.upsertion_task,
+    response_model=UpsertionTaskResponse,
+    worker_func=upsertion_worker,
+)
+api_router.include_router(
+    upsertion_helpers_router,
+    prefix="/embeddings/upsertion-tasks",
+    tags=["upsertion-tasks"],
+)
+api_router.include_router(
+    upsert.router,  # This should now only contain the /run endpoint
+    prefix="/embeddings/upsertion-tasks",
+    tags=["upsertion-tasks"],
+)
+
 api_router.include_router(
     fine_tuning.router, prefix="/fine-tuning", tags=["fine-tuning"]
 )
@@ -22,34 +67,8 @@ api_router.include_router(
     tags=["clickstream"],
 )
 
-
-if settings.OPEN_TEST_ENDPOINTS:
-    from embedding_studio.api.api_v1.test_endpoints import (
-        inference_deployment_tasks,
-        upsert,
-        vectordb,
-    )
-
-    api_router.include_router(
-        upsert.router, prefix="/test-upsertion-task", tags=["upsertion-task"]
-    )
-    api_router.include_router(
-        inference_deployment_tasks.router,
-        prefix="/inference-deployment",
-        tags=["inference-deployment"],
-    )
-    api_router.include_router(
-        vectordb.router,
-        prefix="/vectordb",
-        tags=["vectordb"],
-    )
-
+if settings.OPEN_INTERNAL_ENDPOINTS:
+    add_internal_endpoints(api_router)
 
 if settings.OPEN_MOCKED_ENDPOINTS:
-    from embedding_studio.api.api_v1.mocked_endpoints import mocked_fine_tuning
-
-    api_router.include_router(
-        mocked_fine_tuning.router,
-        prefix="/mocked-fine-tuning",
-        tags=["mocked-fine-tuning"],
-    )
+    add_mocked_endpoints(api_router)

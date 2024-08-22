@@ -9,12 +9,23 @@ from embedding_studio.utils.dramatiq_middlewares import (
     ActionsOnStartMiddleware,
 )
 from embedding_studio.utils.initializer_actions import init_nltk
+from embedding_studio.workers.upsertion.utils.delete import handle_delete
 from embedding_studio.workers.upsertion.utils.upsert import handle_upsert
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 redis_broker.add_middleware(ActionsOnStartMiddleware([init_nltk]))
+
+
+@dramatiq.actor(
+    queue_name="deletion_worker",
+    max_retries=settings.DELETION_WORKER_MAX_RETRIES,
+    time_limit=settings.DELETION_WORKER_TIME_LIMIT,
+)
+def deletion_worker(task_id: str):
+    task = context.deletion_task.get(id=task_id)
+    handle_delete(task)
 
 
 @dramatiq.actor(

@@ -12,7 +12,7 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8"
     )
 
-    OPEN_TEST_ENDPOINTS: bool = os.getenv("OPEN_TEST_ENDPOINTS", True)
+    OPEN_INTERNAL_ENDPOINTS: bool = os.getenv("OPEN_INTERNAL_ENDPOINTS", True)
     OPEN_MOCKED_ENDPOINTS: bool = os.getenv("OPEN_MOCKED_ENDPOINTS", False)
 
     API_V1_STR: str = "/api/v1"
@@ -131,6 +131,14 @@ class Settings(BaseSettings):
     # Option b) enables a quick revert in case something goes wrong with the new "blue" version.
     INFERENCE_HOST: str = os.getenv("INFERENCE_HOST", "localhost")
     INFERENCE_GRPC_PORT: int = os.getenv("INFERENCE_GRPC_PORT", 8001)
+
+    # Deletion
+    DELETION_WORKER_MAX_RETRIES: int = os.getenv(
+        "DELETION_WORKER_MAX_RETRIES", 3
+    )
+    DELETION_WORKER_TIME_LIMIT: int = os.getenv(
+        "DELETION_WORKER_TIME_LIMIT", 18000000
+    )
 
     # Upsertion
     UPSERTION_BATCH_SIZE: int = 16

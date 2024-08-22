@@ -1,19 +1,13 @@
 import enum
 from typing import Any, Dict, List, Optional
 
-from bson import ObjectId
-from pydantic import AwareDatetime, BaseModel, Field
+from pydantic import BaseModel, Field
 
-from embedding_studio.db.common import PyObjectId
-from embedding_studio.utils.datetime_utils import current_time
-
-
-class UpsertionStatus(str, enum.Enum):
-    pending = "pending"
-    processing = "processing"
-    done = "done"
-    canceled = "canceled"
-    error = "error"
+from embedding_studio.models.task import (
+    BaseModelOperationTask,
+    BaseTaskCreateSchema,
+    BaseTaskInDb,
+)
 
 
 class UpsertionFailureStage(str, enum.Enum):
@@ -30,6 +24,10 @@ class DataItem(BaseModel):
     item_info: Optional[Dict[str, Any]] = None
 
 
+class UpsertionTaskCreateSchema(BaseTaskCreateSchema):
+    items: List[DataItem] = Field(...)
+
+
 class FailedDataItem(DataItem):
     detail: str = Field(
         description="Detailed error message explaining the failure"
@@ -37,16 +35,10 @@ class FailedDataItem(DataItem):
     failure_stage: UpsertionFailureStage = UpsertionFailureStage.other
 
 
-class UpsertionTask(BaseModel):
-    fine_tuning_method: str = Field(...)
-    embedding_model_id: str = Field(...)
-    status: UpsertionStatus = Field(default=UpsertionStatus.pending)
+class UpsertionTask(BaseModelOperationTask):
     items: List[DataItem] = Field(...)
     failed_items: List[FailedDataItem] = Field(default_factory=list)
-    created_at: AwareDatetime = Field(default_factory=current_time)
-    updated_at: AwareDatetime = Field(default_factory=current_time)
 
 
-class UpsertionTaskInDb(UpsertionTask):
-    id: Optional[PyObjectId] = Field(default=ObjectId, alias="_id")
-    broker_id: Optional[str] = Field(default=None)
+class UpsertionTaskInDb(UpsertionTask, BaseTaskInDb):
+    ...

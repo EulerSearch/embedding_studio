@@ -10,7 +10,7 @@ from embedding_studio.db.redis import redis_broker  # noqa
 from embedding_studio.experiments.finetuning_iteration import (
     FineTuningIteration,
 )
-from embedding_studio.models.fine_tuning import FineTuningStatus
+from embedding_studio.models.task import TaskStatus
 from embedding_studio.utils.dramatiq_middlewares import (
     ActionsOnStartMiddleware,
 )
@@ -50,7 +50,7 @@ def fine_tuning_worker(task_id: str):
         raise FineTuningWorkerException(f"Task with ID `{task_id}` not found")
 
     try:
-        task.status = FineTuningStatus.processing
+        task.status = TaskStatus.processing
         context.fine_tuning_task.update(obj=task)
 
         if not task.batch_id:
@@ -121,11 +121,11 @@ def fine_tuning_worker(task_id: str):
 
     except Exception:
         try:
-            task.status = FineTuningStatus.error
+            task.status = TaskStatus.failed
             context.fine_tuning_task.update(obj=task)
         except Exception as exc:
             logger.exception(f"Failed to update task status: {exc}")
         raise
 
-    task.status = FineTuningStatus.done
+    task.status = TaskStatus.done
     context.fine_tuning_task.update(obj=task)

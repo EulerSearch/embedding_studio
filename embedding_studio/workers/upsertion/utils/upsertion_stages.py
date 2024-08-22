@@ -56,7 +56,8 @@ def split_items(
 
     :param items: List of DownloadedItem instances to split.
     :param item_splitter: ItemSplitter instance used for splitting the items.
-    :return: A tuple containing a list of parts, a dictionary mapping objects to their parts,
+    :return: A tuple containing a list of parts,
+             a dictionary mapping objects to their parts,
              and a list of tuples with failed items and their traceback.
     """
     try:
@@ -122,9 +123,11 @@ def upload_vectors(
     """
     Upload vectors to the specified collection.
 
-    :param items: List of DownloadedItem instances whose vectors need to be uploaded.
+    :param items: List of DownloadedItem instances
+                whose vectors need to be uploaded.
     :param vectors: Numpy array containing the vectors to upload.
-    :param object_to_parts: Dictionary mapping object IDs to the indices of their parts in the vectors array.
+    :param object_to_parts: Dictionary mapping object IDs
+                            to the indices of their parts in the vectors array.
     :param collection: Collection instance to which vectors will be uploaded.
     """
     try:

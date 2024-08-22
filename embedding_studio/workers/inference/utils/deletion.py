@@ -7,9 +7,7 @@ from embedding_studio.core.config import settings
 from embedding_studio.inference_management.triton.model_storage_info import (
     ModelStorageInfo,
 )
-from embedding_studio.models.inference_deployment_tasks import (
-    ModelDeploymentStatus,
-)
+from embedding_studio.models.task import TaskStatus
 from embedding_studio.workers.inference.utils.exceptions import (
     InferenceWorkerException,
 )
@@ -24,7 +22,7 @@ def handle_deletion(task_id: str):
     Generalized function to handle model deletion.
     """
     model_repo = os.getenv("MODEL_REPOSITORY", os.getcwd())
-    task = context.deletion_task.get(id=task_id)
+    task = context.model_deletion_task.get(id=task_id)
 
     if not task:
         raise InferenceWorkerException(
@@ -33,7 +31,8 @@ def handle_deletion(task_id: str):
 
     if task.fine_tuning_method not in settings.INFERENCE_USED_PLUGINS:
         raise InferenceWorkerException(
-            f'Passed plugin is not in the used plugin list ({", ".join(settings.INFERENCE_USED_PLUGINS)}).'
+            f"Passed plugin is not in the used plugin list"
+            f' ({", ".join(settings.INFERENCE_USED_PLUGINS)}).'
         )
     temp_dir = tempfile.gettempdir()
     lock_file_path = os.path.join(
@@ -41,8 +40,8 @@ def handle_deletion(task_id: str):
     )
     lock_file = acquire_lock(lock_file_path)
     try:
-        task.status = ModelDeploymentStatus.processing
-        context.deletion_task.update(obj=task)
+        task.status = TaskStatus.processing
+        context.model_deletion_task.update(obj=task)
 
         query_model_storage_info = ModelStorageInfo(
             model_repo=model_repo,
@@ -67,12 +66,12 @@ def handle_deletion(task_id: str):
             )
             shutil.rmtree(items_model_storage_info.model_path)
 
-        task.status = ModelDeploymentStatus.done
-        context.deletion_task.update(obj=task)
+        task.status = TaskStatus.done
+        context.model_deletion_task.update(obj=task)
 
     except Exception:
-        task.status = ModelDeploymentStatus.error
-        context.deletion_task.update(obj=task)
+        task.status = TaskStatus.failed
+        context.model_deletion_task.update(obj=task)
 
     finally:
         release_lock(lock_file)

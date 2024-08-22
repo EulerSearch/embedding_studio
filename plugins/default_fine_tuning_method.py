@@ -136,13 +136,6 @@ class DefaultFineTuningMethod(FineTuningMethod):
             num_epochs=3,
         )
 
-        self.inference_client_factory = CLIPModelTritonClientFactory(
-            f"{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}",
-            plugin_name=self.meta.name,
-            transform=self.items_set_manager.preprocessor,
-            model_name=self.model_name,
-        )
-
     def upload_initial_model(self) -> None:
         model = TextToImageCLIPModel(SentenceTransformer(self.model_name))
         self.manager.upload_initial_model(model)
@@ -157,7 +150,12 @@ class DefaultFineTuningMethod(FineTuningMethod):
         return self.manager
 
     def get_inference_client_factory(self) -> TritonClientFactory:
-        return self.inference_client_factory
+        return CLIPModelTritonClientFactory(
+            f"{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}",
+            plugin_name=self.meta.name,
+            transform=self.items_set_manager.preprocessor,
+            model_name=self.model_name,
+        )
 
     def get_fine_tuning_builder(
         self, clickstream: List[SessionWithEvents]

@@ -39,7 +39,8 @@ def fine_tune_embedding_model_one_param(
     :param initial_model: embedding model itself
     :param settings: fine-tuning settings
     :param ranking_data: dataset with clickstream and items
-    :param query_retriever: object to get item related to query, that can be used in "forward"
+    :param query_retriever: object to get item related to query,
+                            that can be used in "forward"
     :param fine_tuning_params: hyper params of fine-tuning task
     :param tracker: experiment management object
     :return: the best quality value

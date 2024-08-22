@@ -11,7 +11,7 @@ from embedding_studio.experiments.finetuning_iteration import (
 )
 from embedding_studio.experiments.finetuning_params import FineTuningParams
 from embedding_studio.experiments.metrics_accumulator import MetricValue
-from embedding_studio.models.fine_tuning import FineTuningStatus
+from embedding_studio.models.task import TaskStatus
 from embedding_studio.utils.dramatiq_middlewares import (
     ActionsOnStartMiddleware,
 )
@@ -37,7 +37,8 @@ class MockedFineTuningWorkerException(Exception):
     time_limit=settings.FINE_TUNING_WORKER_TIME_LIMIT,
 )
 def fine_tuning_mocked_worker(task_id: str):
-    """Simulation of a dramatiq task for fine-tuning a model. It will load one model only.
+    """Simulation of a dramatiq task for fine-tuning a model.
+    It will load one model only.
 
     :param task_id: The ID of the fine-tuning task.
     """
@@ -52,7 +53,7 @@ def fine_tuning_mocked_worker(task_id: str):
         )
 
     try:
-        task.status = FineTuningStatus.processing
+        task.status = TaskStatus.processing
         context.fine_tuning_task.update(obj=task)
 
         fine_tuning_plugin = plugin_manager.get_plugin(task.fine_tuning_method)
@@ -108,12 +109,12 @@ def fine_tuning_mocked_worker(task_id: str):
 
     except Exception:
         try:
-            task.status = FineTuningStatus.error
+            task.status = TaskStatus.failed
             context.fine_tuning_task.update(obj=task)
 
         except Exception as exc:
             logger.exception(f"Failed to update task status: {exc}")
         raise
 
-    task.status = FineTuningStatus.done
+    task.status = TaskStatus.done
     context.fine_tuning_task.update(obj=task)

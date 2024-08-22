@@ -1,14 +1,33 @@
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from typing import List, Optional
 
-from embedding_studio.models.embeddings.collections import CollectionStateInfo
+from embedding_studio.models.embeddings.collections import (
+    CollectionInfo,
+    CollectionStateInfo,
+)
 from embedding_studio.models.embeddings.objects import Object, SearchResults
 from embedding_studio.models.payload.models import PayloadFilter
 
 
 class Collection(ABC):
+    @property
+    @abstractmethod
+    def get_info(self) -> CollectionInfo:
+        raise NotImplementedError()
+
     @abstractmethod
     def get_state_info(self) -> CollectionStateInfo:
+        raise NotImplementedError()
+
+    @abstractmethod
+    @contextmanager
+    def lock_objects(self, object_ids: List[str]):
+        """
+        Context manager to lock the specified objects.
+
+        :param object_ids: List of object IDs to lock.
+        """
         raise NotImplementedError()
 
     @abstractmethod

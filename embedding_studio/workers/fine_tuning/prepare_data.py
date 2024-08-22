@@ -34,7 +34,8 @@ def prepare_data(
     """Prepare fine-tuning data.
 
     :param fine_tuning_inputs: clickstream inputs
-    :param converter: how to converter a clickstream session into fine-tuning input
+    :param converter: how to converter a clickstream session into
+                      fine-tuning input
     :param clickstream_splitter: how to split clickstream inputs
     :param query_retriever: retrieve query item
     :param loader: load items data
@@ -92,7 +93,8 @@ def prepare_data(
     logger.info("Split clickstream inputs into train / test")
     training_dataset = clickstream_splitter.split(inputs)
     logger.info(
-        f'Splitting is finished, train: {len(training_dataset["train"])} / test: {len(training_dataset["test"])}'
+        f'Splitting is finished, train: {len(training_dataset["train"])}'
+        f' / test: {len(training_dataset["test"])}'
     )
 
     dataset, clickstream_dataset = items_set_manager(

@@ -4,8 +4,8 @@ from typing import Any
 from fastapi import APIRouter
 
 from embedding_studio.api.api_v1.schemas.fine_tuning import (
-    FineTuningTaskCreateRequest,
     FineTuningTaskResponse,
+    FineTuningTaskRunRequest,
 )
 from embedding_studio.context.app_context import context
 from embedding_studio.workers.fine_tuning.mocked_worker import (
@@ -24,7 +24,7 @@ router = APIRouter()
     response_model_exclude_none=True,
 )
 def create_fine_tuning_task(
-    body: FineTuningTaskCreateRequest,
+    body: FineTuningTaskRunRequest,
 ) -> Any:
     """Simulate a creation a new fine-tuning task.
 

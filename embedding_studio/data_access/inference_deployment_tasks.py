@@ -3,10 +3,6 @@ from typing import Optional, Type, Union
 from bson import ObjectId
 from pymongo.collection import Collection
 
-from embedding_studio.api.api_v1.schemas.inference_deployment_tasks import (
-    ModelDeletionRequest,
-    ModelDeploymentRequest,
-)
 from embedding_studio.data_access.mongo.crud_base import (
     CreateSchemaType,
     CRUDBase,
@@ -18,6 +14,7 @@ from embedding_studio.models.inference_deployment_tasks import (
     ModelDeletionTaskInDb,
     ModelDeploymentTask,
     ModelDeploymentTaskInDb,
+    ModelManagementTaskCreateSchema,
 )
 
 
@@ -59,7 +56,9 @@ class CRUDModelStageTasks(
 
 class CRUDModelDeploymentTasks(
     CRUDModelStageTasks[
-        ModelDeploymentTaskInDb, ModelDeploymentRequest, ModelDeploymentTask
+        ModelDeploymentTaskInDb,
+        ModelManagementTaskCreateSchema,
+        ModelDeploymentTask,
     ]
 ):
     ...
@@ -67,7 +66,9 @@ class CRUDModelDeploymentTasks(
 
 class CRUDModelDeletionTasks(
     CRUDModelStageTasks[
-        ModelDeletionTaskInDb, ModelDeletionRequest, ModelDeletionTask
+        ModelDeletionTaskInDb,
+        ModelManagementTaskCreateSchema,
+        ModelDeletionTask,
     ]
 ):
     ...

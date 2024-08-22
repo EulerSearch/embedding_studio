@@ -3,6 +3,7 @@ import dataclasses
 import pymongo
 
 from embedding_studio.data_access.clickstream import ClickstreamDao
+from embedding_studio.data_access.deletion_tasks import CRUDDeletion
 from embedding_studio.data_access.fine_tuning import CRUDFineTuning
 from embedding_studio.data_access.inference_deployment_tasks import (
     CRUDModelDeletionTasks,
@@ -11,6 +12,7 @@ from embedding_studio.data_access.inference_deployment_tasks import (
 from embedding_studio.data_access.mongo.clickstream import MongoClickstreamDao
 from embedding_studio.data_access.upsertion_tasks import CRUDUpsertion
 from embedding_studio.db import mongo, postgres
+from embedding_studio.models.delete import DeletionTaskInDb
 from embedding_studio.models.fine_tuning import FineTuningTaskInDb
 from embedding_studio.models.inference_deployment_tasks import (
     ModelDeletionTaskInDb,
@@ -25,9 +27,10 @@ from embedding_studio.vectordb.vectordb import VectorDb
 class AppContext:
     clickstream_dao: ClickstreamDao
     fine_tuning_task: CRUDFineTuning
+    deletion_task: CRUDDeletion
     upsertion_task: CRUDUpsertion
-    deployment_task: CRUDModelDeploymentTasks
-    deletion_task: CRUDModelDeletionTasks
+    model_deployment_task: CRUDModelDeploymentTasks
+    model_deletion_task: CRUDModelDeletionTasks
     vectordb: VectorDb
 
 
@@ -40,16 +43,22 @@ context = AppContext(
         model=FineTuningTaskInDb,
         indexes=[("idempotency_key", pymongo.ASCENDING)],
     ),
-    upsertion_task=CRUDUpsertion(
+    deletion_task=CRUDDeletion(
         collection=mongo.upsertion_mongo_database["upsertion"],
+        model=DeletionTaskInDb,
+    ),
+    upsertion_task=CRUDUpsertion(
+        collection=mongo.upsertion_mongo_database["deletion"],
         model=UpsertionTaskInDb,
     ),
-    deployment_task=CRUDModelDeploymentTasks(
-        collection=mongo.inference_deployment_mongo_database["deployment"],
+    model_deployment_task=CRUDModelDeploymentTasks(
+        collection=mongo.inference_deployment_mongo_database[
+            "model_deployment"
+        ],
         model=ModelDeploymentTaskInDb,
     ),
-    deletion_task=CRUDModelDeletionTasks(
-        collection=mongo.inference_deployment_mongo_database["deletion"],
+    model_deletion_task=CRUDModelDeletionTasks(
+        collection=mongo.inference_deployment_mongo_database["model_deletion"],
         model=ModelDeletionTaskInDb,
     ),
     vectordb=PgvectorDb(

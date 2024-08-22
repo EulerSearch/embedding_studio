@@ -6,6 +6,7 @@ import tempfile
 import torch.cuda
 from dramatiq import Middleware
 
+from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
 from embedding_studio.core.plugin import PluginManager
 from embedding_studio.workers.inference.utils.file_locks import (
@@ -36,6 +37,34 @@ def init_model_repo_for_plugin(model_repo: str, plugin_name: str):
 
     run_id = experiments_manager.get_initial_model_run_id()
     logger.info(f"Initial model run_id: {run_id}")
+
+    try:
+        vector_db = context.vectordb
+        embedding_model_info = plugin.get_embedding_model_info(run_id)
+
+        logger.info(f"Creating or retrieving Vector DB collection")
+        if not vector_db.collection_exists(embedding_model_info):
+            logger.warning(
+                f"Collection with name: {embedding_model_info.full_name} "
+                f"does not exist, creating"
+            )
+            search_index_info = plugin.get_search_index_info()
+            vector_db.create_collection(
+                embedding_model_info, search_index_info
+            )
+        else:
+            logger.info(f"Initial collection exists")
+            vector_db.get_collection(embedding_model_info)
+
+        vector_db.set_blue_collection(embedding_model_info)
+
+        logger.info(f"Initial collection setup finished")
+
+    except Exception:
+        logger.exception(f"Something went wrong during collection setup")
+
+        return
+
     model = experiments_manager.download_initial_model()
     convert_for_triton(model, plugin_name, model_repo, 1, run_id)
     del model

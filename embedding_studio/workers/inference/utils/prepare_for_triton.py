@@ -35,13 +35,18 @@ def convert_for_triton(
     embedding_studio_path: str = "/embedding_studio",
 ):
     """
-    Prepares and deploys a model for use with the Triton Inference Server, including dynamic GPU selection.
-    This involves tracing the model on a selected GPU, saving the traced model, and generating Triton configuration files.
+    Prepares and deploys a model for use with the Triton Inference Server,
+    including dynamic GPU selection. This involves tracing the model
+    on a selected GPU, saving the traced model,and generating Triton
+    configuration files.
 
     Args:
-        model (EmbeddingsModelInterface): The model interface providing access to the query and item models.
-        plugin_name (str): The name used for creating directories and files for the model.
-        model_repo (str): The file path to the repository where the model versions will be stored.
+        model (EmbeddingsModelInterface): The model interface providing access
+                                          to the query and item models.
+        plugin_name (str): The name used for creating directories
+                           and files for the model.
+        model_repo (str): The file path to the repository  where the model
+                          versions will be stored.
         model_version (int): The version number of the model to be saved.
         embedding_model_id (str): A unique identifier for the model.
     """
