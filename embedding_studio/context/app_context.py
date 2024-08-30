@@ -2,6 +2,7 @@ import dataclasses
 
 import pymongo
 
+from embedding_studio.core.plugin import PluginManager
 from embedding_studio.data_access.clickstream import ClickstreamDao
 from embedding_studio.data_access.deletion_tasks import CRUDDeletion
 from embedding_studio.data_access.fine_tuning import CRUDFineTuning
@@ -19,6 +20,7 @@ from embedding_studio.models.inference_deployment_tasks import (
     ModelDeploymentTaskInDb,
 )
 from embedding_studio.models.upsert import UpsertionTaskInDb
+from embedding_studio.utils.model_download import ModelDownloader
 from embedding_studio.vectordb.pgvector.vectordb import PgvectorDb
 from embedding_studio.vectordb.vectordb import VectorDb
 
@@ -32,6 +34,8 @@ class AppContext:
     model_deployment_task: CRUDModelDeploymentTasks
     model_deletion_task: CRUDModelDeletionTasks
     vectordb: VectorDb
+    plugin_manager: PluginManager
+    model_downloader: ModelDownloader
 
 
 context = AppContext(
@@ -65,4 +69,6 @@ context = AppContext(
         pg_database=postgres.pg_database,
         embeddings_mongo_database=mongo.embeddings_mongo_database,
     ),
+    plugin_manager=PluginManager(),
+    model_downloader=ModelDownloader(),
 )

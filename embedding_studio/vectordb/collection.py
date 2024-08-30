@@ -11,7 +11,6 @@ from embedding_studio.models.payload.models import PayloadFilter
 
 
 class Collection(ABC):
-    @property
     @abstractmethod
     def get_info(self) -> CollectionInfo:
         raise NotImplementedError()

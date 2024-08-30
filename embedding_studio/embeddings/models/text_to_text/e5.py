@@ -7,6 +7,7 @@ from torch import FloatTensor, Tensor
 from torch.nn import Module, Parameter
 from transformers import AutoModel, AutoTokenizer, XLMRobertaModel
 
+from embedding_studio.context.app_context import context
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
@@ -60,9 +61,11 @@ class TextToTextE5Model(EmbeddingsModelInterface):
         super(TextToTextE5Model, self).__init__(same_query_and_items=True)
         if isinstance(e5_model, AutoModel):
             if e5_tokenizer is None:
-                self.e5_tokenizer = AutoTokenizer.from_pretrained(
-                    e5_model.name_or_path
+                self.e5_tokenizer = context.model_downloader.download_model(
+                    model_name=e5_model.name_or_path,
+                    download_fn=lambda tn: AutoTokenizer.from_pretrained(tn),
                 )
+
             else:
                 self.e5_tokenizer = e5_tokenizer
 

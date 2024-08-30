@@ -13,7 +13,7 @@ class SearchResultItem(BaseModel):
 
 class Session(BaseModel):
     session_id: str
-    search_query: str
+    search_query: Any
     created_at: int
     search_results: List[SearchResultItem]
     search_meta: Optional[Dict[str, Any]] = None

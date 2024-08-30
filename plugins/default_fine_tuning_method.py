@@ -7,9 +7,11 @@ from sentence_transformers import SentenceTransformer
 from embedding_studio.clickstream_storage.converters.converter import (
     ClickstreamSessionConverter,
 )
+from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
 from embedding_studio.clickstream_storage.text_query_retriever import (
     TextQueryRetriever,
 )
+from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
 from embedding_studio.core.plugin import FineTuningMethod
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
@@ -68,6 +70,10 @@ class DefaultFineTuningMethod(FineTuningMethod):
         # }
         # self.data_loader = AwsS3DataLoader(**creds)
         self.model_name = "clip-ViT-B-32"
+        self.tokenizer_name = (
+            "sentence-transformers/clip-ViT-B-32-multilingual-v1"
+        )
+        self.inference_client_factory = None
         # with empty creds, use anonymous session
         creds = {}
         self.data_loader = AwsS3ImageLoader(**creds)
@@ -137,11 +143,18 @@ class DefaultFineTuningMethod(FineTuningMethod):
         )
 
     def upload_initial_model(self) -> None:
-        model = TextToImageCLIPModel(SentenceTransformer(self.model_name))
+        model = context.model_downloader.download_model(
+            model_name=self.model_name,
+            download_fn=lambda mn: SentenceTransformer(mn),
+        )
+        model = TextToImageCLIPModel(model)
         self.manager.upload_initial_model(model)
         del model
         gc.collect()
         torch.cuda.empty_cache()
+
+    def get_query_retriever(self) -> QueryRetriever:
+        return self.retriever
 
     def get_data_loader(self) -> DataLoader:
         return self.data_loader
@@ -150,12 +163,14 @@ class DefaultFineTuningMethod(FineTuningMethod):
         return self.manager
 
     def get_inference_client_factory(self) -> TritonClientFactory:
-        return CLIPModelTritonClientFactory(
-            f"{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}",
-            plugin_name=self.meta.name,
-            transform=self.items_set_manager.preprocessor,
-            model_name=self.model_name,
-        )
+        if self.inference_client_factory is None:
+            self.inference_client_factory = CLIPModelTritonClientFactory(
+                f"{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}",
+                plugin_name=self.meta.name,
+                transform=self.items_set_manager.preprocessor,
+                model_name=self.model_name,
+            )
+        return self.inference_client_factory
 
     def get_fine_tuning_builder(
         self, clickstream: List[SessionWithEvents]

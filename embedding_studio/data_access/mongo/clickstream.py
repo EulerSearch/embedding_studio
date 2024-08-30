@@ -108,6 +108,16 @@ class MongoClickstreamDao(ClickstreamDao):
         assert reg_session
         return reg_session
 
+    def update_session(self, session: Session) -> RegisteredSession:
+        batch = self._increment_session_batch()
+        reg_session = RegisteredSession(
+            batch_id=batch.batch_id,
+            session_number=batch.session_counter,
+            **session.model_dump(),
+        )
+        self._session_dao.update_one(reg_session)
+        return reg_session
+
     def push_events(self, session_events: List[SessionEvent]) -> None:
         try:
             self._event_dao.insert_many(session_events, ordered=False)

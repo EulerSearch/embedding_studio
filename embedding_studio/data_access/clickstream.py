@@ -25,6 +25,15 @@ class ClickstreamDao(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    def update_session(self, session: Session) -> RegisteredSession:
+        """Update click stream session.
+
+        :param session: updating session
+        :return: updated session (with batch id and number)
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     def push_events(self, events: List[SessionEvent]) -> None:
         """Push new session events
         Nothing will change for any event that already exists

@@ -6,6 +6,7 @@ from embedding_studio.api.api_v1.endpoints import (
     delete,
     fine_tuning,
     ping,
+    similarity_search,
     upsert,
 )
 from embedding_studio.api.api_v1.internal_api import add_internal_endpoints
@@ -22,6 +23,10 @@ from embedding_studio.workers.upsertion.worker import (
 
 api_router = APIRouter()
 api_router.include_router(ping.router, tags=["ping"])
+
+api_router.include_router(
+    similarity_search.router, prefix="/embeddings", tags=["similarity_search"]
+)
 
 # Use the create_task_helpers_router for deletion tasks
 deletion_helpers_router = tasks.create_task_helpers_router(

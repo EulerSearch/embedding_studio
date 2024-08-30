@@ -1,9 +1,14 @@
 from typing import Callable, List, Optional, Union
 
 import numpy as np
-from transformers import AutoTokenizer
+from transformers import (
+    AutoTokenizer,
+    PreTrainedTokenizer,
+    PreTrainedTokenizerFast,
+)
 from tritonclient.grpc import InferInput
 
+from embedding_studio.context.app_context import context
 from embedding_studio.embeddings.inference.triton.client import (
     TritonClient,
     TritonClientFactory,
@@ -22,6 +27,7 @@ class TextToTextE5TritonClient(TritonClient):
         url: str,
         plugin_name: str,
         embedding_model_id: str,
+        tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
         preprocessor: Callable[[Union[str, dict]], str] = None,
         model_name: str = "intfloat/multilingual-e5-large",
         retry_config: Optional[RetryConfig] = None,
@@ -32,8 +38,8 @@ class TextToTextE5TritonClient(TritonClient):
         :param url: The URL of the Triton Inference Server.
         :param plugin_name: The name of the plugin/model used for inference tasks.
         :param embedding_model_id: deployed model ID.
+        :param tokenizer: query text tokenizer
         :param preprocessor: The text preprocessing function.
-        :param model_name: The name of the model for which the tokenizer is tailored.
         :param retry_config: retry policy (default: None).
         """
         super().__init__(
@@ -43,11 +49,10 @@ class TextToTextE5TritonClient(TritonClient):
             same_query_and_items=True,
             retry_config=retry_config,
         )
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            model_name, use_fast=False
-        )
+
         self.preprocessor = preprocessor
         self.model_name = model_name
+        self.tokenizer = tokenizer
 
     def _prepare_query(self, query: str) -> List[InferInput]:
         """
@@ -127,6 +132,12 @@ class TextToTextE5TritonClientFactory(TritonClientFactory):
         )
         self.preprocessor = preprocessor
         self.model_name = model_name
+        self.tokenizer = context.model_downloader.download_model(
+            model_name=model_name,
+            download_fn=lambda m: AutoTokenizer.from_pretrained(
+                m, use_fast=False
+            ),
+        )
 
     def get_client(self, embedding_model_id: str, **kwargs):
         """
@@ -141,6 +152,6 @@ class TextToTextE5TritonClientFactory(TritonClientFactory):
             plugin_name=self.plugin_name,
             embedding_model_id=embedding_model_id,
             preprocessor=self.preprocessor,
-            model_name=self.model_name,
+            tokenizer=self.tokenizer,
             retry_config=self.retry_config,
         )

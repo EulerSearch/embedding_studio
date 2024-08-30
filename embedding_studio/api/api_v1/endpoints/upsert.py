@@ -43,10 +43,11 @@ def create_upsertion_task(
             return convert_to_response(existing_task, UpsertionTaskResponse)
 
     collection = context.vectordb.get_blue_collection()
+    collection_info = collection.get_info()
     task = context.upsertion_task.create(
         schema=InternalUpsertionTaskRunRequest(
-            embedding_model_id=collection.get_info.embedding_model.id,
-            fine_tuning_method=collection.get_info.embedding_model.name,
+            embedding_model_id=collection_info.embedding_model.id,
+            fine_tuning_method=collection_info.embedding_model.name,
             items=body.items,
         ),
         return_obj=True,

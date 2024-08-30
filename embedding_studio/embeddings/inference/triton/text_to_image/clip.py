@@ -7,9 +7,14 @@ import numpy as np
 import torch
 from PIL import Image
 from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer
+from transformers import (
+    AutoTokenizer,
+    PreTrainedTokenizer,
+    PreTrainedTokenizerFast,
+)
 from tritonclient.grpc import InferInput
 
+from embedding_studio.context.app_context import context
 from embedding_studio.embeddings.inference.triton.client import (
     TritonClient,
     TritonClientFactory,
@@ -28,8 +33,8 @@ class CLIPModelTritonClient(TritonClient):
         url: str,
         plugin_name: str,
         embedding_model_id: str,
+        tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
         transform: Callable[[Image.Image], torch.Tensor] = None,
-        model_name: str = "clip-ViT-B-32",
         retry_config: Optional[RetryConfig] = None,
     ):
         """
@@ -38,8 +43,8 @@ class CLIPModelTritonClient(TritonClient):
         :param url: The URL of the Triton Inference Server.
         :param plugin_name: The name of the plugin/model used for inference tasks.
         :param embedding_model_id: deployed model ID.
+        :param tokenizer: query text tokenizer
         :param transform: A function to preprocess images before sending them to the server.
-        :param model_name: The name of the model for which the tokenizer is tailored (default is 'clip-ViT-B-32').
         :param retry_config: retry policy (default: None).
         """
         super().__init__(
@@ -49,17 +54,7 @@ class CLIPModelTritonClient(TritonClient):
             same_query_and_items=False,
             retry_config=retry_config,
         )
-
-        try:
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                model_name, use_fast=True
-            )
-        except Exception:
-            model = deepcopy(SentenceTransformer(model_name)[0])
-            self.tokenizer = model.processor.tokenizer
-            del model
-            gc.collect()
-
+        self.tokenizer = tokenizer
         self.transform = transform
 
     def _prepare_query(self, query: str) -> List[InferInput]:
@@ -142,6 +137,9 @@ class CLIPModelTritonClientFactory(TritonClientFactory):
         plugin_name: str,
         transform: Callable[[Image.Image], torch.Tensor] = None,
         model_name: str = "clip-ViT-B-32",
+        tokenizer_name: Optional[
+            str
+        ] = "EmbeddingStudio/sentence-transformers-clip-ViT-B-32-tokenizer",
         retry_config: Optional[RetryConfig] = None,
     ):
         """
@@ -151,6 +149,7 @@ class CLIPModelTritonClientFactory(TritonClientFactory):
         :param plugin_name: The name of the plugin/model used for inference tasks.
         :param transform: A function to preprocess images before sending them to the server.
         :param model_name: The name of the model for which the tokenizer is tailored (default is 'clip-ViT-B-32').
+        :param tokenizer_name: Specific tokenizer name, if None - use model_name.
         :param retry_config: retry policy (default: None).
         """
         super(CLIPModelTritonClientFactory, self).__init__(
@@ -161,6 +160,27 @@ class CLIPModelTritonClientFactory(TritonClientFactory):
         )
         self.transform = transform
         self.model_name = model_name
+        self.tokenizer_name = tokenizer_name
+        tokenizer_name = (
+            tokenizer_name if (tokenizer_name is not None) else model_name
+        )
+        try:
+            self.tokenizer = context.model_downloader.download_model(
+                model_name=tokenizer_name,
+                download_fn=lambda tn: AutoTokenizer.from_pretrained(
+                    tn, use_fast=True
+                ),
+            )
+        except Exception:
+            model = deepcopy(
+                context.model_downloader.download_model(
+                    model_name=model_name,
+                    download_fn=lambda mn: SentenceTransformer(mn)[0],
+                )
+            )
+            self.tokenizer = model.processor.tokenizer
+            del model
+            gc.collect()
 
     def get_client(self, embedding_model_id: str, **kwargs):
         """
@@ -175,6 +195,6 @@ class CLIPModelTritonClientFactory(TritonClientFactory):
             plugin_name=self.plugin_name,
             embedding_model_id=embedding_model_id,
             transform=self.transform,
-            model_name=self.model_name,
+            tokenizer=self.tokenizer,
             retry_config=self.retry_config,
         )

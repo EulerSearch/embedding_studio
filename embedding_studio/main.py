@@ -7,7 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from embedding_studio.api.api_v1.api import api_router
 from embedding_studio.core.config import settings
-from embedding_studio.utils.initializer_actions import init_nltk
+from embedding_studio.utils.initializer_actions import (
+    init_nltk,
+    init_plugin_manager,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +19,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # pre-launch actions
     init_nltk()
+    init_plugin_manager()
     yield
     # post actions
 

@@ -3,6 +3,7 @@ import os
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
+from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.embeddings.inference.triton.client import (
     TritonClientFactory,
@@ -45,6 +46,19 @@ class FineTuningMethod(ABC):
         :return: An instance of DataLoader.
         """
         raise NotImplementedError("Subclasses must implement get_data_loader")
+
+    @abstractmethod
+    def get_query_retriever(self) -> QueryRetriever:
+        """Return a QueryRetriever instance.
+
+        Method that should be implemented by subclasses to provide a
+        QueryRetriever instance.
+
+        :return: An instance of QueryRetriever.
+        """
+        raise NotImplementedError(
+            "Subclasses must implement get_query_retriever"
+        )
 
     @abstractmethod
     def get_manager(self) -> ExperimentsManager:
@@ -125,6 +139,10 @@ class PluginManager:
     def __init__(self):
         """Initialize an instance of the PluginManager."""
         self._plugins: Dict[str, FineTuningMethod] = {}
+
+    @property
+    def plugin_names(self) -> List[str]:
+        return list(self._plugins.keys())
 
     def get_plugin(self, name: str) -> Optional[FineTuningMethod]:
         """Return a plugin by name.

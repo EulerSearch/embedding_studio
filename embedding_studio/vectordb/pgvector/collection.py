@@ -39,7 +39,6 @@ class PgvectorCollection(Collection):
         self._pg_database = pg_database
         self.Session = sqlalchemy.orm.sessionmaker(pg_database)
 
-    @property
     def get_info(self) -> CollectionInfo:
         return self._collection_info_cache.get_collection(self._collection_id)
 

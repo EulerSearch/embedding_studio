@@ -41,10 +41,11 @@ def create_deletion_task(
             return convert_to_response(existing_task, DeletionTaskResponse)
 
     collection = context.vectordb.get_blue_collection()
+    collection_info = collection.get_info()
     task = context.deletion_task.create(
         schema=DeletionTaskCreateSchema(
-            embedding_model_id=collection.get_info.embedding_model.id,
-            fine_tuning_method=collection.get_info.embedding_model.name,
+            embedding_model_id=collection_info.embedding_model.id,
+            fine_tuning_method=collection_info.embedding_model.name,
             object_ids=body.object_ids,
         ),
         return_obj=True,
