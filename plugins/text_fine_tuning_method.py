@@ -13,11 +13,13 @@ from embedding_studio.clickstream_storage.text_query_retriever import (
 from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
 from embedding_studio.core.plugin import FineTuningMethod
-from embedding_studio.data_storage.loaders.data_loader import DataLoader
-from embedding_studio.data_storage.loaders.gcp.gcp_text_loader import (
+from embedding_studio.data_storage.loaders.cloud_storage.gcp.gcp_text_loader import (
     GCPTextLoader,
 )
-from embedding_studio.data_storage.loaders.gcp.item_meta import GCPFileMeta
+from embedding_studio.data_storage.loaders.cloud_storage.gcp.item_meta import (
+    GCPFileMeta,
+)
+from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.embeddings.augmentations.compose import (
     AugmentationsComposition,
 )

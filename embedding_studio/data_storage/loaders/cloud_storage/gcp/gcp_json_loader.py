@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Set, Union
 
 from datasets import Features
 
-from embedding_studio.data_storage.loaders.gcp.gcp_text_loader import (
+from embedding_studio.data_storage.loaders.cloud_storage.gcp.gcp_text_loader import (
     GCPTextLoader,
 )
 from embedding_studio.workers.fine_tuning.utils.config import RetryConfig

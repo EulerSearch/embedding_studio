@@ -1,7 +1,0 @@
-from embedding_studio.data_storage.loaders.bucket_file_meta import (
-    BucketFileMeta,
-)
-
-
-class S3FileMeta(BucketFileMeta):
-    ...

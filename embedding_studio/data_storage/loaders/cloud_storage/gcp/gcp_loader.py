@@ -8,11 +8,13 @@ from google.cloud.storage import Blob
 from pydantic import BaseModel
 
 from embedding_studio.core.config import settings
+from embedding_studio.data_storage.loaders.cloud_storage.gcp.item_meta import (
+    GCPFileMeta,
+)
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.data_storage.loaders.downloaded_item import (
     DownloadedItem,
 )
-from embedding_studio.data_storage.loaders.gcp.item_meta import GCPFileMeta
 from embedding_studio.data_storage.loaders.item_meta import ItemMeta
 from embedding_studio.workers.fine_tuning.utils.config import (
     RetryConfig,

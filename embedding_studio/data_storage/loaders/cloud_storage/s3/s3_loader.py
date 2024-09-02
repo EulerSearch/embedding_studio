@@ -11,12 +11,14 @@ from datasets import Dataset, Features
 from pydantic import BaseModel
 
 from embedding_studio.core.config import settings
+from embedding_studio.data_storage.loaders.cloud_storage.s3.item_meta import (
+    S3FileMeta,
+)
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.data_storage.loaders.downloaded_item import (
     DownloadedItem,
 )
 from embedding_studio.data_storage.loaders.item_meta import ItemMeta
-from embedding_studio.data_storage.loaders.s3.item_meta import S3FileMeta
 from embedding_studio.workers.fine_tuning.utils.config import (
     RetryConfig,
     RetryParams,

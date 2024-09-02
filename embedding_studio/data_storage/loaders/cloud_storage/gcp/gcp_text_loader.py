@@ -3,7 +3,9 @@ from typing import Optional
 
 from datasets import Features
 
-from embedding_studio.data_storage.loaders.gcp.gcp_loader import GCPDataLoader
+from embedding_studio.data_storage.loaders.cloud_storage.gcp.gcp_loader import (
+    GCPDataLoader,
+)
 from embedding_studio.workers.fine_tuning.utils.config import RetryConfig
 
 

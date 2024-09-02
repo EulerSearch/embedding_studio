@@ -90,8 +90,7 @@ def _find_similars(body: SimilaritySearchRequest) -> SearchResults:
 
 
 def _create_session_object(
-        body: SimilaritySearchRequest,
-        session_id: str
+    body: SimilaritySearchRequest, session_id: str
 ) -> Session:
     """
     Create a new session placeholder.
@@ -100,7 +99,6 @@ def _create_session_object(
     :param session_id: Specified session id.
     :return: Existing session if found, otherwise a placeholder for a new session.
     """
-
 
     return Session(
         session_id=session_id,
@@ -163,7 +161,11 @@ def similarity_search(body: SimilaritySearchRequest) -> Any:
     session_id = None
     if body.create_session:
         # Generate a new session if not found
-        session_id = body.session_id if body.session_id is not None else str(uuid.uuid4())
+        session_id = (
+            body.session_id
+            if body.session_id is not None
+            else str(uuid.uuid4())
+        )
         # Check for an existing session first
         session = _create_session_object(body, session_id)
         # Register the session with the search results

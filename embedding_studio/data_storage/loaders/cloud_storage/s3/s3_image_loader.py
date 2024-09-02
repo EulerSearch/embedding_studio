@@ -4,7 +4,9 @@ from typing import Optional
 from datasets import Features
 from PIL import Image
 
-from embedding_studio.data_storage.loaders.s3.s3_loader import AwsS3DataLoader
+from embedding_studio.data_storage.loaders.cloud_storage.s3.s3_loader import (
+    AwsS3DataLoader,
+)
 from embedding_studio.workers.fine_tuning.utils.config import RetryConfig
 
 
