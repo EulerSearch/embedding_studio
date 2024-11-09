@@ -12,7 +12,7 @@ from embedding_studio.data_storage.loaders.downloaded_item import (
 from embedding_studio.embeddings.inference.triton.client import TritonClient
 from embedding_studio.embeddings.splitters.item_splitter import ItemSplitter
 from embedding_studio.models.embeddings.objects import Object, ObjectPart
-from embedding_studio.models.upsert import DataItem
+from embedding_studio.models.items_handler import DataItem
 from embedding_studio.vectordb.collection import Collection
 from embedding_studio.workers.upsertion.utils.exceptions import (
     DownloadException,
@@ -72,7 +72,7 @@ def split_items(
                 ]
                 parts += split_data
             except Exception:
-                tb = traceback.format_exc()
+                tb = traceback.format_exc()[-1500:]
                 failed.append((item, tb))
 
         return parts, object_to_parts, failed

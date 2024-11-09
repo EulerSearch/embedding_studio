@@ -32,6 +32,16 @@ class VectorDb(ABC):
     ) -> Collection:
         raise NotImplementedError()
 
+    def get_or_create_collection(
+        self,
+        embedding_model: EmbeddingModelInfo,
+        search_index_info: SearchIndexInfo,
+    ) -> Collection:
+        if not self.collection_exists(embedding_model):
+            return self.create_collection(embedding_model, search_index_info)
+        else:
+            return self.get_collection(embedding_model)
+
     @abstractmethod
     def collection_exists(self, embedding_model: EmbeddingModelInfo) -> bool:
         raise NotImplementedError()

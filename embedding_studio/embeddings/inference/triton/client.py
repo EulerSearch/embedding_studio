@@ -108,7 +108,10 @@ class TritonClient(ABC):
         try:
             model_name = self.query_model_info.name
             response = self.client.infer(
-                model_name, inputs=inputs, model_version="1"
+                model_name,
+                inputs=inputs,
+                model_version="1",
+                priority=0,
             )
             return response.as_numpy(
                 "output"
@@ -130,7 +133,10 @@ class TritonClient(ABC):
                 else self.items_model_info.name
             )
             response = self.client.infer(
-                model_name, inputs=inputs, model_version="1"
+                model_name,
+                inputs=inputs,
+                model_version="1",
+                priority=1,
             )
             return response.as_numpy(
                 "output"

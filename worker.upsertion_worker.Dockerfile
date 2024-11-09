@@ -31,4 +31,4 @@ RUN pip install --no-cache-dir --upgrade -r requirements.txt
 COPY . /embedding_studio
 
 # Set the command to run the uvicorn server.
-CMD ["dramatiq", "embedding_studio.workers.upsertion.worker", "--processes", "1", "--threads", "1"]
+CMD ["dramatiq", "embedding_studio.workers.upsertion.worker", "--processes", "4", "--threads", "1"]

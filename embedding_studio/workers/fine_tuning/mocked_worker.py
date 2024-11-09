@@ -102,7 +102,7 @@ def fine_tuning_mocked_worker(task_id: str):
             fine_tuning_plugin.get_manager().get_current_model_url()
         )
 
-        task.best_model_id = best_run_id
+        task.best_run_id = best_run_id
         task.best_model_url = best_model_url
 
         fine_tuning_plugin.get_manager().finish_run()

@@ -10,6 +10,7 @@ class TaskStatus(str, enum.Enum):
     done = "done"
     canceled = "canceled"
     failed = "failed"
+    refused = "refused"
 
 
 class BaseTaskRequest(BaseModel):

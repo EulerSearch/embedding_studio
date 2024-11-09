@@ -8,11 +8,20 @@ class ObjectPart(BaseModel):
     part_id: Optional[str] = None
 
 
-class Object(BaseModel):
+class ObjectСommonData(BaseModel):
     object_id: str
-    parts: List[ObjectPart]
     payload: Optional[Dict[str, Any]] = None
     storage_meta: Dict[str, Any]
+
+
+class Object(ObjectСommonData):
+    parts: List[ObjectPart]
+
+
+class ObjectsCommonDataBatch(BaseModel):
+    objects_info: List[ObjectСommonData]
+    total: int
+    next_offset: Optional[int] = None
 
 
 class FoundObject(BaseModel):

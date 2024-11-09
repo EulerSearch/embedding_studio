@@ -60,6 +60,8 @@ def fine_tuning_worker(task_id: str):
                 release_id=str(release_id)
             )
             if session_batch is None:
+                task.status = TaskStatus.refused
+                context.fine_tuning_task.update(obj=task)
                 raise FineTuningWorkerException(
                     f"Cannot release batch with ID `{release_id}`"
                 )
@@ -69,12 +71,18 @@ def fine_tuning_worker(task_id: str):
         # TODO: add config with parameters
         clickstream = context.clickstream_dao.get_batch_sessions(task.batch_id)
         if not clickstream:
+            task.status = TaskStatus.refused
+            context.fine_tuning_task.update(obj=task)
+
             raise FineTuningWorkerException(
                 f"Clickstream batch with ID `{task.batch_id}` not found"
             )
 
         fine_tuning_plugin = plugin_manager.get_plugin(task.fine_tuning_method)
         if not fine_tuning_plugin:
+            task.status = TaskStatus.refused
+            context.fine_tuning_task.update(obj=task)
+
             raise FineTuningWorkerException(
                 f"Fine tuning plugin with name `{task.fine_tuning_method}` "
                 f"not found"
@@ -115,7 +123,7 @@ def fine_tuning_worker(task_id: str):
         logger.info(
             f"You can download best model using this url: {best_model_url}"
         )
-        task.best_model_id = best_run_id
+        task.best_run_id = best_run_id
         task.best_model_url = best_model_url
         builder.experiments_manager.finish_iteration()
 

@@ -6,7 +6,11 @@ from embedding_studio.models.embeddings.collections import (
     CollectionInfo,
     CollectionStateInfo,
 )
-from embedding_studio.models.embeddings.objects import Object, SearchResults
+from embedding_studio.models.embeddings.objects import (
+    Object,
+    ObjectsCommonDataBatch,
+    SearchResults,
+)
 from embedding_studio.models.payload.models import PayloadFilter
 
 
@@ -50,6 +54,18 @@ class Collection(ABC):
 
     @abstractmethod
     def find_by_ids(self, object_ids: List[str]) -> List[Object]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_total(self) -> int:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_objects_common_data_batch(
+        self,
+        limit: int,
+        offset: Optional[int] = None,
+    ) -> ObjectsCommonDataBatch:
         raise NotImplementedError()
 
     @abstractmethod

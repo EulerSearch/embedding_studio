@@ -2,10 +2,10 @@ import logging
 from typing import Any, Dict, Generator, List, Optional, Tuple, Type
 
 from datasets import Dataset, Features
-from sqlalchemy import create_engine, text, select, Table, MetaData
+from sqlalchemy import MetaData, Table, create_engine, select
 from sqlalchemy.engine.row import Row
-from sqlalchemy.sql import func
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.sql import func
 
 from embedding_studio.core.config import settings
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
@@ -196,7 +196,12 @@ class PgsqlDataLoader(DataLoader):
             with self.engine.connect() as connection:
                 metadata = MetaData(bind=self.engine)
                 table = Table(table_name, metadata, autoload_with=self.engine)
-                query = select(table).order_by(table.c.id).limit(batch_size).offset(offset)
+                query = (
+                    select(table)
+                    .order_by(table.c.id)
+                    .limit(batch_size)
+                    .offset(offset)
+                )
                 results = connection.execute(query).fetchall()
 
                 batch = []

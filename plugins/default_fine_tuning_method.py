@@ -14,11 +14,11 @@ from embedding_studio.clickstream_storage.text_query_retriever import (
 from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
 from embedding_studio.core.plugin import FineTuningMethod
-from embedding_studio.data_storage.loaders.cloud_storage.s3 import (
-    AwsS3ImageLoader,
-)
 from embedding_studio.data_storage.loaders.cloud_storage.s3.item_meta import (
     S3FileMeta,
+)
+from embedding_studio.data_storage.loaders.cloud_storage.s3.s3_image_loader import (
+    AwsS3ImageLoader,
 )
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.embeddings.data.clickstream.train_test_splitter import (

@@ -54,7 +54,7 @@ def init_model_repo_for_plugin(model_repo: str, plugin_name: str):
             )
         else:
             logger.info(f"Initial collection exists")
-            vector_db.get_collection(embedding_model_info)
+            vector_db.get_or_create_collection(embedding_model_info)
 
         vector_db.set_blue_collection(embedding_model_info)
 

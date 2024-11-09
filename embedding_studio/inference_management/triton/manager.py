@@ -127,6 +127,8 @@ class TritonModelStorageManager(ABC):
                 "dynamic_batching {",
                 "  preferred_batch_size: [1, 2, 4, 8]",
                 "  max_queue_delay_microseconds: 100",
+                "  priority_levels: 3",
+                " default_priority_level: 1",
                 "}",
             ]
         return []

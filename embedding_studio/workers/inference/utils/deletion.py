@@ -30,10 +30,23 @@ def handle_deletion(task_id: str):
         )
 
     if task.fine_tuning_method not in settings.INFERENCE_USED_PLUGINS:
+        task.status = TaskStatus.refused
+        context.model_deletion_task.update(obj=task)
+
         raise InferenceWorkerException(
             f"Passed plugin is not in the used plugin list"
             f' ({", ".join(settings.INFERENCE_USED_PLUGINS)}).'
         )
+
+    model_id = task.embedding_model_id
+    if context.reindex_locks.get_by_dst_model_id(model_id) is not None:
+        task.status = TaskStatus.refused
+        context.model_deletion_task.update(obj=task)
+
+        raise InferenceWorkerException(
+            f"Can not delete the model with ID [{task.embedding_model_id}]: it's being used in reindexing."
+        )
+
     temp_dir = tempfile.gettempdir()
     lock_file_path = os.path.join(
         temp_dir, f"deployment_lock_{task.embedding_model_id}.lock"

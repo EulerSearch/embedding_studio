@@ -11,6 +11,11 @@ from embedding_studio.data_access.inference_deployment_tasks import (
     CRUDModelDeploymentTasks,
 )
 from embedding_studio.data_access.mongo.clickstream import MongoClickstreamDao
+from embedding_studio.data_access.reindex_locks import CRUDReindexLocks
+from embedding_studio.data_access.reindex_tasks import (
+    CRUDReindexSubtasks,
+    CRUDReindexTasks,
+)
 from embedding_studio.data_access.upsertion_tasks import CRUDUpsertion
 from embedding_studio.db import mongo, postgres
 from embedding_studio.models.delete import DeletionTaskInDb
@@ -19,6 +24,8 @@ from embedding_studio.models.inference_deployment_tasks import (
     ModelDeletionTaskInDb,
     ModelDeploymentTaskInDb,
 )
+from embedding_studio.models.reindex import ReindexSubtaskInDb, ReindexTaskInDb
+from embedding_studio.models.reindex_lock import ReindexLockInDb
 from embedding_studio.models.upsert import UpsertionTaskInDb
 from embedding_studio.utils.model_download import ModelDownloader
 from embedding_studio.vectordb.pgvector.vectordb import PgvectorDb
@@ -31,6 +38,9 @@ class AppContext:
     fine_tuning_task: CRUDFineTuning
     deletion_task: CRUDDeletion
     upsertion_task: CRUDUpsertion
+    reindex_task: CRUDReindexTasks
+    reindex_subtask: CRUDReindexSubtasks
+    reindex_locks: CRUDReindexLocks
     model_deployment_task: CRUDModelDeploymentTasks
     model_deletion_task: CRUDModelDeletionTasks
     vectordb: VectorDb
@@ -54,6 +64,18 @@ context = AppContext(
     upsertion_task=CRUDUpsertion(
         collection=mongo.upsertion_mongo_database["deletion"],
         model=UpsertionTaskInDb,
+    ),
+    reindex_task=CRUDReindexTasks(
+        collection=mongo.upsertion_mongo_database["reindex"],
+        model=ReindexTaskInDb,
+    ),
+    reindex_subtask=CRUDReindexSubtasks(
+        collection=mongo.upsertion_mongo_database["reindex_subtasks"],
+        model=ReindexSubtaskInDb,
+    ),
+    reindex_locks=CRUDReindexLocks(
+        collection=mongo.upsertion_mongo_database["reindex_locks"],
+        model=ReindexLockInDb,
     ),
     model_deployment_task=CRUDModelDeploymentTasks(
         collection=mongo.inference_deployment_mongo_database[

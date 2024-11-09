@@ -41,7 +41,9 @@ def deploy(
     )
 
     # Use create_and_send_task instead of manual sending and updating
-    updated_task = create_and_send_task(deployment_worker, deployment_task)
+    updated_task = create_and_send_task(
+        deployment_worker, deployment_task, context.model_deployment_task
+    )
 
     if updated_task:
         return convert_to_response(updated_task, ModelDeploymentResponse)
@@ -97,7 +99,9 @@ def delete(
     )
 
     # Use create_and_send_task instead of manual sending and updating
-    updated_task = create_and_send_task(deletion_worker, deletion_task)
+    updated_task = create_and_send_task(
+        deletion_worker, deletion_task, context.model_deletion_task
+    )
 
     if updated_task:
         return convert_to_response(updated_task, ModelDeletionResponse)

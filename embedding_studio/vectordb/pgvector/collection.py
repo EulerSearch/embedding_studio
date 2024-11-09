@@ -7,7 +7,11 @@ import sqlalchemy
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from embedding_studio.models.embeddings.collections import CollectionStateInfo
-from embedding_studio.models.embeddings.objects import Object, SearchResults
+from embedding_studio.models.embeddings.objects import (
+    Object,
+    ObjectsCommonDataBatch,
+    SearchResults,
+)
 from embedding_studio.models.payload.models import PayloadFilter
 from embedding_studio.vectordb.collection import Collection
 from embedding_studio.vectordb.collection_info_cache import (
@@ -224,6 +228,41 @@ class PgvectorCollection(Collection):
                 self.DbObject.find_by_id_statement(object_ids)
             )
             return self.DbObject.objects_from_db(rows)
+
+    def get_total(self) -> int:
+        with self.Session() as session, session.begin():
+            total = session.execute(
+                self.DbObject.get_total_statement()
+            ).scalar_one()
+
+        return int(total)
+
+    def get_objects_common_data_batch(
+        self, limit: int, offset: Optional[int] = None
+    ) -> ObjectsCommonDataBatch:
+        with self.Session() as session, session.begin():
+            total = int(
+                session.execute(
+                    self.DbObject.get_total_statement()
+                ).scalar_one()
+            )
+
+            next_offset = None
+            if offset is not None:
+                next_offset = (
+                    (offset + limit) if (offset + limit < total) else None
+                )
+
+            data = session.execute(
+                self.DbObject.get_objects_common_data_batch_statement(
+                    limit, offset
+                )
+            ).all()
+            objects_info = self.DbObject.objects_common_data_from_db(data)
+
+            return ObjectsCommonDataBatch(
+                objects_info=objects_info, total=total, next_offset=next_offset
+            )
 
     def find_similarities(
         self,

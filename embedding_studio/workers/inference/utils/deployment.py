@@ -32,6 +32,9 @@ def handle_deployment(task_id: str):
         )
 
     if task.fine_tuning_method not in settings.INFERENCE_USED_PLUGINS:
+        task.status = TaskStatus.refused
+        context.model_deletion_task.update(obj=task)
+
         raise InferenceWorkerException(
             f"Passed plugin is not in the used plugin list"
             f' ({", ".join(settings.INFERENCE_USED_PLUGINS)}).'

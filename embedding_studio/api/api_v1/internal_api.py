@@ -3,8 +3,12 @@ from fastapi import APIRouter
 from embedding_studio.api.api_v1.internal_endpoints import (
     delete as internal_delete,
     inference_deployment_tasks,
+    reindex as internal_reindex,
     upsert as internal_upsert,
     vectordb,
+)
+from embedding_studio.api.api_v1.internal_schemas.reindex import (
+    ReindexTaskResponse,
 )
 from embedding_studio.api.api_v1.schemas.delete import DeletionTaskResponse
 from embedding_studio.api.api_v1.schemas.upsert import UpsertionTaskResponse
@@ -12,6 +16,7 @@ from embedding_studio.context.app_context import context
 from embedding_studio.utils import tasks
 from embedding_studio.workers.upsertion.worker import (
     deletion_worker,
+    reindex_worker,
     upsertion_worker,
 )
 
@@ -49,6 +54,22 @@ def add_internal_endpoints(api_router: APIRouter):
         internal_upsert.router,  # This should now only contain the /run endpoint
         prefix="/internal/upsertion-tasks",
         tags=["internal-upsertion-tasks"],
+    )
+
+    internal_reindex_helpers_router = tasks.create_task_helpers_router(
+        task_crud=context.reindex_task,
+        response_model=ReindexTaskResponse,
+        worker_func=reindex_worker,
+    )
+    api_router.include_router(
+        internal_reindex_helpers_router,
+        prefix="/internal/reindex-tasks",
+        tags=["internal-reindex-tasks"],
+    )
+    api_router.include_router(
+        internal_reindex.router,  # This should now only contain the /run endpoint
+        prefix="/internal/reindex-tasks",
+        tags=["internal-reindex-tasks"],
     )
 
     api_router.include_router(

@@ -69,6 +69,7 @@ torchvision = { version = "0.15.0+cu117", source = "pytorch" }
 torchdata = "0.6.0"
 torchmetrics = "1.2.0"
 transformers = "4.33.0"
+huggingface_hub = "0.25.0"
 
 [tool.poetry.group.minio-backend.dependencies]
 minio = "7.2.0"

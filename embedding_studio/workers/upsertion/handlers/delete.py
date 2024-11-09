@@ -7,7 +7,6 @@ from embedding_studio.core.plugin import PluginManager
 from embedding_studio.models.delete import DeletionTaskInDb
 from embedding_studio.models.task import TaskStatus
 from embedding_studio.models.utils import create_failed_deletion_data_item
-from embedding_studio.workers.upsertion.utils.collection import get_collection
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +28,21 @@ def handle_delete(task: DeletionTaskInDb):
 
     vector_db = context.vectordb
     plugin = plugin_manager.get_plugin(task.fine_tuning_method)
+    embedding_model_info = plugin.get_embedding_model_info(
+        task.embedding_model_id
+    )
 
-    collection = get_collection(vector_db, plugin, task)
-    if not collection:
-        logger.error(
-            f"Task {task.id} is finished with error: collection not found."
+    logger.info(
+        f"Creating or retrieving " f"Vector DB collection [task ID: {task.id}]"
+    )
+    try:
+        collection = vector_db.get_or_create_collection(
+            embedding_model_info, plugin.get_search_index_info()
+        )
+    except Exception:
+        logger.exception(
+            f"Something went wrong during "
+            f"collection retrieval / creation [task ID: {task.id}]"
         )
         task.status = TaskStatus.failed
         context.deletion_task.update(obj=task)

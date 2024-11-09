@@ -1,6 +1,6 @@
 import os
 import secrets
-from typing import List
+from typing import List, Union
 
 from pydantic import AnyHttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -133,6 +133,10 @@ class Settings(BaseSettings):
     INFERENCE_GRPC_PORT: int = os.getenv("INFERENCE_GRPC_PORT", 8001)
 
     # Deletion
+    DELETION_PASS_TO_REINDEXING_MODEL: int = os.getenv(
+        "DELETION_PASS_TO_REINDEXING_MODEL", True
+    )
+
     DELETION_WORKER_MAX_RETRIES: int = os.getenv(
         "DELETION_WORKER_MAX_RETRIES", 3
     )
@@ -143,12 +147,43 @@ class Settings(BaseSettings):
     # Upsertion
     UPSERTION_BATCH_SIZE: int = 16
     UPSERTION_IGNORE_FAILED_ITEMS: bool = True
+    UPSERTION_PASS_TO_REINDEXING_MODEL: int = os.getenv(
+        "UPSERTION_PASS_TO_REINDEXING_MODEL", True
+    )
 
     UPSERTION_WORKER_MAX_RETRIES: int = os.getenv(
         "UPSERTION_WORKER_MAX_RETRIES", 3
     )
     UPSERTION_WORKER_TIME_LIMIT: int = os.getenv(
         "UPSERTION_WORKER_TIME_LIMIT", 18000000
+    )
+
+    # Reindex
+    REINDEX_BATCH_SIZE: int = 16
+    REINDEX_MAX_SUBTASKS_COUNT: int = 4
+    REINDEX_IGNORE_FAILED_ITEMS: bool = True
+
+    REINDEX_WORKER_MAX_RETRIES: int = os.getenv(
+        "REINDEX_WORKER_MAX_RETRIES", 3
+    )
+    REINDEX_WORKER_TIME_LIMIT: int = os.getenv(
+        "REINDEX_WORKER_TIME_LIMIT", 18000000
+    )
+    REINDEX_WORKER_LOOP_WAIT_TIME: int = os.getenv(
+        "REINDEX_WORKER_LOOP_WAIT_TIME", 10
+    )
+    REINDEX_WORKER_MAX_FAILED: Union[int, float] = os.getenv(
+        "REINDEX_WORKER_MAX_FAILED", -1
+    )
+
+    REINDEX_SUBWORKER_MAX_RETRIES: int = os.getenv(
+        "REINDEX_SUBWORKER_MAX_RETRIES", 3
+    )
+    REINDEX_SUBWORKER_TIME_LIMIT: int = os.getenv(
+        "REINDEX_SUBWORKER_TIME_LIMIT", 18000000
+    )
+    REINDEX_SUBWORKER_LOOP_WAIT_TIME: int = os.getenv(
+        "REINDEX_SUBWORKER_LOOP_WAIT_TIME", 10
     )
 
     # Redis (broker for dramatiq)

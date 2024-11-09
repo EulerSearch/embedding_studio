@@ -1,21 +1,38 @@
 import logging
+import traceback
 
 import dramatiq
 
 from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
 from embedding_studio.db.redis import redis_broker
+from embedding_studio.models.delete import DeletionTaskCreateSchema
+from embedding_studio.models.reindex_lock import ReindexLockCreateSchema
+from embedding_studio.models.task import TaskStatus
+from embedding_studio.models.upsert import UpsertionTaskCreateSchema
 from embedding_studio.utils.dramatiq_middlewares import (
     ActionsOnStartMiddleware,
 )
+from embedding_studio.utils.dramatiq_task_handler import create_and_send_task
 from embedding_studio.utils.initializer_actions import init_nltk
-from embedding_studio.workers.upsertion.utils.delete import handle_delete
-from embedding_studio.workers.upsertion.utils.upsert import handle_upsert
+from embedding_studio.workers.upsertion.handlers.delete import handle_delete
+from embedding_studio.workers.upsertion.handlers.reindex import handle_reindex
+from embedding_studio.workers.upsertion.handlers.reindex_subtask import (
+    handle_reindex_subtask,
+)
+from embedding_studio.workers.upsertion.handlers.upsert import handle_upsert
+from embedding_studio.workers.upsertion.utils.exceptions import (
+    DeletionException,
+    ReindexException,
+    UpsertionException,
+)
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 redis_broker.add_middleware(ActionsOnStartMiddleware([init_nltk]))
+broker = dramatiq.get_broker()
+broker.flush_all()
 
 
 @dramatiq.actor(
@@ -25,6 +42,58 @@ redis_broker.add_middleware(ActionsOnStartMiddleware([init_nltk]))
 )
 def deletion_worker(task_id: str):
     task = context.deletion_task.get(id=task_id)
+
+    # TODO: mechanism to unlock if python service crashed
+    reindex_lock = context.reindex_locks.get_by_model_id(
+        task.embedding_model_id
+    )
+    if reindex_lock is not None:
+        if settings.DELETION_PASS_TO_REINDEXING_MODEL:
+            logger.warning(
+                f"Passing deletion task to "
+                f"reindexing model with ID[{reindex_lock.dst_embedding_model_id}]."
+            )
+
+            context.deletion_task.remove(task_id)
+
+            task = context.deletion_task.create(
+                schema=DeletionTaskCreateSchema(
+                    embedding_model_id=reindex_lock.dst_embedding_model.id,
+                    fine_tuning_method=reindex_lock.dst_fine_tuning_method,
+                    object_ids=task.object_ids,
+                ),
+                return_obj=True,
+                id=task.task_id,  # Use the provided task_id if available
+            )
+
+            # Use create_and_send_task instead of manual sending and updating
+            updated_task = create_and_send_task(
+                deletion_worker, task, context.deletion_task
+            )
+
+            if not updated_task:
+                raise DeletionException(
+                    f"Something went wrong while passing "
+                    f"deletion task to reindexing model "
+                    f"with ID[{reindex_lock.dst_embedding_model_id}]."
+                )
+
+            else:
+                logger.info(
+                    f"Task [{task_id}] is being passed to"
+                    f" reindexing model with ID[{reindex_lock.dst_embedding_model_id}]."
+                )
+
+        else:
+            logger.warning(
+                f"Can't run deletion for embedding model {task.embedding_model_id}"
+                f": it is locked while reindexing."
+            )
+            task.status = TaskStatus.refused
+            context.deletion_task.update(obj=task)
+
+        return
+
     handle_delete(task)
 
 
@@ -35,4 +104,190 @@ def deletion_worker(task_id: str):
 )
 def upsertion_worker(task_id: str):
     task = context.upsertion_task.get(id=task_id)
+
+    # TODO: mechanism to unlock if python service crashed
+    reindex_lock = context.reindex_locks.get_by_model_id(
+        task.embedding_model_id
+    )
+    if reindex_lock is not None:
+        if settings.UPSERTION_PASS_TO_REINDEXING_MODEL:
+            logger.warning(
+                f"Passing upsertion task to "
+                f"reindexing model with ID[{reindex_lock.dst_embedding_model_id}]."
+            )
+
+            context.upsertion_task.remove(task_id)
+
+            task = context.upsertion_task.create(
+                schema=UpsertionTaskCreateSchema(
+                    embedding_model_id=reindex_lock.dst_embedding_model.id,
+                    fine_tuning_method=reindex_lock.dst_fine_tuning_method,
+                    items=task.items,
+                ),
+                return_obj=True,
+                id=task.task_id,  # Use the provided task_id if available
+            )
+
+            # Use create_and_send_task instead of manual sending and updating
+            updated_task = create_and_send_task(
+                upsertion_worker, task, context.upsertion_task
+            )
+
+            if not updated_task:
+                raise UpsertionException(
+                    f"Something went wrong while passing "
+                    f"upsertion task to reindexing"
+                    f" model with ID[{reindex_lock.dst_embedding_model_id}]."
+                )
+
+            else:
+                logger.info(
+                    f"Task [{task_id}] is being passed "
+                    f"to reindexing model with ID[{reindex_lock.dst_embedding_model_id}]."
+                )
+
+        else:
+            logger.warning(
+                f"Can't run deletion for embedding model"
+                f" {task.embedding_model_id}: it is locked while reindexing."
+            )
+            task.status = TaskStatus.refused
+            context.upsertion_task.update(obj=task)
+
+        return
+
     handle_upsert(task)
+
+
+@dramatiq.actor(
+    queue_name="reindex_subworker",
+    max_retries=settings.REINDEX_SUBWORKER_MAX_RETRIES,
+    time_limit=settings.REINDEX_SUBWORKER_TIME_LIMIT,
+)
+def reindex_subworker(task_id: str):
+    task = context.reindex_subtask.get(id=task_id)
+    handle_reindex_subtask(task)
+
+
+@dramatiq.actor(
+    queue_name="reindex_worker",
+    max_retries=settings.REINDEX_WORKER_MAX_RETRIES,
+    time_limit=settings.REINDEX_WORKER_TIME_LIMIT,
+)
+def reindex_worker(task_id: str):
+    task = context.reindex_task.get(id=task_id)
+
+    reindex_lock = context.reindex_locks.get_by_model_id(
+        task.source.embedding_model_id
+    )
+    if reindex_lock is not None:
+        task.status = TaskStatus.refused
+        context.reindex_task.update(obj=task)
+
+        raise ReindexException(
+            f"Can't run reindexing process for source embedding "
+            f"model with ID[{task.source.embedding_model_id}]: "
+            f"this model is already being used as a source for reindexing."
+        )
+
+    reindex_lock = context.reindex_locks.get_by_model_id(
+        task.dest.embedding_model_id
+    )
+    if reindex_lock is not None:
+        task.status = TaskStatus.refused
+        context.reindex_task.update(obj=task)
+
+        raise ReindexException(
+            f"Can't run reindexing process for destination embedding "
+            f"model with ID[{task.dest.embedding_model_id}]: "
+            f"this model is already being used as a source  for reindexing."
+        )
+
+    reindex_lock = context.reindex_locks.get_by_dst_model_id(
+        task.source.embedding_model_id
+    )
+    if reindex_lock is not None:
+        task.status = TaskStatus.refused
+        context.reindex_task.update(obj=task)
+
+        raise ReindexException(
+            f"Can't run reindexing process for source embedding "
+            f"model with ID[{task.source.embedding_model_id}]: "
+            f"this model is already being used as a destination for reindexing."
+        )
+
+    reindex_lock = context.reindex_locks.get_by_dst_model_id(
+        task.dest.embedding_model_id
+    )
+    if reindex_lock is not None:
+        task.status = TaskStatus.refused
+        context.reindex_task.update(obj=task)
+
+        raise ReindexException(
+            f"Can't run reindexing process for destination embedding "
+            f"model with ID[{task.dest.embedding_model_id}]: "
+            f"this model is already being used as a destination  for reindexing."
+        )
+
+    model_deletion_task = context.model_deletion_task.get_by_model_id(
+        task.source.embedding_model_id
+    )
+    if model_deletion_task is not None:
+        task.status = TaskStatus.refused
+        context.reindex_task.update(obj=task)
+
+        raise ReindexException(
+            f"Can't run reindexing process for source embedding "
+            f"model with ID[{task.source.embedding_model_id}]: "
+            f"this model is already in the process of deletion."
+        )
+
+    model_deletion_task = context.model_deletion_task.get_by_model_id(
+        task.dest.embedding_model_id
+    )
+    if model_deletion_task is not None:
+        task.status = TaskStatus.refused
+        context.reindex_task.update(obj=task)
+
+        raise ReindexException(
+            f"Can't run reindexing process for destination embedding "
+            f"model with ID[{task.dest.embedding_model_id}]: "
+            f"this model is already in the process of deletion."
+        )
+
+    lock = None
+    try:
+        lock = context.reindex_locks.create(
+            schema=ReindexLockCreateSchema(
+                embedding_model_id=task.source.embedding_model_id,
+                fine_tuning_method=task.source.fine_tuning_method,
+                dst_embedding_model_id=task.dest.embedding_model_id,
+                dst_fine_tuning_method=task.dest.fine_tuning_method,
+            ),
+            id=task_id,
+            return_obj=True,
+        )
+
+        if lock is None:
+            task.status = TaskStatus.failed
+            context.reindex_task.update(obj=task)
+
+            raise ReindexException(
+                f"Unable to create reindexing lock for task with ID[{task_id}]."
+            )
+
+        handle_reindex(task, reindex_subworker)
+
+    except Exception as e:
+        traceback_str = traceback.format_exc()
+
+        task.status = TaskStatus.failed
+        task.detail = traceback_str[-1500:]
+        context.reindex_task.update(obj=task)
+
+        logger.exception(f"Something went wrong while reindexing: {str(e)}")
+
+    finally:
+        if lock is not None:
+            # TODO: mechanism to unlock if python service crashed
+            context.reindex_locks.remove(lock.id)

@@ -5,19 +5,18 @@ from typing import List, Tuple
 from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
 from embedding_studio.core.plugin import PluginManager
+from embedding_studio.data_access.mongo.crud_base import CRUDBase
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.embeddings.inference.triton.client import TritonClient
 from embedding_studio.embeddings.splitters.item_splitter import ItemSplitter
-from embedding_studio.models.task import TaskStatus
-from embedding_studio.models.upsert import (
+from embedding_studio.models.items_handler import (
+    BaseDataHandlingTask,
     DataItem,
-    UpsertionFailureStage,
-    UpsertionTaskInDb,
+    ItemProcessingFailureStage,
 )
+from embedding_studio.models.task import TaskStatus
 from embedding_studio.models.utils import create_failed_data_item
 from embedding_studio.vectordb.collection import Collection
-from embedding_studio.vectordb.exceptions import LockAcquisitionError
-from embedding_studio.workers.upsertion.utils.collection import get_collection
 from embedding_studio.workers.upsertion.utils.exceptions import (
     DownloadException,
     InferenceException,
@@ -40,8 +39,9 @@ plugin_manager.discover_plugins(directory=settings.ES_PLUGINS_PATH)
 
 def handle_failed_items(
     failed_items: List[Tuple[DataItem, str]],
-    task: UpsertionTaskInDb,
+    task: BaseDataHandlingTask,
     exception: Exception,
+    task_crud: CRUDBase,
 ):
     """
     Handles failed items during different stages of the upsertion process.
@@ -49,23 +49,24 @@ def handle_failed_items(
     :param failed_items: List of tuples containing failed DataItem and traceback.
     :param task: The upsertion task object in the database.
     :param exception: The exception that occurred.
+    :param task_crud: The CRUD object that contains information about failed items.
     """
     stage = None
     stage_description = ""
     if isinstance(exception, DownloadException):
-        stage = UpsertionFailureStage.on_downloading
+        stage = ItemProcessingFailureStage.on_downloading
         stage_description = "downloading items batch"
 
     elif isinstance(exception, SplitException):
-        stage = UpsertionFailureStage.on_splitting
+        stage = ItemProcessingFailureStage.on_splitting
         stage_description = "splitting"
 
     elif isinstance(exception, InferenceException):
-        stage = UpsertionFailureStage.on_inference
+        stage = ItemProcessingFailureStage.on_inference
         stage_description = "running inference"
 
     elif isinstance(exception, UploadException):
-        stage = UpsertionFailureStage.on_upsert
+        stage = ItemProcessingFailureStage.on_upsert
         stage_description = "uploading vectors in DB"
 
     message = (
@@ -80,7 +81,7 @@ def handle_failed_items(
     context.upsertion_task.update(obj=task)
     if not settings.UPSERTION_IGNORE_FAILED_ITEMS:
         task.status = TaskStatus.failed
-        context.upsertion_task.update(obj=task)
+        task_crud.update(obj=task)
         raise ValueError(message)
 
 
@@ -91,7 +92,8 @@ def upsert_batch(
     inference_client: TritonClient,
     collection: Collection,
     batch_index: int,
-    task: UpsertionTaskInDb,
+    task: BaseDataHandlingTask,
+    task_crud: CRUDBase,
 ):
     """
     Handles the upsertion process for a single batch of items.
@@ -103,6 +105,7 @@ def upsert_batch(
     :param collection: Collection instance to upload vectors to.
     :param batch_index: Index of the current batch.
     :param task: The upsertion task object in the database.
+    :param task_crud: The CRUD object that contains information about task.
     """
     id_to_index = dict()
     for i, item in enumerate(batch):
@@ -134,6 +137,7 @@ def upsert_batch(
                 ],
                 task=task,
                 exception=SplitException(),
+                task_crud=task_crud,
             )
 
         logger.info(
@@ -154,79 +158,51 @@ def upsert_batch(
         )
 
     except Exception as e:
-        tb = traceback.format_exc()
+        tb = traceback.format_exc()[-1500:]
         handle_failed_items(
-            failed_items=[(item, tb) for item in batch], task=task, exception=e
+            failed_items=[(item, tb) for item in batch],
+            task=task,
+            exception=e,
+            task_crud=task_crud,
         )
 
 
-def handle_upsert(task: UpsertionTaskInDb):
-    """
-    Handles the upsertion process for a given task.
-
-    :param task: The upsertion task object in the database.
-    """
-    logger.info(f"Starting upsert process for task ID: {task.id}")
-
-    task.status = TaskStatus.processing
-    context.upsertion_task.update(obj=task)
-
-    vector_db = context.vectordb
-    plugin = plugin_manager.get_plugin(task.fine_tuning_method)
-    data_loader = plugin.get_data_loader()
-    items_splitter = plugin.get_items_splitter()
-    inference_client = plugin.get_inference_client_factory().get_client(
-        task.embedding_model_id
-    )
-
-    collection = get_collection(vector_db, plugin, task)
-    if not collection:
-        return
-
+def process_upsert(
+    task: BaseDataHandlingTask,
+    collection: Collection,
+    data_loader: DataLoader,
+    items_splitter: ItemSplitter,
+    inference_client: TritonClient,
+    task_crud: CRUDBase,
+):
     # Extract all object IDs from the task items
     all_object_ids = [item.object_id for item in task.items]
-
     batches = len(task.items) // settings.UPSERTION_BATCH_SIZE + 1
-    logger.info(
-        f"Start embeddings prediction for {batches} batches "
-        f"[task ID: {task.id}]"
-    )
+    with collection.lock_objects(
+        all_object_ids, max_attempts=5, wait_time=2.0
+    ):
+        for batch_index in range(batches):
+            start = batch_index * settings.UPSERTION_BATCH_SIZE
+            end = min(
+                (batch_index + 1) * settings.UPSERTION_BATCH_SIZE,
+                len(task.items),
+            )
 
-    try:
-        with collection.lock_objects(
-            all_object_ids, max_attempts=5, wait_time=2.0
-        ):
-            for batch_index in range(batches):
-                start = batch_index * settings.UPSERTION_BATCH_SIZE
-                end = min(
-                    (batch_index + 1) * settings.UPSERTION_BATCH_SIZE,
-                    len(task.items),
+            if end <= len(task.items):
+                batch = task.items[start:end]
+                if len(batch) == 0:
+                    continue
+
+                upsert_batch(
+                    batch=batch,
+                    data_loader=data_loader,
+                    items_splitter=items_splitter,
+                    inference_client=inference_client,
+                    collection=collection,
+                    batch_index=batch_index,
+                    task=task,
+                    task_crud=task_crud,
                 )
 
-                if end <= len(task.items):
-                    batch = task.items[start:end]
-                    if len(batch) == 0:
-                        continue
-
-                    upsert_batch(
-                        batch=batch,
-                        data_loader=data_loader,
-                        items_splitter=items_splitter,
-                        inference_client=inference_client,
-                        collection=collection,
-                        batch_index=batch_index,
-                        task=task,
-                    )
-
-            logger.info(f"Task {task.id} is finished.")
-            task.status = TaskStatus.done
-            context.upsertion_task.update(obj=task)
-
-    except LockAcquisitionError as e:
-        logger.error(
-            f"Failed to acquire lock for task {task.id}. "
-            f"Aborting the task. Error: {str(e)}"
-        )
-        task.status = TaskStatus.failed
-        context.upsertion_task.update(obj=task)
-        return
+    task.status = TaskStatus.done
+    task_crud.update(obj=task)
