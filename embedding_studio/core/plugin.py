@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
 from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
+from embedding_studio.core.config import settings
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.embeddings.inference.triton.client import (
     TritonClientFactory,
@@ -177,7 +178,8 @@ class PluginManager:
                             raise ValueError(
                                 "Plugin meta information is not defined."
                             )
-                        self._register_plugin(obj())
+                        if obj.meta.name in settings.INFERENCE_USED_PLUGINS:
+                            self._register_plugin(obj())
 
     def _register_plugin(self, plugin: FineTuningMethod) -> None:
         """Register a plugin in the manager.

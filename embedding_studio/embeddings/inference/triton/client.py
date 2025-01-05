@@ -4,6 +4,7 @@ from typing import Any, List, Optional
 
 import numpy as np
 import tritonclient.grpc as grpcclient
+from tritonclient.grpc.service_pb2 import ModelReadyRequest
 from tritonclient.utils import InferenceServerException
 
 from embedding_studio.core.config import settings
@@ -57,6 +58,36 @@ class TritonClient(ABC):
             if retry_config
             else TritonClient._get_default_retry_config()
         )
+
+    def _is_model_ready(self, is_query: bool) -> bool:
+        try:
+            model_name = (
+                self.query_model_info.name
+                if is_query
+                else self.items_model_info.name
+            )
+            # Check if the model is ready
+            request = ModelReadyRequest(
+                name=model_name,
+            )
+            response = self.client._client_stub.ModelReady(request)
+            return response.ready
+        except Exception as e:
+            logger.exception(f"Error checking model '{model_name}': {e}")
+            return False
+
+    def is_model_ready(self) -> bool:
+        """Check if the model is deployed.
+
+        :return bool: True if the model is deployed, False otherwise.
+        """
+        if self.same_query_and_items:
+            return self._is_model_ready(True)
+        else:
+            # If query and items model are different - check them separately
+            return self._is_model_ready(
+                is_query=False
+            ) and self._is_model_ready(is_query=True)
 
     @staticmethod
     def _get_default_retry_config() -> RetryConfig:

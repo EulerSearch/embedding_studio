@@ -79,7 +79,7 @@ class CollectionInfoCache:
         self, collection_id: str
     ) -> Optional[CollectionStateInfo]:
         for collection in self._collections:
-            if collection.collection_id == collection_id:
+            if str(collection.collection_id) == str(collection_id):
                 return collection
         return None
 

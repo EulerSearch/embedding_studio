@@ -32,4 +32,4 @@ class EmbeddingModelInfo(BaseModel):
 
     @property
     def full_name(self) -> str:
-        return f"{self.name}:{self.id}"
+        return f"{self.name}_{self.id}"

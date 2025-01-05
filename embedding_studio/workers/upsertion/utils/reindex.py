@@ -53,7 +53,9 @@ def process_reindex(
         )
 
         # Create additional tasks if needed
-        additional_tasks_count = max_tasks_count - len(processing_task_ids)
+        additional_tasks_count = min(
+            len(offsets), max_tasks_count - len(processing_task_ids)
+        )
         if additional_tasks_count > 0:
             offsets = create_additional_tasks(
                 task,
@@ -83,6 +85,7 @@ def process_reindex(
 
         time.sleep(settings.REINDEX_WORKER_LOOP_WAIT_TIME)
 
+    failed_count = 0
     if settings.REINDEX_WORKER_MAX_FAILED != -1:
         failed_count = len(task.failed_items)
         if isinstance(settings.REINDEX_WORKER_MAX_FAILED, float):

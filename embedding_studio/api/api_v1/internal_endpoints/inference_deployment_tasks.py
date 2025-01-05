@@ -13,8 +13,8 @@ from embedding_studio.context.app_context import context
 from embedding_studio.utils.dramatiq_task_handler import create_and_send_task
 from embedding_studio.utils.tasks import convert_to_response
 from embedding_studio.workers.inference.worker import (
-    deletion_worker,
-    deployment_worker,
+    model_deletion_worker,
+    model_deployment_worker,
 )
 
 router = APIRouter()
@@ -42,7 +42,7 @@ def deploy(
 
     # Use create_and_send_task instead of manual sending and updating
     updated_task = create_and_send_task(
-        deployment_worker, deployment_task, context.model_deployment_task
+        model_deployment_worker, deployment_task, context.model_deployment_task
     )
 
     if updated_task:
@@ -56,15 +56,39 @@ def deploy(
 
 
 @router.get(
-    "/deploy/{embedding_model_id}",
+    "/deploy/{task_id}",
     response_model=ModelDeploymentResponse,
     response_model_by_alias=False,
     response_model_exclude_none=True,
 )
 def get_deploy_task(
+    task_id: str,
+) -> Any:
+    """Get details of a specific deployment.
+
+    :param task_id: ID of the task.
+    :return: Task details.
+    """
+    task = context.model_deployment_task.get(task_id)
+    if task is not None:
+        return convert_to_response(task, ModelDeploymentResponse)
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Deployment task with ID `{task_id}` is not found",
+    )
+
+
+@router.get(
+    "/deploy-status/{embedding_model_id}",
+    response_model=ModelDeploymentResponse,
+    response_model_by_alias=False,
+    response_model_exclude_none=True,
+)
+def get_model_deploy_status(
     embedding_model_id: str,
 ) -> Any:
-    """Get details of a specific green deployment.
+    """Get details of a specific deployment.
 
     :param embedding_model_id: ID of the model.
     :return: Task details.
@@ -100,7 +124,7 @@ def delete(
 
     # Use create_and_send_task instead of manual sending and updating
     updated_task = create_and_send_task(
-        deletion_worker, deletion_task, context.model_deletion_task
+        model_deletion_worker, deletion_task, context.model_deletion_task
     )
 
     if updated_task:
@@ -114,12 +138,36 @@ def delete(
 
 
 @router.get(
-    "/delete/{embedding_model_id}",
+    "/delete/{task_id}",
     response_model=ModelDeletionResponse,
     response_model_by_alias=False,
     response_model_exclude_none=True,
 )
 def get_delete_task(
+    task_id: str,
+) -> Any:
+    """Get details of a specific deployment revert.
+
+    :param task_id: ID of the task.
+    :return: Task details.
+    """
+    task = context.model_deployment_task.get(task_id)
+    if task is not None:
+        return convert_to_response(task, ModelDeletionResponse)
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Deletion task with ID `{task_id}` is not found",
+    )
+
+
+@router.get(
+    "/delete-status/{embedding_model_id}",
+    response_model=ModelDeletionResponse,
+    response_model_by_alias=False,
+    response_model_exclude_none=True,
+)
+def get_model_delete_status(
     embedding_model_id: str,
 ) -> Any:
     """Get details of a specific deployment revert.

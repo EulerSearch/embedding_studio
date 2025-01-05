@@ -10,14 +10,17 @@ from embedding_studio.db.redis import redis_broker  # noqa
 from embedding_studio.experiments.finetuning_iteration import (
     FineTuningIteration,
 )
-from embedding_studio.models.task import TaskStatus
+from embedding_studio.models.reindex import ReindexTaskCreateSchema
+from embedding_studio.models.task import ModelParams, TaskStatus
 from embedding_studio.utils.dramatiq_middlewares import (
     ActionsOnStartMiddleware,
 )
+from embedding_studio.utils.dramatiq_task_handler import create_and_send_task
 from embedding_studio.utils.initializer_actions import init_nltk
 from embedding_studio.workers.fine_tuning.finetune_embedding import (
     finetune_embedding_model,
 )
+from embedding_studio.workers.upsertion.worker import reindex_worker
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +121,7 @@ def fine_tuning_worker(task_id: str):
             "Fine tuning of the embedding model was completed successfully!"
         )
         builder.experiments_manager.set_iteration(iteration)
-        best_run_id = builder.experiments_manager.get_best_current_run_id()
+        best_run_id, _ = builder.experiments_manager.get_best_current_run_id()
         best_model_url = builder.experiments_manager.get_current_model_url()
         logger.info(
             f"You can download best model using this url: {best_model_url}"
@@ -137,3 +140,35 @@ def fine_tuning_worker(task_id: str):
 
     task.status = TaskStatus.done
     context.fine_tuning_task.update(obj=task)
+
+    if task.deploy_as_blue:
+        logger.info(
+            f"Starting reindex task for model with "
+            f"ID {task.fine_tuning_method}/{task.best_run_id}"
+        )
+        reindex_task = context.reindex_task.create(
+            schema=ReindexTaskCreateSchema(
+                source=ModelParams(
+                    embedding_model_id=task.embedding_model_id,
+                    fine_tuning_method=task.fine_tuning_method,
+                ),
+                dest=ModelParams(
+                    embedding_model_id=task.best_run_id,
+                    fine_tuning_method=task.fine_tuning_method,
+                ),
+                deploy_as_blue=True,
+                wait_on_conflict=task.wait_on_conflict,
+                parent_id=task.id,
+            ),
+            return_obj=True,
+        )
+
+        # Use create_and_send_task instead of manual sending and updating
+        reindex_task = create_and_send_task(
+            reindex_worker, reindex_task, context.reindex_task
+        )
+
+        if not reindex_task:
+            raise Exception(
+                f"Failed to create and send deployment task for model {task.best_run_id}"
+            )

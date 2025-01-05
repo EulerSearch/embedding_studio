@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 import tempfile
@@ -5,6 +6,7 @@ import tempfile
 from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
 from embedding_studio.inference_management.triton.model_storage_info import (
+    DeployedModelInfo,
     ModelStorageInfo,
 )
 from embedding_studio.models.task import TaskStatus
@@ -15,6 +17,8 @@ from embedding_studio.workers.inference.utils.file_locks import (
     acquire_lock,
     release_lock,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def handle_deletion(task_id: str):
@@ -58,10 +62,12 @@ def handle_deletion(task_id: str):
 
         query_model_storage_info = ModelStorageInfo(
             model_repo=model_repo,
-            plugin_name=task.fine_tuning_method,
-            model_type="query",
-            embedding_model_id=task.embedding_model_id,
-            version="1",
+            deployed_model_info=DeployedModelInfo(
+                plugin_name=task.fine_tuning_method,
+                model_type="query",
+                embedding_model_id=task.embedding_model_id,
+                version="1",
+            ),
         )
 
         same_query = os.path.exists(
@@ -72,10 +78,12 @@ def handle_deletion(task_id: str):
         if not same_query:
             items_model_storage_info = ModelStorageInfo(
                 model_repo=model_repo,
-                plugin_name=task.fine_tuning_method,
-                model_type="items",
-                embedding_model_id=task.embedding_model_id,
-                version="1",
+                deployed_model_info=DeployedModelInfo(
+                    plugin_name=task.fine_tuning_method,
+                    model_type="items",
+                    embedding_model_id=task.embedding_model_id,
+                    version="1",
+                ),
             )
             shutil.rmtree(items_model_storage_info.model_path)
 
@@ -83,6 +91,9 @@ def handle_deletion(task_id: str):
         context.model_deletion_task.update(obj=task)
 
     except Exception:
+        logger.exception(
+            f"Something went wrong durong model deletion with ID: {model_id}"
+        )
         task.status = TaskStatus.failed
         context.model_deletion_task.update(obj=task)
 

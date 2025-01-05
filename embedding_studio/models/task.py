@@ -2,7 +2,7 @@ import enum
 from typing import Optional
 
 from bson import ObjectId
-from pydantic import AwareDatetime, BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field, constr
 
 from embedding_studio.db.common import PyObjectId
 from embedding_studio.utils.datetime_utils import current_time

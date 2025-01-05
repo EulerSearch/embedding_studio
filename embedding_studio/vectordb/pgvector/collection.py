@@ -260,9 +260,9 @@ class PgvectorCollection(Collection):
             ).all()
             objects_info = self.DbObject.objects_common_data_from_db(data)
 
-            return ObjectsCommonDataBatch(
-                objects_info=objects_info, total=total, next_offset=next_offset
-            )
+        return ObjectsCommonDataBatch(
+            objects_info=objects_info, total=total, next_offset=next_offset
+        )
 
     def find_similarities(
         self,

@@ -11,11 +11,14 @@ from embedding_studio.experiments.finetuning_iteration import (
 )
 from embedding_studio.experiments.finetuning_params import FineTuningParams
 from embedding_studio.experiments.metrics_accumulator import MetricValue
-from embedding_studio.models.task import TaskStatus
+from embedding_studio.models.reindex import ReindexTaskCreateSchema
+from embedding_studio.models.task import ModelParams, TaskStatus
 from embedding_studio.utils.dramatiq_middlewares import (
     ActionsOnStartMiddleware,
 )
+from embedding_studio.utils.dramatiq_task_handler import create_and_send_task
 from embedding_studio.utils.initializer_actions import init_nltk
+from embedding_studio.workers.upsertion.worker import reindex_worker
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +77,8 @@ def fine_tuning_mocked_worker(task_id: str):
             plugin_name="DefaultFineTuningMethod",
         )
 
-        fine_tuning_plugin.get_manager().set_iteration(iteration)
+        manager = fine_tuning_plugin.get_manager()
+        manager.set_iteration(iteration)
         params = FineTuningParams(
             num_fixed_layers=6,
             query_lr=0.1,
@@ -85,27 +89,22 @@ def fine_tuning_mocked_worker(task_id: str):
             not_irrelevant_only=True,
             negative_downsampling=0.5,
         )
-        _ = fine_tuning_plugin.get_manager().set_run(params)
-        fine_tuning_plugin.get_manager().save_metric(
+        _ = manager.set_run(params)
+        manager.save_metric(
             MetricValue("not_irrelevant_dist_shift", 0.1).add_prefix("test")
         )
 
-        inital_model = (
-            fine_tuning_plugin.get_manager().download_initial_model()
-        )
-        fine_tuning_plugin.get_manager().save_model(inital_model, True)
+        inital_model = manager.download_initial_model()
+        manager.save_model(inital_model, True)
+        manager.finish_run()
 
-        best_run_id = (
-            fine_tuning_plugin.get_manager().get_best_current_run_id()
-        )
-        best_model_url = (
-            fine_tuning_plugin.get_manager().get_current_model_url()
-        )
+        best_run_id, _ = manager.get_best_current_run_id()
+        best_model_url = manager.get_current_model_url()
 
         task.best_run_id = best_run_id
         task.best_model_url = best_model_url
 
-        fine_tuning_plugin.get_manager().finish_run()
+        manager.finish_iteration()
 
     except Exception:
         try:
@@ -118,3 +117,33 @@ def fine_tuning_mocked_worker(task_id: str):
 
     task.status = TaskStatus.done
     context.fine_tuning_task.update(obj=task)
+
+    if task.deploy_as_blue:
+        logger.info(
+            f"Starting reindex task for model with "
+            f"ID {task.fine_tuning_method}/{task.best_run_id}"
+        )
+        reindex_task = context.reindex_task.create(
+            schema=ReindexTaskCreateSchema(
+                source=ModelParams(
+                    embedding_model_id=task.embedding_model_id,
+                    fine_tuning_method=task.fine_tuning_method,
+                ),
+                dest=ModelParams(
+                    embedding_model_id=task.best_run_id,
+                    fine_tuning_method=task.fine_tuning_method,
+                ),
+                deploy_as_blue=True,
+                wait_on_conflict=task.wait_on_conflict,
+                parent_id=task.id,
+            ),
+            return_obj=True,
+        )
+        reindex_task = create_and_send_task(
+            reindex_worker, reindex_task, context.reindex_task
+        )
+
+        if not reindex_task:
+            raise Exception(
+                f"Failed to create and send deployment task for model {task.best_run_id}"
+            )

@@ -39,6 +39,28 @@ def handle_deployment(task_id: str):
             f"Passed plugin is not in the used plugin list"
             f' ({", ".join(settings.INFERENCE_USED_PLUGINS)}).'
         )
+
+    deployed_models_list = os.listdir(model_repo)
+    deployed_models_unique = set(
+        [
+            tuple(deployed_model.split("_")[:-1])
+            for deployed_model in deployed_models_list
+        ]
+    )
+    print(deployed_models_unique)
+
+    if (
+        len(deployed_models_unique)
+        > settings.INFERENCE_WORKER_MAX_DEPLOYED_MODELS
+    ):
+        task.status = TaskStatus.refused
+        task.detail = (
+            f"Number of deployed models {len(deployed_models_unique)} "
+            f"exceeds max deployed models {settings.INFERENCE_WORKER_MAX_DEPLOYED_MODELS}"
+        )
+        context.model_deployment_task.update(obj=task)
+        return
+
     temp_dir = tempfile.gettempdir()
     lock_file_path = os.path.join(
         temp_dir, f"deployment_lock_{task.embedding_model_id}.lock"

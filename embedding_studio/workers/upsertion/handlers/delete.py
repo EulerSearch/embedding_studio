@@ -27,6 +27,7 @@ def handle_delete(task: DeletionTaskInDb):
     context.deletion_task.update(obj=task)
 
     vector_db = context.vectordb
+    vector_db.update_info()
     plugin = plugin_manager.get_plugin(task.fine_tuning_method)
     embedding_model_info = plugin.get_embedding_model_info(
         task.embedding_model_id

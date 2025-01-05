@@ -18,6 +18,9 @@ class ReindexTaskRunRequest(BaseTaskRequest):
     source: ModelParams = Field(...)
     dest: ModelParams = Field(...)
 
+    deploy_as_blue: Optional[bool] = Field(...)
+    wait_on_conflict: Optional[bool] = Field(...)
+
 
 class ReindexTaskResponse(BaseTaskResponse):
     progress: float = Field(
@@ -39,3 +42,6 @@ class ReindexTaskResponse(BaseTaskResponse):
 
     children: List[str] = Field(default_factory=list)
     failed_items: List[FailedDataItem] = Field(...)
+
+    deploy_as_blue: Optional[bool] = Field(...)
+    wait_on_conflict: Optional[bool] = Field(...)

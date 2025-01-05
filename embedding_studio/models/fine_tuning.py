@@ -14,6 +14,9 @@ class FineTuningTaskCreateSchema(BaseTaskCreateSchema):
     metadata: Optional[Dict[str, Any]] = None
     idempotency_key: Optional[str] = None
 
+    deploy_as_blue: Optional[bool] = None
+    wait_on_conflict: Optional[bool] = None
+
 
 class FineTuningTask(BaseModelOperationTask):
     batch_id: Optional[str] = None
@@ -21,6 +24,9 @@ class FineTuningTask(BaseModelOperationTask):
     best_model_url: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
     idempotency_key: Optional[str] = None
+
+    deploy_as_blue: Optional[bool] = None
+    wait_on_conflict: Optional[bool] = None
 
     model_config = ConfigDict(populate_by_name=True)
 

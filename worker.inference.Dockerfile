@@ -48,7 +48,7 @@ WORKDIR /embedding_studio
 RUN cp -r /tmp/requirements.txt /embedding_studio/requirements.txt
 
 # Install the package dependencies in the requirements file.
-RUN pip3 install --no-cache-dir --upgrade  --ignore-installed blinker -r requirements.txt
+RUN pip3 install --no-cache-dir --upgrade  --ignore-installed blinker -r requirements.txt --default-timeout=100
 
 # Copy the application directory inside the /code directory.
 COPY . /embedding_studio
@@ -62,8 +62,11 @@ EXPOSE 8001
 EXPOSE 8002
 
 # Set the environment variable for the model repository
-ENV MODEL_REPOSITORY=/models
+ENV MODEL_REPOSITORY='/models'
 ENV CUDA_VISIBLE_DEVICES=0
+
+RUN mkdir /models
+RUN touch /triton.log
 
 # Copy the start-up script to the workspace
 COPY ./embedding_studio/workers/inference/start_service.sh /embedding_studio

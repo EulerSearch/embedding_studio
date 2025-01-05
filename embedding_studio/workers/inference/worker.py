@@ -24,18 +24,18 @@ redis_broker.add_middleware(OnStartMiddleware())
 
 
 @dramatiq.actor(
-    queue_name="deployment_worker",
+    queue_name="model_deployment_worker",
     max_retries=settings.INFERENCE_WORKER_MAX_RETRIES,
     time_limit=settings.INFERENCE_WORKER_TIME_LIMIT,
 )
-def deployment_worker(task_id: str):
+def model_deployment_worker(task_id: str):
     handle_deployment(task_id)
 
 
 @dramatiq.actor(
-    queue_name="deletion_worker",
+    queue_name="model_deletion_worker",
     max_retries=settings.INFERENCE_WORKER_MAX_RETRIES,
     time_limit=settings.INFERENCE_WORKER_TIME_LIMIT,
 )
-def deletion_worker(task_id: str):
+def model_deletion_worker(task_id: str):
     handle_deletion(task_id)

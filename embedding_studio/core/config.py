@@ -124,6 +124,9 @@ class Settings(BaseSettings):
     INFERENCE_WORKER_TIME_LIMIT: int = os.getenv(
         "INFERENCE_WORKER_TIME_LIMIT", 18000000
     )
+    INFERENCE_WORKER_MAX_DEPLOYED_MODELS: int = os.getenv(
+        "INFERENCE_WORKER_MAX_DEPLOYED_MODELS", 3
+    )
     # When deploying a new model after reindexing, we switch from "green" to "blue".
     # There are two options:
     #   a) Archive the current "blue" version.
@@ -161,13 +164,15 @@ class Settings(BaseSettings):
     # Reindex
     REINDEX_BATCH_SIZE: int = 16
     REINDEX_MAX_SUBTASKS_COUNT: int = 4
+    REINDEX_MAX_TASKS_COUNT: int = 2
     REINDEX_IGNORE_FAILED_ITEMS: bool = True
+    REINDEX_TASK_DELAY_TIME: int = 20 * 60 * 1000  # 20 minutes in milliseconds
 
     REINDEX_WORKER_MAX_RETRIES: int = os.getenv(
         "REINDEX_WORKER_MAX_RETRIES", 3
     )
     REINDEX_WORKER_TIME_LIMIT: int = os.getenv(
-        "REINDEX_WORKER_TIME_LIMIT", 18000000
+        "REINDEX_WORKER_TIME_LIMIT", 180000000
     )
     REINDEX_WORKER_LOOP_WAIT_TIME: int = os.getenv(
         "REINDEX_WORKER_LOOP_WAIT_TIME", 10
@@ -184,6 +189,16 @@ class Settings(BaseSettings):
     )
     REINDEX_SUBWORKER_LOOP_WAIT_TIME: int = os.getenv(
         "REINDEX_SUBWORKER_LOOP_WAIT_TIME", 10
+    )
+
+    REINDEX_INITIATE_MODEL_DEPLOYMENT: bool = os.getenv(
+        "REINDEX_INITIATE_MODEL_DEPLOYMENT", True
+    )
+    REINDEX_INITIATE_MODEL_DEPLOYMENT_PENDING_TIME: int = os.getenv(
+        "REINDEX_INITIATE_MODEL_DEPLOYMENT_PENDING_TIME", 18000
+    )
+    REINDEX_INITIATE_MODEL_DEPLOYMENT_LOOP_WAIT_TIME: int = os.getenv(
+        "REINDEX_INITIATE_MODEL_DEPLOYMENT_LOOP_WAIT_TIME", 30
     )
 
     # Redis (broker for dramatiq)

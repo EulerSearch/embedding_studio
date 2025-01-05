@@ -11,6 +11,10 @@ from embedding_studio.vectordb.collection import Collection
 
 class VectorDb(ABC):
     @abstractmethod
+    def update_info(self):
+        raise NotImplementedError()
+
+    @abstractmethod
     def list_collections(self) -> List[CollectionStateInfo]:
         raise NotImplementedError()
 
@@ -20,7 +24,8 @@ class VectorDb(ABC):
 
     @abstractmethod
     def get_collection(
-        self, embedding_model: EmbeddingModelInfo
+        self,
+        embedding_model: EmbeddingModelInfo,
     ) -> Collection:
         raise NotImplementedError()
 

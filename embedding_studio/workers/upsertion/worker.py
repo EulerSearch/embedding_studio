@@ -1,3 +1,4 @@
+import gc
 import logging
 import traceback
 
@@ -15,6 +16,10 @@ from embedding_studio.utils.dramatiq_middlewares import (
 )
 from embedding_studio.utils.dramatiq_task_handler import create_and_send_task
 from embedding_studio.utils.initializer_actions import init_nltk
+from embedding_studio.workers.inference.worker import (
+    model_deletion_worker,
+    model_deployment_worker,
+)
 from embedding_studio.workers.upsertion.handlers.delete import handle_delete
 from embedding_studio.workers.upsertion.handlers.reindex import handle_reindex
 from embedding_studio.workers.upsertion.handlers.reindex_subtask import (
@@ -31,8 +36,6 @@ from embedding_studio.workers.upsertion.utils.exceptions import (
 logger = logging.getLogger(__name__)
 
 redis_broker.add_middleware(ActionsOnStartMiddleware([init_nltk]))
-broker = dramatiq.get_broker()
-broker.flush_all()
 
 
 @dramatiq.actor(
@@ -167,6 +170,8 @@ def upsertion_worker(task_id: str):
 def reindex_subworker(task_id: str):
     task = context.reindex_subtask.get(id=task_id)
     handle_reindex_subtask(task)
+    gc.collect()
+    return
 
 
 @dramatiq.actor(
@@ -181,53 +186,89 @@ def reindex_worker(task_id: str):
         task.source.embedding_model_id
     )
     if reindex_lock is not None:
+        message = (
+            f"Can't run reindexing process for source embedding "
+            + f"model with ID[{task.source.embedding_model_id}]: "
+            + f"this model is already being used as a source for reindexing."
+        )
+
+        if task.wait_on_conflict:
+            logger.warning(message)
+            reindex_worker.send_with_options(
+                task_id=task_id, delay=settings.REINDEX_TASK_DELAY_TIME
+            )
+            return
+
         task.status = TaskStatus.refused
         context.reindex_task.update(obj=task)
 
-        raise ReindexException(
-            f"Can't run reindexing process for source embedding "
-            f"model with ID[{task.source.embedding_model_id}]: "
-            f"this model is already being used as a source for reindexing."
-        )
+        raise ReindexException(message)
 
     reindex_lock = context.reindex_locks.get_by_model_id(
         task.dest.embedding_model_id
     )
     if reindex_lock is not None:
+        message = (
+            f"Can't run reindexing process for destination embedding "
+            + f"model with ID[{task.dest.embedding_model_id}]: "
+            + f"this model is already being used as a source  for reindexing."
+        )
+
+        if task.wait_on_conflict:
+            logger.warning(message)
+            reindex_worker.send_with_options(
+                task_id=task_id, delay=settings.REINDEX_TASK_DELAY_TIME
+            )
+            return
+
         task.status = TaskStatus.refused
         context.reindex_task.update(obj=task)
 
-        raise ReindexException(
-            f"Can't run reindexing process for destination embedding "
-            f"model with ID[{task.dest.embedding_model_id}]: "
-            f"this model is already being used as a source  for reindexing."
-        )
+        raise ReindexException(message)
 
-    reindex_lock = context.reindex_locks.get_by_dst_model_id(
+    reindex_lock = context.reindex_locks.get_by_model_id(
         task.source.embedding_model_id
     )
     if reindex_lock is not None:
+        message = (
+            f"Can't run reindexing process for source embedding "
+            + f"model with ID[{task.source.embedding_model_id}]: "
+            + f"this model is already being used as a destination for reindexing."
+        )
+
+        if task.wait_on_conflict:
+            logger.warning(message)
+            reindex_worker.send_with_options(
+                task_id=task_id, delay=settings.REINDEX_TASK_DELAY_TIME
+            )
+            return
+
         task.status = TaskStatus.refused
         context.reindex_task.update(obj=task)
 
-        raise ReindexException(
-            f"Can't run reindexing process for source embedding "
-            f"model with ID[{task.source.embedding_model_id}]: "
-            f"this model is already being used as a destination for reindexing."
-        )
+        raise ReindexException(message)
 
     reindex_lock = context.reindex_locks.get_by_dst_model_id(
         task.dest.embedding_model_id
     )
     if reindex_lock is not None:
+        message = (
+            f"Can't run reindexing process for destination embedding "
+            + f"model with ID[{task.dest.embedding_model_id}]: "
+            + f"this model is already being used as a destination  for reindexing."
+        )
+
+        if task.wait_on_conflict:
+            logger.warning(message)
+            reindex_worker.send_with_options(
+                task_id=task_id, delay=settings.REINDEX_TASK_DELAY_TIME
+            )
+            return
+
         task.status = TaskStatus.refused
         context.reindex_task.update(obj=task)
 
-        raise ReindexException(
-            f"Can't run reindexing process for destination embedding "
-            f"model with ID[{task.dest.embedding_model_id}]: "
-            f"this model is already being used as a destination  for reindexing."
-        )
+        raise ReindexException(message)
 
     model_deletion_task = context.model_deletion_task.get_by_model_id(
         task.source.embedding_model_id
@@ -254,6 +295,43 @@ def reindex_worker(task_id: str):
             f"model with ID[{task.dest.embedding_model_id}]: "
             f"this model is already in the process of deletion."
         )
+
+    statuses = ["pending", "processing"]
+    counts = {status: 0 for status in statuses}
+
+    for status in statuses:
+        skip = 0
+        while True:
+            # Fetch a batch of matching tasks
+            batch = context.reindex_task.get_by_filter(
+                {"status": status}, skip=skip, limit=100
+            )
+            counts[status] += len(batch)
+
+            # If fewer results than the limit, it’s the last page
+            if len(batch) < 100:
+                break
+
+            skip += 100
+
+    if sum(counts.values()) > settings.REINDEX_MAX_TASKS_COUNT:
+        message = (
+            f"Can't run reindexing process for destination embedding "
+            + f"model with ID[{task.dest.embedding_model_id}]: "
+            + f"tasks capacity ({sum(counts.values())}) has been exceeded (max: {settings.REINDEX_MAX_TASKS_COUNT})."
+        )
+
+        if task.wait_on_conflict:
+            logger.warning(message)
+            reindex_worker.send_with_options(
+                task_id=task_id, delay=settings.REINDEX_TASK_DELAY_TIME
+            )
+            return
+
+        task.status = TaskStatus.refused
+        context.reindex_task.update(obj=task)
+
+        raise ReindexException(message)
 
     lock = None
     try:
@@ -276,7 +354,12 @@ def reindex_worker(task_id: str):
                 f"Unable to create reindexing lock for task with ID[{task_id}]."
             )
 
-        handle_reindex(task, reindex_subworker)
+        handle_reindex(
+            task,
+            reindex_subworker,
+            deployment_worker=model_deployment_worker,
+            deletion_worker=model_deletion_worker,
+        )
 
     except Exception as e:
         traceback_str = traceback.format_exc()
@@ -291,3 +374,5 @@ def reindex_worker(task_id: str):
         if lock is not None:
             # TODO: mechanism to unlock if python service crashed
             context.reindex_locks.remove(lock.id)
+
+    return

@@ -21,6 +21,11 @@ class ReindexTaskCreateSchema(BaseModel):
     source: ModelParams = Field(...)
     dest: ModelParams = Field(...)
 
+    deploy_as_blue: Optional[bool] = Field(...)
+    wait_on_conflict: Optional[bool] = Field(...)
+
+    parent_id: Optional[PyObjectId] = Field(default=None)
+
 
 class ReindexSubtaskCreateSchema(BaseTaskInfo):
     limit: int = Field(...)
@@ -48,6 +53,9 @@ class ReindexTask(BaseTaskInfo):
 
     children: List[PyObjectId] = Field(default_factory=list)
     failed_items: List[FailedDataItem] = Field(default_factory=list)
+
+    deploy_as_blue: Optional[bool] = Field(...)
+    wait_on_conflict: Optional[bool] = Field(...)
 
     def add_count(self, additional_count):
         self.count += additional_count

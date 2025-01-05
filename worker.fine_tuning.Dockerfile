@@ -43,10 +43,12 @@ WORKDIR /embedding_studio
 RUN cp -r /tmp/requirements.txt /embedding_studio/requirements.txt
 
 # Install the package dependencies in the requirements file.
-RUN pip3 install --no-cache-dir --upgrade -r requirements.txt
+RUN pip3 install --no-cache-dir --upgrade -r requirements.txt --default-timeout=100
 
 # Copy the application directory inside the /code directory.
 COPY . /embedding_studio
 
 # Set the command to run the uvicorn server.
-CMD ["dramatiq", "embedding_studio.workers.fine_tuning.worker", "--processes", "1", "--threads", "1"]
+#CMD ["dramatiq", "embedding_studio.workers.fine_tuning.mocked_worker", "--queues", "fine_tuning_mocked_worker", "--processes", "1", "--threads", "1"]
+
+CMD ["dramatiq", "embedding_studio.workers.fine_tuning.worker", "--queues", "fine_tuning_mocked_worker", "--processes", "1", "--threads", "1"]

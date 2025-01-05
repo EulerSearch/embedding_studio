@@ -43,6 +43,9 @@ class PgvectorDb(VectorDb):
                 sqlalchemy.text("CREATE EXTENSION IF NOT EXISTS vector")
             )
 
+    def update_info(self):
+        self._collection_info_cache.invalidate_cache()
+
     def list_collections(self) -> List[CollectionStateInfo]:
         return self._collection_info_cache.list_collections()
 
@@ -96,6 +99,7 @@ class PgvectorDb(VectorDb):
         collection_info = self._collection_info_cache.get_collection(
             embedding_model.full_name
         )
+
         return collection_info is not None
 
     def delete_collection(self, embedding_model: EmbeddingModelInfo) -> None:

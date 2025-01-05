@@ -20,6 +20,8 @@ services:
     networks:
         - internal
         - public
+    environment:
+      - PIP_DEFAULT_TIMEOUT=1000
     healthcheck:
       test: curl --fail http://localhost:5000/api/v1/ping || exit 1
       interval: 10s
@@ -33,6 +35,7 @@ services:
       dockerfile: worker.fine_tuning.Dockerfile
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+      - PIP_DEFAULT_TIMEOUT=1000
     restart: always
     env_file:
       - .env
@@ -58,6 +61,7 @@ services:
       dockerfile: worker.inference.Dockerfile
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+      - PIP_DEFAULT_TIMEOUT=1000
     restart: always
     ports:
       - '8000:8000'
@@ -88,6 +92,8 @@ services:
     restart: always
     env_file:
       - .env
+    environment:
+      - PIP_DEFAULT_TIMEOUT=1000
     depends_on:
       mongo:
         condition: service_healthy

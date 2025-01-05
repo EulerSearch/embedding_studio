@@ -344,7 +344,7 @@ class ExperimentsManager(MLflowClientWrapper):
         logger.info("Delete models of previous iteration.")
         runs = self.get_runs(experiment_id, models_only=True)
 
-        runs = runs[runs.status == MLflowStatus.FINISHED]
+        runs = runs[runs.status == MLflowStatus.FINISHED.name]
         run_ids = runs["run_id"].tolist()
 
         for run_id in run_ids:
@@ -451,6 +451,7 @@ class ExperimentsManager(MLflowClientWrapper):
         initial_id: Optional[str] = self._get_experiment_id_by_name(
             self.initial_experiment_name
         )
+
         if (
             initial_id == self._tuning_iteration_id
             or self._tuning_iteration_id is None
@@ -518,7 +519,7 @@ class ExperimentsManager(MLflowClientWrapper):
         if self._set_run(params):
             return False
 
-        return self._run.info.status == MLflowStatus.FINISHED
+        return self._run.info.status == MLflowStatus.FINISHED.name
 
     @retry_method(name="end_run")
     def finish_run(self, as_failed: bool = False):
@@ -803,7 +804,7 @@ class ExperimentsManager(MLflowClientWrapper):
 
         runs: pd.DataFrame = self.get_runs(experiment_id, models_only=True)
         runs = runs[
-            runs.status == MLflowStatus.FINISHED
+            runs.status == MLflowStatus.FINISHED.name
         ]  # and only finished ones
         if runs.shape[0] == 0:
             logger.warning(
@@ -884,7 +885,7 @@ class ExperimentsManager(MLflowClientWrapper):
     ) -> Tuple[Optional[str], float]:
         runs: pd.DataFrame = self.get_runs(experiment_id, models_only=True)
         runs = runs[
-            runs.status == MLflowStatus.FINISHED
+            runs.status == MLflowStatus.FINISHED.name
         ]  # and not finished ones
         if runs.shape[0] == 0:
             logger.warning(

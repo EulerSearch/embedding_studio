@@ -28,7 +28,6 @@ def handle_reindex_subtask(task: ReindexSubtaskInDb):
     task.status = TaskStatus.processing
     context.reindex_subtask.update(obj=task)
 
-    vector_db = context.vectordb
     plugin = plugin_manager.get_plugin(task.source.fine_tuning_method)
     embedding_model_info = plugin.get_embedding_model_info(
         task.source.embedding_model_id
@@ -38,7 +37,7 @@ def handle_reindex_subtask(task: ReindexSubtaskInDb):
     )
 
     # Get collections for source and destination
-    source_collection = vector_db.get_collection(embedding_model_info)
+    source_collection = context.vectordb.get_collection(embedding_model_info)
     if not source_collection:
         logger.error(f"Source collection is not found [task ID: {task.id}]")
         task.status = TaskStatus.failed
@@ -46,7 +45,9 @@ def handle_reindex_subtask(task: ReindexSubtaskInDb):
         return
 
     # Get collections for source and destination
-    dest_collection = vector_db.get_collection(dest_embedding_model_info)
+    dest_collection = context.vectordb.get_collection(
+        dest_embedding_model_info
+    )
     if not source_collection:
         logger.error(f"Dest collection is not found [task ID: {task.id}]")
         task.status = TaskStatus.failed
@@ -91,4 +92,8 @@ def handle_reindex_subtask(task: ReindexSubtaskInDb):
         items_splitter,
         inference_client,
         context.reindex_subtask,
+    )
+
+    logger.info(
+        f"Reindex subprocess for task ID: {task.parent_id} [{task.offset}:{task.offset+task.limit}] is finished."
     )

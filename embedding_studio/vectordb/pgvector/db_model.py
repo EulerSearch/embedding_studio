@@ -15,7 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB, insert as pg_insert
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm import configure_mappers, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from embedding_studio.models.embeddings.collections import CollectionInfo
@@ -145,6 +145,31 @@ class DbObjectImpl:
             )
             for row in rows
         ]
+
+    @classmethod
+    def collection_exists_query(
+        cls, collection_info: CollectionInfo, schema_name: str = "public"
+    ) -> Tuple[sqlalchemy.text, Dict[str, str]]:
+        """
+        Generates the SQL query and parameters to check if a collection's table exists.
+
+        :param collection_info: The collection information object.
+        :param schema_name: The schema name where the table is expected. Defaults to "public".
+        :return: A tuple containing the query and its parameters.
+        """
+        table_name = get_dbo_table_name(collection_info)["dbo_collection"]
+        query = sqlalchemy.text(
+            """
+            SELECT EXISTS (
+                SELECT 1
+                FROM information_schema.tables
+                WHERE table_schema = :schema_name
+                AND table_name = :table_name
+            )
+            """
+        )
+        params = {"schema_name": schema_name, "table_name": table_name}
+        return query, params
 
 
 class DbObjectPartImpl:
@@ -303,36 +328,6 @@ class DbObjectPartImpl:
         return delete(cls).where(cls.object_id.in_(object_ids))
 
     @classmethod
-    def objects_to_db(
-        cls, objects: List[Object], DbObjectClass
-    ) -> List["DbObjectPart"]:
-        db_objects = []
-        for obj in objects:
-            db_object = DbObjectClass(
-                object_id=obj.object_id,
-                payload=obj.payload,
-                storage_meta=obj.storage_meta,
-            )
-            db_objects.append(db_object)
-            for i, part in enumerate(obj.parts):
-                part_id = part.part_id or f"{obj.object_id}_{i}"
-                try:
-                    cls.validate_dimensions(part.vector, search_index)
-                except DimensionsMismatch as err:
-                    raise RuntimeError(
-                        f"Failed to load object part {part_id}"
-                    ) from err
-                db_objects.append(
-                    cls(
-                        object_id=obj.object_id,
-                        part_id=part_id,
-                        vector=part.vector,
-                        object=db_object,
-                    )
-                )
-        return db_objects
-
-    @classmethod
     def db_part_to_dict(
         cls, db_part: "DbObjectPart", with_metadata: bool = True
     ) -> Dict[str, Any]:
@@ -399,40 +394,46 @@ class DbObjectPartImpl:
         ]
 
 
+def get_dbo_table_name(collection_info: CollectionInfo) -> Dict[str, str]:
+    return {
+        "dbo_collection": f"dbo_{collection_info.collection_id}",
+        "dbop_collection": f"dbop_{collection_info.collection_id}",
+        "dbo_relation": f"DbObject_{collection_info.collection_id}",
+        "dbop_relation": f"DbObjectPart_{collection_info.collection_id}",
+        "index": f"idx_{collection_info.collection_id}",
+    }
+
+
 def make_db_model(
     collection_info: CollectionInfo,
 ) -> Tuple[Type[DbObjectBase], Type[DbObjectPartBase]]:
     search_index = collection_info.search_index_info
     collection_id = collection_info.collection_id
 
-    class DbObject(DbObjectBase, DbObjectImpl):
-        __tablename__ = f"dbo_{collection_id}"
+    _names = get_dbo_table_name(collection_info)
 
-        parts = relationship(
-            f"DbObjectPart_{collection_id}",
-            back_populates="object",
-            cascade="all, delete-orphan",
-        )
+    class DbObject(DbObjectBase, DbObjectImpl):
+        __tablename__ = _names["dbo_collection"]
 
         __table_args__ = (
             Index(
-                f"idx_{collection_id}",
+                _names["index"],
                 "payload",
                 postgresql_using="gin",
             ),
+            {"extend_existing": True},
         )
 
     class DbObjectPart(DbObjectPartBase, DbObjectPartImpl):
-        __tablename__ = f"dbop_{collection_id}"
+        __tablename__ = _names["dbop_collection"]
         object_id = mapped_column(
             String(128),
-            ForeignKey(f"dbo_{collection_id}.object_id"),
+            ForeignKey(f"{_names['dbo_collection']}.object_id"),
             index=True,
         )
         vector = mapped_column(Vector(search_index.dimensions))
-        object = relationship(
-            f"DbObject_{collection_id}", back_populates="parts"
-        )
+
+        __table_args__ = {"extend_existing": True}
 
         @classmethod
         def hnsw_index(cls):
@@ -458,7 +459,44 @@ def make_db_model(
                 postgresql_ops={"vector": index_type},
             )
 
+        @classmethod
+        def objects_to_db(
+            cls, objects: List[Object], DbObjectClass
+        ) -> List["DbObjectPart"]:
+            db_objects = []
+            for obj in objects:
+                db_object = DbObjectClass(
+                    object_id=obj.object_id,
+                    payload=obj.payload,
+                    storage_meta=obj.storage_meta,
+                )
+                db_objects.append(db_object)
+                for i, part in enumerate(obj.parts):
+                    part_id = part.part_id or f"{obj.object_id}_{i}"
+                    try:
+                        cls.validate_dimensions(part.vector, search_index)
+                    except DimensionsMismatch as err:
+                        raise RuntimeError(
+                            f"Failed to load object part {part_id}"
+                        ) from err
+                    db_objects.append(
+                        cls(
+                            object_id=obj.object_id,
+                            part_id=part_id,
+                            vector=part.vector,
+                            object=db_object,
+                        )
+                    )
+            return db_objects
+
     DbObject.__name__ = f"DbObject_{collection_id}"
     DbObjectPart.__name__ = f"DbObjectPart_{collection_id}"
+
+    DbObject.parts = relationship(
+        DbObjectPart, back_populates="object", cascade="all, delete-orphan"
+    )
+    DbObjectPart.object = relationship(DbObject, back_populates="parts")
+
+    configure_mappers()
 
     return DbObject, DbObjectPart

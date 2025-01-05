@@ -11,6 +11,9 @@ class FineTuningTaskRunRequest(BaseInternalTaskRequest):
     metadata: Optional[Dict] = None
     idempotency_key: Optional[str] = None
 
+    deploy_as_blue: Optional[bool] = None
+    wait_on_conflict: Optional[bool] = None
+
 
 class FineTuningTaskResponse(BaseInternalTaskResponse):
     batch_id: Optional[str] = None
@@ -18,3 +21,6 @@ class FineTuningTaskResponse(BaseInternalTaskResponse):
     best_model_id: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
     idempotency_key: Optional[str] = None
+
+    deploy_as_blue: Optional[bool] = None
+    wait_on_conflict: Optional[bool] = None

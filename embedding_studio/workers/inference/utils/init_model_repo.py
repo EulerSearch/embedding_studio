@@ -41,20 +41,21 @@ def init_model_repo_for_plugin(model_repo: str, plugin_name: str):
     try:
         vector_db = context.vectordb
         embedding_model_info = plugin.get_embedding_model_info(run_id)
-
+        search_index_info = plugin.get_search_index_info()
         logger.info(f"Creating or retrieving Vector DB collection")
         if not vector_db.collection_exists(embedding_model_info):
             logger.warning(
                 f"Collection with name: {embedding_model_info.full_name} "
                 f"does not exist, creating"
             )
-            search_index_info = plugin.get_search_index_info()
             vector_db.create_collection(
                 embedding_model_info, search_index_info
             )
         else:
             logger.info(f"Initial collection exists")
-            vector_db.get_or_create_collection(embedding_model_info)
+            vector_db.get_or_create_collection(
+                embedding_model_info, search_index_info
+            )
 
         vector_db.set_blue_collection(embedding_model_info)
 
@@ -80,6 +81,12 @@ class OnStartMiddleware(Middleware):
 
     def after_worker_boot(self, broker, worker):
         super().after_worker_boot(broker, worker)
+        # Specify the worker name that should execute the initialization
+
+        model_repo = os.getenv("MODEL_REPOSITORY")
+        if not model_repo:
+            return
+
         model_repo = settings.INFERENCE_MODEL_REPO
         for plugin_name in settings.INFERENCE_USED_PLUGINS:
             temp_dir = tempfile.gettempdir()
@@ -91,6 +98,9 @@ class OnStartMiddleware(Middleware):
                 init_model_repo_for_plugin(model_repo, plugin_name)
             finally:
                 release_lock(lock_file)
+
+        if not os.path.exists(model_repo):
+            os.makedirs(model_repo)
 
         with open(
             os.path.join(model_repo, "initialization_complete.flag"), "w"
