@@ -51,7 +51,32 @@ def handle_delete(task: DeletionTaskInDb):
 
     logger.info(f"Start embeddings deletion [task ID: {task.id}]")
     try:
-        collection.delete(task.object_ids)
+        objects = collection.find_by_ids(task.object_ids)
+        original_ids = set()
+        for obj in objects:
+            if obj.original_id:
+                original_ids.add(obj.original_id)
+
+        logger.info(f"Found {len(original_ids)} original objects mentioned")
+
+        not_original_objects = collection.find_by_original_ids(task.object_ids)
+        not_original_object_ids = set()
+        for obj in not_original_objects:
+            not_original_object_ids.add(obj.object_id)
+
+        logger.info(
+            f"Found {len(not_original_object_ids)} changed objects mentioned"
+        )
+
+        collection.delete(
+            list(
+                set(
+                    task.object_ids
+                    + list(original_ids)
+                    + list(not_original_object_ids)
+                )
+            )
+        )
 
         logger.info(f"Task {task.id} is finished.")
         task.status = TaskStatus.done

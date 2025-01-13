@@ -93,7 +93,9 @@ class MongoDao(Generic[ModelT]):
     ) -> Optional[ModelT]:
         if obj_id is not None:
             id_name, id_value = self.model_id_to_db_id(obj_id)
-            kwargs["filter"] = {id_name: id_value}
+            kwargs["filter"] = kwargs.get("filter", dict()).update(
+                {id_name: id_value}
+            )
         projection = self.get_model_projection()
         result_bson = self.collection.find_one(**kwargs, projection=projection)
         return self.bson_to_model_opt(result_bson)

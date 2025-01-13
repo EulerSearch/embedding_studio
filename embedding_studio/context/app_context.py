@@ -1,11 +1,16 @@
 import dataclasses
+from typing import Optional
 
 import pymongo
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from embedding_studio.core.plugin import PluginManager
 from embedding_studio.data_access.clickstream import ClickstreamDao
 from embedding_studio.data_access.deletion_tasks import CRUDDeletion
 from embedding_studio.data_access.fine_tuning import CRUDFineTuning
+from embedding_studio.data_access.improvement_sessions import (
+    CRUDSessionsForImprovement,
+)
 from embedding_studio.data_access.inference_deployment_tasks import (
     CRUDModelDeletionTasks,
     CRUDModelDeploymentTasks,
@@ -20,6 +25,7 @@ from embedding_studio.data_access.upsertion_tasks import CRUDUpsertion
 from embedding_studio.db import mongo, postgres
 from embedding_studio.models.delete import DeletionTaskInDb
 from embedding_studio.models.fine_tuning import FineTuningTaskInDb
+from embedding_studio.models.improvement import SessionForImprovementInDb
 from embedding_studio.models.inference_deployment_tasks import (
     ModelDeletionTaskInDb,
     ModelDeploymentTaskInDb,
@@ -36,6 +42,7 @@ from embedding_studio.vectordb.vectordb import VectorDb
 class AppContext:
     clickstream_dao: ClickstreamDao
     fine_tuning_task: CRUDFineTuning
+    sessions_for_improvement: CRUDSessionsForImprovement
     deletion_task: CRUDDeletion
     upsertion_task: CRUDUpsertion
     reindex_task: CRUDReindexTasks
@@ -46,6 +53,7 @@ class AppContext:
     vectordb: VectorDb
     plugin_manager: PluginManager
     model_downloader: ModelDownloader
+    task_scheduler: Optional[BackgroundScheduler] = None
 
 
 context = AppContext(
@@ -57,12 +65,18 @@ context = AppContext(
         model=FineTuningTaskInDb,
         indexes=[("idempotency_key", pymongo.ASCENDING)],
     ),
+    sessions_for_improvement=CRUDSessionsForImprovement(
+        collection=mongo.sessions_for_improvement_mongo_database[
+            "sessions_for_improvement"
+        ],
+        model=SessionForImprovementInDb,
+    ),
     deletion_task=CRUDDeletion(
-        collection=mongo.upsertion_mongo_database["upsertion"],
+        collection=mongo.upsertion_mongo_database["deletion"],
         model=DeletionTaskInDb,
     ),
     upsertion_task=CRUDUpsertion(
-        collection=mongo.upsertion_mongo_database["deletion"],
+        collection=mongo.upsertion_mongo_database["upsertion"],
         model=UpsertionTaskInDb,
     ),
     reindex_task=CRUDReindexTasks(

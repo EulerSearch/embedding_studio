@@ -39,6 +39,12 @@ from embedding_studio.embeddings.data.items.managers.dict import (
 from embedding_studio.embeddings.data.utils.fields_normalizer import (
     DatasetFieldsNormalizer,
 )
+from embedding_studio.embeddings.improvement.torch_based_adjuster import (
+    TorchBasedAdjuster,
+)
+from embedding_studio.embeddings.improvement.vectors_adjuster import (
+    VectorsAdjuster,
+)
 from embedding_studio.embeddings.inference.triton.client import (
     TritonClientFactory,
 )
@@ -236,4 +242,9 @@ class DefaultDictTextFineTuningMethod(FineTuningMethod):
             dimensions=1024,
             metric_type=MetricType.COSINE,
             metric_aggregation_type=MetricAggregationType.AVG,
+        )
+
+    def get_vectors_adjuster(self) -> VectorsAdjuster:
+        return TorchBasedAdjuster(
+            adjustment_rate=0.1, search_index_info=self.get_search_index_info()
         )

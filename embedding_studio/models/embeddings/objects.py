@@ -13,6 +13,10 @@ class ObjectСommonData(BaseModel):
     payload: Optional[Dict[str, Any]] = None
     storage_meta: Dict[str, Any]
 
+    user_id: Optional[str] = None
+    session_id: Optional[str] = None
+    original_id: Optional[str] = None
+
 
 class Object(ObjectСommonData):
     parts: List[ObjectPart]

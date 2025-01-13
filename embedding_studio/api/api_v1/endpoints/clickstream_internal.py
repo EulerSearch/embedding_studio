@@ -6,12 +6,42 @@ from embedding_studio.api.api_v1.schemas.clickstream_internal import (
     BatchReleaseRequest,
     BatchReleaseResponse,
     BatchSessionsGetResponse,
+    UseSessionForImprovementRequest,
 )
 from embedding_studio.context.app_context import context
+from embedding_studio.models.improvement import (
+    SessionForImprovementCreateSchema,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.post(
+    "/session/use-for-improvement",
+    status_code=status.HTTP_200_OK,
+)
+def use_session_for_improvement(body: UseSessionForImprovementRequest) -> None:
+    logger.debug(f"Push session to be used for improvement: {body}")
+    session = context.clickstream_dao.get_session(session_id=body.session_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session with id={body.session_id} not found",
+        )
+    if session.is_irrelevant or len(session.events) > 0:
+        task = context.sessions_for_improvement.create(
+            schema=SessionForImprovementCreateSchema(
+                session_id=body.session_id,
+            ),
+            return_obj=True,
+        )
+        context.sessions_for_improvement.update(obj=task)
+
+        logger.debug(f"Session has been pushed: {session}")
+    else:
+        logger.debug(f"No events, session has not been pushed: {session}")
 
 
 @router.get(

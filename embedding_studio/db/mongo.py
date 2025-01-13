@@ -23,6 +23,11 @@ finetuning_mongo_client = _mongo_env_client(
     uuidRepresentation=MONGODB_UUID_REPRESENTATION,
     tz_aware=True,
 )
+sessions_for_improvement_mongo_client = _mongo_env_client(
+    settings.SESSIONS_FOR_IMPROVEMENT_MONGO_URL,
+    uuidRepresentation=MONGODB_UUID_REPRESENTATION,
+    tz_aware=True,
+)
 inference_deployment_mongo_client = _mongo_env_client(
     settings.INFERENCE_DEPLOYMENT_MONGO_URL,
     uuidRepresentation=MONGODB_UUID_REPRESENTATION,
@@ -47,6 +52,11 @@ embeddings_mongo_client = _mongo_env_client(
 finetuning_mongo_database = finetuning_mongo_client[
     settings.FINETUNING_MONGO_DB_NAME
 ]
+sessions_for_improvement_mongo_database = (
+    sessions_for_improvement_mongo_client[
+        settings.SESSIONS_FOR_IMPROVEMENT_MONGO_DB_NAME
+    ]
+)
 inference_deployment_mongo_database = inference_deployment_mongo_client[
     settings.INFERENCE_DEPLOYMENT_MONGO_DB_NAME
 ]

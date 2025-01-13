@@ -57,6 +57,10 @@ class Collection(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    def find_by_original_ids(self, object_ids: List[str]) -> List[Object]:
+        raise NotImplementedError()
+
+    @abstractmethod
     def get_total(self) -> int:
         raise NotImplementedError()
 
@@ -76,6 +80,7 @@ class Collection(ABC):
         offset: Optional[int] = None,
         max_distance: Optional[float] = None,
         payload_filter: Optional[PayloadFilter] = None,
+        user_id: Optional[str] = None,
     ) -> SearchResults:
         raise NotImplementedError()
 
@@ -86,4 +91,10 @@ class Collection(ABC):
         limit: int,
         offset: Optional[int] = None,
     ) -> SearchResults:
+        raise NotImplementedError()
+
+
+class QueryCollection(Collection):
+    @abstractmethod
+    def get_objects_by_session_id(self, session_id: str) -> Object:
         raise NotImplementedError()

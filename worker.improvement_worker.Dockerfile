@@ -2,7 +2,8 @@ FROM python:3.10
 
 # Set the working directory
 WORKDIR /tmp
-# OTherwise we'll get: ImportError: libGL.so.1: cannot open shared object file: No such file or directory
+# Installing dependencies:
+#  - Otherwise we'll get "ImportError: libGL.so.1: cannot open shared object file: No such file or directory"
 RUN apt-get -y update &&  \
     apt-get install ffmpeg libsm6 libxext6 -y;
 
@@ -15,6 +16,8 @@ COPY ./pyproject.toml ./poetry.lock* /tmp/
 # Generate the requirements.txt file.
 RUN poetry export --without dev --with ml -f requirements.txt --output requirements.txt --without-hashes
 
+ENV PATH="/workspace/install/bin:${PATH}"
+
 # Set the working directory
 WORKDIR /embedding_studio
 
@@ -22,13 +25,10 @@ WORKDIR /embedding_studio
 RUN cp -r /tmp/requirements.txt /embedding_studio/requirements.txt
 
 # Install the package dependencies in the requirements file.
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt --default-timeout=100
 
 # Copy the application directory inside the /code directory.
 COPY . /embedding_studio
 
-# Open port 5000 for the uvicorn server.
-EXPOSE 5000
-
 # Set the command to run the uvicorn server.
-CMD ["uvicorn", "embedding_studio.main:app", "--host", "0.0.0.0", "--port", "5000", "--log-config", "embedding_studio/log_config.yaml"]
+CMD ["dramatiq", "embedding_studio.workers.improvement.worker", "-Q", "improvement_worker", "--processes", "1", "--threads", "1"]

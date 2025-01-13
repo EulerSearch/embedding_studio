@@ -13,7 +13,7 @@ from embedding_studio.models.embeddings.objects import (
     SearchResults,
 )
 from embedding_studio.models.payload.models import PayloadFilter
-from embedding_studio.vectordb.collection import Collection
+from embedding_studio.vectordb.collection import Collection, QueryCollection
 from embedding_studio.vectordb.collection_info_cache import (
     CollectionInfo,
     CollectionInfoCache,
@@ -119,6 +119,8 @@ class PgvectorCollection(Collection):
                 object_id=obj.object_id,
                 payload=obj.payload,
                 storage_meta=obj.storage_meta,
+                user_id=obj.user_id,
+                original_id=obj.original_id,
             )
             for obj in objects
         ]
@@ -160,6 +162,8 @@ class PgvectorCollection(Collection):
                 object_id=obj.object_id,
                 payload=obj.payload,
                 storage_meta=obj.storage_meta,
+                user_id=obj.user_id,
+                original_id=obj.original_id,
             )
             for obj in objects
         ]
@@ -225,25 +229,35 @@ class PgvectorCollection(Collection):
     def find_by_ids(self, object_ids: List[str]) -> List[Object]:
         with self.Session() as session, session.begin():
             rows = session.execute(
-                self.DbObject.find_by_id_statement(object_ids)
+                self.DbObjectPart.find_by_id_statement(object_ids)
             )
-            return self.DbObject.objects_from_db(rows)
+            return self.DbObjectPart.objects_from_db(rows)
 
-    def get_total(self) -> int:
+    def find_by_original_ids(self, object_ids: List[str]) -> List[Object]:
+        with self.Session() as session, session.begin():
+            rows = session.execute(
+                self.DbObjectPart.find_by_original_id_statement(object_ids)
+            )
+            return self.DbObjectPart.objects_from_db(rows)
+
+    def get_total(self, originals_only: bool = True) -> int:
         with self.Session() as session, session.begin():
             total = session.execute(
-                self.DbObject.get_total_statement()
+                self.DbObject.get_total_statement(originals_only)
             ).scalar_one()
 
         return int(total)
 
     def get_objects_common_data_batch(
-        self, limit: int, offset: Optional[int] = None
+        self,
+        limit: int,
+        offset: Optional[int] = None,
+        originals_only: bool = True,
     ) -> ObjectsCommonDataBatch:
         with self.Session() as session, session.begin():
             total = int(
                 session.execute(
-                    self.DbObject.get_total_statement()
+                    self.DbObject.get_total_statement(originals_only)
                 ).scalar_one()
             )
 
@@ -255,7 +269,7 @@ class PgvectorCollection(Collection):
 
             data = session.execute(
                 self.DbObject.get_objects_common_data_batch_statement(
-                    limit, offset
+                    limit, offset, originals_only
                 )
             ).all()
             objects_info = self.DbObject.objects_common_data_from_db(data)
@@ -271,6 +285,7 @@ class PgvectorCollection(Collection):
         offset: Optional[int] = None,
         max_distance: Optional[float] = None,
         payload_filter: Optional[PayloadFilter] = None,
+        user_id: Optional[str] = None,
     ) -> SearchResults:
         with self.Session() as session, session.begin():
             search_st = self.DbObjectPart.similarity_search_statement(
@@ -279,6 +294,7 @@ class PgvectorCollection(Collection):
                 offset=offset,
                 max_distance=max_distance,
                 payload_filter=payload_filter,
+                user_id=user_id,
             )
             logger.debug(f"Search statement: {search_st}")
             rows = session.execute(search_st)
@@ -315,3 +331,34 @@ class PgvectorCollection(Collection):
                 found_objects=found_objects,
                 next_offset=next_offset,
             )
+
+
+class PgvectorQueryCollection(PgvectorCollection, QueryCollection):
+    def get_objects_by_session_id(self, session_id: str) -> List[Object]:
+        """
+        Retrieve objects and their parts by session ID with vector validation.
+
+        :param session_id: The session ID to query.
+        :return: List of Object instances with their parts.
+        """
+        with self.Session() as session, session.begin():
+            try:
+                query = self.DbObjectPart.find_by_session_id_statement(
+                    session_id
+                )
+                rows = session.execute(query).all()
+
+                if not rows:
+                    logger.warning(
+                        f"No objects found for session ID: {session_id}"
+                    )
+                    return []
+
+                objects = self.DbObjectPart.objects_from_db(rows)
+                return objects
+
+            except Exception as e:
+                logger.exception(
+                    f"Failed to fetch objects by session ID {session_id}: {e}"
+                )
+                raise

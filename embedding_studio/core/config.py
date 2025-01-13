@@ -39,6 +39,27 @@ class Settings(BaseSettings):
         f"{FINETUNING_MONGO_HOST}:{FINETUNING_MONGO_PORT}"
     )
 
+    SESSIONS_FOR_IMPROVEMENT_MONGO_HOST: str = os.getenv(
+        "SESSIONS_FOR_IMPROVEMENT_MONGO_HOST", "mongo"
+    )
+    SESSIONS_FOR_IMPROVEMENT_MONGO_PORT: int = os.getenv(
+        "SESSIONS_FOR_IMPROVEMENT_MONGO_PORT", 27017
+    )
+    SESSIONS_FOR_IMPROVEMENT_MONGO_DB_NAME: str = os.getenv(
+        "SESSIONS_FOR_IMPROVEMENT_MONGO_DB_NAME", "embedding_studio"
+    )
+
+    SESSIONS_FOR_IMPROVEMENT_MONGO_USERNAME: str = os.getenv(
+        "SESSIONS_FOR_IMPROVEMENT_MONGO_USERNAME", "root"
+    )
+    SESSIONS_FOR_IMPROVEMENT_MONGO_PASSWORD: str = os.getenv(
+        "SESSIONS_FOR_IMPROVEMENT_MONGO_PASSWORD", "mongopassword"
+    )
+    SESSIONS_FOR_IMPROVEMENT_MONGO_URL: str = (
+        f"mongodb://{SESSIONS_FOR_IMPROVEMENT_MONGO_USERNAME}:{SESSIONS_FOR_IMPROVEMENT_MONGO_PASSWORD}@"
+        f"{SESSIONS_FOR_IMPROVEMENT_MONGO_HOST}:{SESSIONS_FOR_IMPROVEMENT_MONGO_PORT}"
+    )
+
     UPSERTION_MONGO_HOST: str = os.getenv("UPSERTION_MONGO_HOST", "mongo")
     UPSERTION_MONGO_PORT: int = os.getenv("UPSERTION_MONGO_PORT", 27017)
     UPSERTION_MONGO_DB_NAME: str = os.getenv(
@@ -135,6 +156,16 @@ class Settings(BaseSettings):
     INFERENCE_HOST: str = os.getenv("INFERENCE_HOST", "localhost")
     INFERENCE_GRPC_PORT: int = os.getenv("INFERENCE_GRPC_PORT", 8001)
 
+    IMPROVEMENT_WORKER_MAX_RETRIES: int = os.getenv(
+        "IMPROVEMENT_WORKER_MAX_RETRIES", 3
+    )
+    IMPROVEMENT_WORKER_TIME_LIMIT: int = os.getenv(
+        "IMPROVEMENT_WORKER_TIME_LIMIT", 600000
+    )
+    IMPROVEMENT_SECONDS_INTERVAL: int = os.getenv(
+        "IMPROVEMENT_SECONDS_INTERVAL", 5
+    )
+
     # Deletion
     DELETION_PASS_TO_REINDEXING_MODEL: int = os.getenv(
         "DELETION_PASS_TO_REINDEXING_MODEL", True
@@ -159,6 +190,10 @@ class Settings(BaseSettings):
     )
     UPSERTION_WORKER_TIME_LIMIT: int = os.getenv(
         "UPSERTION_WORKER_TIME_LIMIT", 18000000
+    )
+
+    DELETE_IMPROVED_VECTORS_ON_UPSERTION: bool = os.getenv(
+        "DELETE_IMPROVED_VECTORS_ON_UPSERTION", True
     )
 
     # Reindex

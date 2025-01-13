@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, status
 
@@ -19,12 +18,7 @@ from embedding_studio.api.api_v1.internal_schemas.vectrordb import (
 from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
 from embedding_studio.core.plugin import PluginManager
-from embedding_studio.models.embeddings.models import EmbeddingModelInfo
-from embedding_studio.vectordb.collection import Collection
-from embedding_studio.vectordb.exceptions import (
-    CollectionNotFoundError,
-    DeleteBlueCollectionError,
-)
+from embedding_studio.vectordb.exceptions import CollectionNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -35,15 +29,6 @@ plugin_manager = PluginManager()
 plugin_manager.discover_plugins(directory=settings.ES_PLUGINS_PATH)
 
 
-def get_collection(
-    model: Optional[EmbeddingModelInfo] = None,
-) -> Optional[Collection]:
-    if not model:
-        return context.vectordb.get_blue_collection()
-
-    return context.vectordb.get_collection(model)
-
-
 @router.post(
     "/collections/create",
     status_code=status.HTTP_200_OK,
@@ -51,11 +36,18 @@ def get_collection(
 def create_collection(body: CreateCollectionRequest):
     plugin = plugin_manager.get_plugin(body.embedding_model.name)
     search_index_info = plugin.get_search_index_info()
+
     collection = context.vectordb.create_collection(
         body.embedding_model, search_index_info
     )
     info = collection.get_state_info()
-    logger.debug(f"collection created: {info.model_dump()}")
+    logger.debug(f"Collection created: {info.model_dump()}")
+
+    query_collection = context.vectordb.create_query_collection(
+        body.embedding_model, search_index_info
+    )
+    info = collection.get_state_info()
+    logger.debug(f"Query collection created: {info.model_dump()}")
     return info
 
 
@@ -64,8 +56,13 @@ def create_collection(body: CreateCollectionRequest):
     status_code=status.HTTP_200_OK,
 )
 def create_index(body: CreateIndexRequest):
-    collection = get_collection(body.embedding_model)
+    collection = context.vectordb.get_collection(body.embedding_model)
     collection.create_index()
+
+    query_collection = context.vectordb.get_query_collection(
+        body.embedding_model
+    )
+    query_collection.create_index()
 
 
 @router.post(
@@ -74,33 +71,47 @@ def create_index(body: CreateIndexRequest):
 )
 def delete_collection(body: DeleteCollectionRequest):
     try:
-        collection = get_collection(body.embedding_model)
-
+        collection = context.vectordb.get_collection(body.embedding_model)
         info = collection.get_state_info()
         logger.debug(f"Delete collection: {info}")
-    except Exception:
-        pass
-
-    try:
         context.vectordb.delete_collection(body.embedding_model)
+
     except CollectionNotFoundError as err:
-        logger.warning(f"Can't find collection wile deleting: {err}")
-        return
-    except DeleteBlueCollectionError as err:
+        logger.debug(f"Collection not found: {err}")
         raise HTTPException(
-            status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"{err}"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"{err}"
         )
 
-    try:
-        collection = get_collection(body.embedding_model)
-        info = collection.get_state_info()
-        logger.error(f"Found deleted collection: {info}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Collection not deleted",
+    except Exception as err:
+        logger.exception(
+            f"Something went wrong during collection deletion: {err}"
         )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{err}"
+        )
+
+    # Deleting related query collection
+    try:
+        query_collection = context.vectordb.get_query_collection(
+            body.embedding_model
+        )
+        info = query_collection.get_state_info()
+        logger.debug(f"Delete query collection: {info}")
+        context.vectordb.delete_query_collection(body.embedding_model)
+
     except CollectionNotFoundError as err:
-        logger.debug(f"Collection successfully deleted: {err}")
+        logger.debug(f"Query collection not found: {err}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"{err}"
+        )
+
+    except Exception as err:
+        logger.exception(
+            f"Something went wrong during query collection deletion: {err}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"{err}"
+        )
 
 
 @router.get(
@@ -119,7 +130,7 @@ def list_collections():
 )
 def get_collection_info(body: GetCollectionInfoRequest):
     try:
-        collection = get_collection(body.embedding_model)
+        collection = context.vectordb.get_collection(body.embedding_model)
         info = collection.get_state_info()
         logger.debug(f"Found collection: {info}")
         return info
@@ -138,22 +149,28 @@ def get_collection_info(body: GetCollectionInfoRequest):
 )
 def set_blue_collection(body: SetBlueCollectionRequest):
     try:
-        context.vectordb.set_blue_collection(body.embedding_model)
+        collection = context.vectordb.get_collection(body.embedding_model)
+        info = collection.get_state_info()
+        logger.debug(f"Blue collection set: {info}")
+        context.vectordb.set_blue_collection(
+            embedding_model=info.embedding_model
+        )
     except CollectionNotFoundError as err:
         logger.debug(f"Collection not found: {err}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Collection not found",
         )
-    collection = context.vectordb.get_blue_collection()
-    info = collection.get_state_info()
-    logger.debug(f"Blue collection set: {info}")
-    if info.collection_id != body.embedding_model.full_name:
+
+    except Exception as err:
+        logger.exception(
+            f"Something went wrong during collection set blue: {err}"
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Something went wrong collection_id {info.collection_id} != "
-            f"embedding model name {body.embedding_model.full_name}",
+            detail="Something went wrong during collection set blue",
         )
+
     return info
 
 
@@ -173,12 +190,28 @@ def get_blue_collection_info():
     return info
 
 
+@router.get(
+    "/collections/get-blue-query-info",
+    status_code=status.HTTP_200_OK,
+)
+def get_blue_query_collection_info():
+    collection = context.vectordb.get_blue_query_collection()
+    if not collection:
+        msg = "Blue collection not found"
+        logger.debug(msg)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=msg)
+
+    info = collection.get_state_info()
+    logger.debug(f"Blue collection: {info}")
+    return info
+
+
 @router.post(
     "/collections/objects/insert",
     status_code=status.HTTP_200_OK,
 )
 def insert_objects(body: InsertObjectsRequest):
-    collection = get_collection(body.embedding_model)
+    collection = context.vectordb.get_collection(body.embedding_model)
     collection.insert(body.objects)
 
 
@@ -187,7 +220,7 @@ def insert_objects(body: InsertObjectsRequest):
     status_code=status.HTTP_200_OK,
 )
 def upsert_objects(body: UpsertObjectsRequest):
-    collection = get_collection(body.embedding_model)
+    collection = context.vectordb.get_collection(body.embedding_model)
     collection.upsert(objects=body.objects, shrink_parts=body.shrink_parts)
 
 
@@ -196,7 +229,7 @@ def upsert_objects(body: UpsertObjectsRequest):
     status_code=status.HTTP_200_OK,
 )
 def delete_objects(body: DeleteObjectRequest):
-    collection = get_collection(body.embedding_model)
+    collection = context.vectordb.get_collection(body.embedding_model)
     collection.delete(body.object_ids)
 
 
@@ -205,7 +238,7 @@ def delete_objects(body: DeleteObjectRequest):
     status_code=status.HTTP_200_OK,
 )
 def find_objects_by_ids(body: FindObjectsByIdsRequest):
-    collection = get_collection(body.embedding_model)
+    collection = context.vectordb.get_collection(body.embedding_model)
     objects = collection.find_by_ids(body.object_ids)
     logger.debug(f"Found objects: {objects}")
     return objects
@@ -216,7 +249,7 @@ def find_objects_by_ids(body: FindObjectsByIdsRequest):
     status_code=status.HTTP_200_OK,
 )
 def find_similar_objects(body: FindSimilarObjectsRequest):
-    collection = get_collection(body.embedding_model)
+    collection = context.vectordb.get_collection(body.embedding_model)
     objects = collection.find_similarities(
         query_vector=body.query_vector,
         limit=body.limit,

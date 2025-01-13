@@ -95,11 +95,9 @@ def initiate_model_deployment_and_wait(
                     settings.REINDEX_INITIATE_MODEL_DEPLOYMENT_LOOP_WAIT_TIME
                 )
             else:
-                logger.info("Triton server model deployment is ready.")
                 break
 
         else:
-            logger.info("Model deployment is ready.")
             break
 
 
@@ -143,12 +141,11 @@ def blue_switch(task: ReindexTaskInDb, deletion_worker: Actor):
         f"Switching model with ID {task.dest.embedding_model_id} to blue status."
     )
 
-    # Get the current blue collection and its state
-    context.vectordb.set_blue_collection(
-        EmbeddingModelInfo(
-            name=task.dest.fine_tuning_method, id=task.dest.embedding_model_id
-        )
+    embedding_model_info = EmbeddingModelInfo(
+        name=task.dest.fine_tuning_method, id=task.dest.embedding_model_id
     )
+    # Get the current blue collection and its state
+    context.vectordb.set_blue_collection(embedding_model_info)
 
     logger.info(
         f"Deleting source model collection with ID {task.source.embedding_model_id}"
@@ -158,6 +155,7 @@ def blue_switch(task: ReindexTaskInDb, deletion_worker: Actor):
         id=task.source.embedding_model_id,
     )
     context.vectordb.delete_collection(source_model_info)
+    context.vectordb.delete_query_collection(source_model_info)
 
     logger.info(
         f"Initiating deletion of source model with ID {task.source.embedding_model_id}"

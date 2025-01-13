@@ -2,7 +2,7 @@ import logging
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
 from embedding_studio.api.api_v1.schemas.similarity_search import (
     SearchResult,
@@ -14,7 +14,11 @@ from embedding_studio.models.clickstream.sessions import (
     SearchResultItem,
     Session,
 )
-from embedding_studio.models.embeddings.objects import SearchResults
+from embedding_studio.models.embeddings.objects import (
+    Object,
+    ObjectPart,
+    SearchResults,
+)
 from embedding_studio.utils.datetime_utils import utc_timestamp
 
 # Initialize logger for this module
@@ -24,16 +28,20 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _find_similars(body: SimilaritySearchRequest) -> SearchResults:
+def _find_similars(
+    body: SimilaritySearchRequest, background_tasks: BackgroundTasks
+) -> SearchResults:
     """
     Perform similarity search on the embeddings collection based on the query.
 
     :param body: Request body containing search parameters.
+    :param background_tasks: FastAPI BackgroundTasks instance to schedule tasks.
     :return: Search results containing similar objects.
     :raises HTTPException: If the search fails or the collection is not initialized.
     """
     # Retrieve the collection where embeddings are stored
     collection = context.vectordb.get_blue_collection()
+    query_collection = context.vectordb.get_blue_query_collection()
 
     if not collection:
         raise HTTPException(
@@ -61,6 +69,45 @@ def _find_similars(body: SimilaritySearchRequest) -> SearchResults:
 
         logger.debug("Search query vectorizing.")
         query_vector = inference_client.forward_query(search_query)[0]
+
+        async def insert_query_vector():
+            """
+            Insert the query vector into the query collection asynchronously.
+            """
+            try:
+                logger.debug("Inserting query vector asynchronously.")
+                object_id = query_retriever.get_id(body.search_query)
+                storage_meta = query_retriever.get_storage_metadata(
+                    body.search_query
+                )
+                payload = query_retriever.get_payload(body.search_query)
+                if payload is None:
+                    payload = dict()
+
+                query_collection.insert(
+                    [
+                        Object(
+                            object_id=object_id,
+                            payload=payload,
+                            storage_meta=storage_meta,
+                            parts=[
+                                ObjectPart(
+                                    part_id=f"{object_id}:0",
+                                    vector=query_vector,
+                                )
+                            ],
+                            user_id=body.user_id,
+                            session_id=body.session_id,
+                        )
+                    ]
+                )
+                logger.debug("Query vector insertion completed.")
+            except Exception as e:
+                logger.error(f"Failed to insert query vector: {e}")
+
+        if body.user_id:
+            # Schedule the background task for query vector insertion
+            background_tasks.add_task(insert_query_vector)
 
         logger.debug("Searching for similar objects.")
         # Search for similar objects in the collection
@@ -147,16 +194,20 @@ def _register_session_with_results(
     response_model_by_alias=False,
     response_model_exclude_none=True,
 )
-def similarity_search(body: SimilaritySearchRequest) -> Any:
+def similarity_search(
+    body: SimilaritySearchRequest, background_tasks: BackgroundTasks
+) -> Any:
     """
     Endpoint to search for similar objects based on the provided query.
 
     :param body: Request body containing the similarity search parameters.
+    :param background_tasks: FastAPI BackgroundTasks instance to schedule tasks.
     :return: Response containing the session ID and search results.
     """
     logger.debug(f"POST /embeddings/similarity-search: {body}")
+
     # Perform similarity search as the session was not found or has no results
-    search_results = _find_similars(body)
+    search_results = _find_similars(body, background_tasks)
 
     session_id = None
     if body.create_session:

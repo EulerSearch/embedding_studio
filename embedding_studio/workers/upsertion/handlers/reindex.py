@@ -41,7 +41,9 @@ def handle_reindex(
     )
 
     # Get collections for source and destination
-    source_collection = context.vectordb.get_collection(embedding_model_info)
+    source_collection = context.vectordb.get_collection(
+        embedding_model_info.to_collection()
+    )
     if not source_collection:
         logger.error(f"Source collection is not found [task ID: {task.id}]")
         task.status = TaskStatus.failed
@@ -49,9 +51,16 @@ def handle_reindex(
 
     logger.info(f"Creating Vector DB dest collection [task ID: {task.id}]")
     try:
+
         _ = vector_db.get_or_create_collection(
-            dest_embedding_model_info, plugin.get_search_index_info()
+            dest_embedding_model_info,
+            plugin.get_search_index_info(),
         )  # Ensure destination collection exists
+
+        _ = vector_db.get_or_create_query_collection(
+            dest_embedding_model_info,
+            plugin.get_search_index_info(),
+        )
 
     except Exception as e:
         logger.exception(

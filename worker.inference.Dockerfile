@@ -33,7 +33,7 @@ RUN python3 -m pip install --upgrade pip
 WORKDIR /tmp
 
 # Install Poetry in this Docker stage.
-RUN pip install poetry
+RUN pip install poetry==1.8.2
 
 # Copy the pyproject.toml and poetry.lock files to the /tmp directory.
 COPY ./pyproject.toml ./poetry.lock* /tmp/

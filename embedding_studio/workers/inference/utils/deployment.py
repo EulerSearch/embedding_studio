@@ -47,7 +47,6 @@ def handle_deployment(task_id: str):
             for deployed_model in deployed_models_list
         ]
     )
-    print(deployed_models_unique)
 
     if (
         len(deployed_models_unique)

@@ -28,7 +28,7 @@ RUN python3 -m pip install --upgrade pip
 WORKDIR /tmp
 
 # Install Poetry in this Docker stage.
-RUN pip install poetry
+RUN pip install poetry==1.8.2
 
 # Copy the pyproject.toml and poetry.lock files to the /tmp directory.
 COPY ./pyproject.toml ./poetry.lock* /tmp/
@@ -49,6 +49,6 @@ RUN pip3 install --no-cache-dir --upgrade -r requirements.txt --default-timeout=
 COPY . /embedding_studio
 
 # Set the command to run the uvicorn server.
-#CMD ["dramatiq", "embedding_studio.workers.fine_tuning.mocked_worker", "--queues", "fine_tuning_mocked_worker", "--processes", "1", "--threads", "1"]
+CMD ["dramatiq", "embedding_studio.workers.fine_tuning.mocked_worker", "--queues", "fine_tuning_worker", "--processes", "1", "--threads", "1"]
 
-CMD ["dramatiq", "embedding_studio.workers.fine_tuning.worker", "--queues", "fine_tuning_mocked_worker", "--processes", "1", "--threads", "1"]
+#CMD ["dramatiq", "embedding_studio.workers.fine_tuning.worker", "--queues", "fine_tuning_mocked_worker", "--processes", "1", "--threads", "1"]

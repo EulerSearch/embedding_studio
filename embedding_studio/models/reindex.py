@@ -57,6 +57,9 @@ class ReindexTask(BaseTaskInfo):
     deploy_as_blue: Optional[bool] = Field(...)
     wait_on_conflict: Optional[bool] = Field(...)
 
+    deploy_as_blue: Optional[bool] = Field(...)
+    wait_on_conflict: Optional[bool] = Field(...)
+
     def add_count(self, additional_count):
         self.count += additional_count
         self.progress = self.count / self.total

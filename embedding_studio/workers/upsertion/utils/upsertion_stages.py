@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Tuple
 
 import numpy as np
 
+from embedding_studio.core.config import settings
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.data_storage.loaders.downloaded_item import (
     DownloadedItem,
@@ -132,6 +133,7 @@ def upload_vectors(
     """
     try:
         objects = []
+        object_ids = set()
         for item in items:
             parts = []
             for part_index in object_to_parts[item.meta.object_id]:
@@ -151,7 +153,21 @@ def upload_vectors(
                 )
             )
 
+            if item.meta.object_id:
+                object_ids.add(item.meta.object_id)
+
         collection.upsert(objects)
+
+        if (
+            len(object_ids) > 0
+            and settings.DELETE_IMPROVED_VECTORS_ON_UPSERTION
+        ):
+            improved_objects = collection.find_by_original_ids(object_ids)
+            if len(improved_objects) > 0:
+                logger.info(
+                    f"Found {len(improved_objects)} improved object - execute deletion."
+                )
+                collection.delete([obj.object_id for obj in improved_objects])
 
     except Exception:
         raise UploadException()

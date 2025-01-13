@@ -55,6 +55,26 @@ services:
               count: 1
               capabilities: [ gpu ]
 
+  improvement_worker:
+    build:
+      context: .
+      dockerfile: worker.improvement_worker.Dockerfile
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - PIP_DEFAULT_TIMEOUT=1000
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      pgvector:
+        condition: service_healthy
+    networks:
+      - internal
+      - public
+
   inference_worker:
     build:
       context: .

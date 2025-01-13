@@ -7,6 +7,10 @@ from embedding_studio.api.api_v1.schemas.clickstream_client import (
 )
 
 
+class UseSessionForImprovementRequest(BaseModel):
+    session_id: str
+
+
 class BatchSession(SessionGetResponse):
     session_number: int
 

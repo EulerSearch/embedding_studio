@@ -60,6 +60,18 @@ class DbObjectBase(Base):
     def storage_meta(cls):
         return mapped_column(JSONB)
 
+    @declared_attr
+    def original_id(cls):
+        return mapped_column(String(128), index=True)
+
+    @declared_attr
+    def user_id(cls):
+        return mapped_column(String(128), index=True)
+
+    @declared_attr
+    def session_id(cls):
+        return mapped_column(String(128), index=True)
+
 
 class DbObjectPartBase(Base):
     __abstract__ = True
@@ -109,6 +121,8 @@ class DbObjectImpl:
             "object_id": db_object.object_id,
             "payload": db_object.payload,
             "storage_meta": db_object.storage_meta,
+            "original_id": db_object.original_id,
+            "user_id": db_object.user_id,
         }
 
     @classmethod
@@ -122,18 +136,35 @@ class DbObjectImpl:
         return delete(cls).where(cls.object_id.in_(object_ids))
 
     @classmethod
-    def get_total_statement(cls):
-        return select(func.count(cls.object_id))
+    def get_total_statement(cls, originals_only: bool = True):
+        query = select(func.count(cls.object_id))
+
+        if originals_only:
+            # Add condition to count only original objects
+            query = query.where(cls.original_id.is_(None))
+
+        return query
 
     @classmethod
     def get_objects_common_data_batch_statement(
-        cls, limit: int, offset: Optional[int] = None
+        cls,
+        limit: int,
+        offset: Optional[int] = None,
+        originals_only: bool = True,
     ):
-        return (
-            select(cls.object_id, cls.payload, cls.storage_meta)
-            .limit(limit)
-            .offset(offset)
-        )
+        # Base query
+        query = select(cls.object_id, cls.payload, cls.storage_meta)
+
+        # Add condition to retrieve only original objects if specified
+        if originals_only:
+            query = query.where(cls.original_id.is_(None))
+
+        # Apply limit and offset for batching
+        query = query.limit(limit)
+        if offset is not None:
+            query = query.offset(offset)
+
+        return query
 
     @classmethod
     def objects_common_data_from_db(cls, rows) -> List[ObjectСommonData]:
@@ -146,81 +177,90 @@ class DbObjectImpl:
             for row in rows
         ]
 
-    @classmethod
-    def collection_exists_query(
-        cls, collection_info: CollectionInfo, schema_name: str = "public"
-    ) -> Tuple[sqlalchemy.text, Dict[str, str]]:
-        """
-        Generates the SQL query and parameters to check if a collection's table exists.
-
-        :param collection_info: The collection information object.
-        :param schema_name: The schema name where the table is expected. Defaults to "public".
-        :return: A tuple containing the query and its parameters.
-        """
-        table_name = get_dbo_table_name(collection_info)["dbo_collection"]
-        query = sqlalchemy.text(
-            """
-            SELECT EXISTS (
-                SELECT 1
-                FROM information_schema.tables
-                WHERE table_schema = :schema_name
-                AND table_name = :table_name
-            )
-            """
-        )
-        params = {"schema_name": schema_name, "table_name": table_name}
-        return query, params
-
 
 class DbObjectPartImpl:
+    search_index = None
+    db_object_class = None
+
+    @classmethod
+    def initialize(cls, search_index, db_object_class):
+        cls.search_index = search_index
+        cls.db_object_class = db_object_class
+
     @classmethod
     def create_table(cls, pg_database: sqlalchemy.Engine):
         cls.__table__.create(pg_database, checkfirst=True)
 
     @classmethod
-    def validate_dimensions(cls, vector: List[float], search_index):
+    def validate_dimensions(cls, vector: List[float]):
         dim = len(vector)
-        if dim != search_index.dimensions:
+        if dim != cls.search_index.dimensions:
             raise DimensionsMismatch(
-                f"Dimensions mismatch: input vector({dim}), expected vector({search_index.dimensions})"
+                f"Dimensions mismatch: input vector({dim}), expected vector({cls.search_index.dimensions})"
             )
 
     @classmethod
-    def distance_expression(cls, vector: List[float], search_index):
-        cls.validate_dimensions(vector, search_index)
-        if search_index.metric_type is MetricType.COSINE:
+    def distance_expression(cls, vector: List[float]):
+        cls.validate_dimensions(vector)
+        if cls.search_index.metric_type is MetricType.COSINE:
             return cls.vector.cosine_distance(vector)
-        if search_index.metric_type is MetricType.DOT:
+        if cls.search_index.metric_type is MetricType.DOT:
             return cls.vector.max_inner_product(vector)
-        if search_index.metric_type is MetricType.EUCLID:
+        if cls.search_index.metric_type is MetricType.EUCLID:
             return cls.vector.l2_distance(vector)
         raise RuntimeError(
-            f"unknown metric type: {search_index.metric_type.value}"
+            f"unknown metric type: {cls.search_index.metric_type.value}"
         )
 
     @classmethod
-    def aggregated_distance_expression(cls, vector: List[float], search_index):
-        dst = cls.distance_expression(vector, search_index)
-        if search_index.metric_aggregation_type is MetricAggregationType.AVG:
+    def aggregated_distance_expression(cls, vector: List[float]):
+        dst = cls.distance_expression(vector)
+        if (
+            cls.search_index.metric_aggregation_type
+            is MetricAggregationType.AVG
+        ):
             return func.avg(dst)
-        elif search_index.metric_aggregation_type is MetricAggregationType.MIN:
+        elif (
+            cls.search_index.metric_aggregation_type
+            is MetricAggregationType.MIN
+        ):
             return func.min(dst)
         raise RuntimeError(
-            f"unknown metric aggregation type: {search_index.metric_aggregation_type.value}"
+            f"unknown metric aggregation type: {cls.search_index.metric_aggregation_type.value}"
         )
 
     @classmethod
-    def find_by_id_statement(cls, object_ids: List[float], DbObjectClass):
+    def find_by_id_statement(cls, object_ids: List[float]):
         return (
             select(
-                DbObjectClass.object_id,
+                cls.db_object_class.object_id,
                 cls.part_id,
                 cls.vector,
-                DbObjectClass.payload,
-                DbObjectClass.storage_meta,
+                cls.db_object_class.payload,
+                cls.db_object_class.storage_meta,
+                cls.db_object_class.original_id,
+                cls.db_object_class.user_id,
+                cls.db_object_class.session_id,
             )
-            .join(DbObjectClass)
-            .where(DbObjectClass.object_id.in_(object_ids))
+            .join(cls.db_object_class)
+            .where(cls.db_object_class.object_id.in_(object_ids))
+        )
+
+    @classmethod
+    def find_by_original_id_statement(cls, object_ids: List[float]):
+        return (
+            select(
+                cls.db_object_class.object_id,
+                cls.part_id,
+                cls.vector,
+                cls.db_object_class.payload,
+                cls.db_object_class.storage_meta,
+                cls.db_object_class.original_id,
+                cls.db_object_class.user_id,
+                cls.db_object_class.session_id,
+            )
+            .join(cls.db_object_class)
+            .where(cls.db_object_class.original_id.in_(object_ids))
         )
 
     @classmethod
@@ -231,32 +271,60 @@ class DbObjectPartImpl:
         offset: Optional[int],
         max_distance: Optional[float],
         payload_filter: Optional[PayloadFilter],
-        search_index,
-        DbObjectClass,
+        user_id: Optional[str] = None,  # Add user_id as an optional parameter
     ):
-        adist_expr = cls.aggregated_distance_expression(
-            query_vector, search_index
+        # TODO: Profile query performance on large collections to measure execution times.
+        # TODO: Test scalability by simulating high user load and frequent vector additions.
+        # TODO: Ensure indexing strategy is optimized for frequently used fields (e.g., object_id, user_id).
+        # TODO: Plan for database growth by implementing cleanup, archiving, or sharding strategies.
+        # TODO: Explore ways to simplify this query, potentially by breaking it into smaller components.
+        # TODO: Set up monitoring and alerts for performance degradation and database size issues.
+        # TODO: Document the query logic and its potential scalability impact for maintainability.
+        # TODO: Investigate alternative search backends for handling large-scale vector operations.
+
+        adist_expr = cls.aggregated_distance_expression(query_vector)
+
+        # Subquery to identify modified copies
+        subquery = (
+            select(cls.db_object_class.object_id)
+            .where(
+                cls.db_object_class.original_id.isnot(None)
+            )  # Find modified copies
+            .distinct()
+            .subquery()
         )
+
+        # Base query excluding original objects that have modified copies
         select_st = (
             select(
-                DbObjectClass.object_id,
+                cls.db_object_class.object_id,
                 adist_expr.label("distance"),
                 func.count(cls.part_id).label("parts_found"),
-                DbObjectClass.payload,
-                DbObjectClass.storage_meta,
+                cls.db_object_class.payload,
+                cls.db_object_class.storage_meta,
+                cls.db_object_class.original_id,
+                cls.db_object_class.user_id,
+                cls.db_object_class.session_id,
             )
-            .join(DbObjectClass)
+            .join(cls.db_object_class)
+            .where(
+                ~cls.db_object_class.object_id.in_(subquery)
+            )  # Exclude originals with copies
             .group_by(
-                DbObjectClass.object_id,
-                DbObjectClass.payload,
-                DbObjectClass.storage_meta,
+                cls.db_object_class.object_id,
+                cls.db_object_class.payload,
+                cls.db_object_class.storage_meta,
+                cls.db_object_class.original_id,
+                cls.db_object_class.user_id,
+                cls.db_object_class.session_id,
             )
-            .order_by(asc("distance"))
             .limit(limit)
         )
+
+        # Add filtering conditions
         conditions = []
         if max_distance is not None:
-            dist_expr = cls.distance_expression(query_vector, search_index)
+            dist_expr = cls.distance_expression(query_vector)
             conditions.append(dist_expr < max_distance)
 
         if payload_filter:
@@ -271,6 +339,17 @@ class DbObjectPartImpl:
         if offset is not None:
             select_st = select_st.offset(offset)
 
+        # Prioritize rows with the specified user_id
+        if user_id:
+            select_st = select_st.order_by(
+                sqlalchemy.case(
+                    [(cls.db_object_class.user_id == user_id, 0)], else_=1
+                ),
+                asc("distance"),
+            )
+        else:
+            select_st = select_st.order_by(asc("distance"))
+
         return select_st
 
     @classmethod
@@ -278,34 +357,65 @@ class DbObjectPartImpl:
         cls,
         payload_filter: PayloadFilter,
         limit: int,
-        offset: Optional[int],
-        DbObjectClass,
+        offset: Optional[int] = None,
     ):
+        # Translate payload filters to ORM conditions
         payload_conditions = translate_query_to_orm_filters(
             payload_filter, prefix="payload"
         )
 
+        # Add condition to include only original objects (original_id is NULL)
+        payload_conditions.append(cls.db_object_class.original_id.is_(None))
+
+        # Construct the select statement
         select_statement = (
             select(
-                DbObjectClass.object_id,
+                cls.db_object_class.object_id,
                 func.count(cls.part_id).label("parts_found"),
-                DbObjectClass.payload,
-                DbObjectClass.storage_meta,
+                cls.db_object_class.payload,
+                cls.db_object_class.storage_meta,
+                cls.db_object_class.original_id,
+                cls.db_object_class.user_id,
+                cls.db_object_class.session_id,
             )
-            .join(DbObjectClass)
-            .where(and_(*payload_conditions))
+            .join(cls.db_object_class)
+            .where(and_(*payload_conditions))  # Apply payload filters
             .group_by(
-                DbObjectClass.object_id,
-                DbObjectClass.payload,
-                DbObjectClass.storage_meta,
+                cls.db_object_class.object_id,
+                cls.db_object_class.payload,
+                cls.db_object_class.storage_meta,
+                cls.db_object_class.original_id,
+                cls.db_object_class.user_id,
+                cls.db_object_class.session_id,
             )
             .limit(limit)
         )
 
+        # Apply offset if specified
         if offset is not None:
             select_statement = select_statement.offset(offset)
 
         return select_statement
+
+    @classmethod
+    def find_by_session_id_statement(cls, session_id: str):
+        return (
+            select(
+                cls.db_object_class.object_id,
+                cls.db_object_class.payload,
+                cls.db_object_class.storage_meta,
+                cls.db_object_class.original_id,
+                cls.db_object_class.user_id,
+                cls.db_object_class.session_id,
+                cls.vector,
+                cls.part_id,
+            )
+            .join(
+                cls.db_object_class,
+                cls.object_id == cls.db_object_class.object_id,
+            )
+            .where(cls.db_object_class.session_id.astext == session_id)
+        )
 
     @classmethod
     def insert_parts_statement(cls, db_parts: List["DbObjectPart"]):
@@ -338,6 +448,8 @@ class DbObjectPartImpl:
                 "vector": db_part.vector,
                 "payload": db_part.object.payload,
                 "storage_meta": db_part.object.storage_meta,
+                "original_id": db_part.object.original_id,
+                "user_id": db_part.object.user_id,
             }
         else:
             return {
@@ -357,22 +469,38 @@ class DbObjectPartImpl:
         objects_by_id: Dict[str, Object] = {}
         for row in rows:
             obj = objects_by_id.setdefault(
-                row.object_id, Object(object_id=row.object_id, parts=[])
+                row.object_id,
+                Object(
+                    object_id=row.object_id,
+                    parts=[],
+                    payload=row.payload,
+                    storage_meta=row.storage_meta,
+                    user_id=row.user_id,
+                    original_id=row.original_id,
+                ),
             )
             obj.parts.append(
                 ObjectPart(
                     part_id=row.part_id,
                     vector=row.vector,
-                    payload=obj.payload,
                 )
             )
         return list(objects_by_id.values())
 
     @classmethod
-    def similar_objects_from_db(cls, rows) -> List[SimilarObject]:
+    def get_id(cls, row, keep_originals: bool = True):
+        if keep_originals and row.original_id is not None:
+            return row.original_id
+
+        return row.object_id
+
+    @classmethod
+    def similar_objects_from_db(
+        cls, rows, keep_originals: bool = True
+    ) -> List[SimilarObject]:
         return [
             SimilarObject(
-                object_id=row.object_id,
+                object_id=cls.get_id(row, keep_originals),
                 distance=row.distance,
                 parts_found=row.parts_found,
                 payload=row.payload,
@@ -382,16 +510,46 @@ class DbObjectPartImpl:
         ]
 
     @classmethod
-    def found_objects_from_db(cls, rows) -> List[FoundObject]:
+    def found_objects_from_db(
+        cls, rows, keep_originals: bool = True
+    ) -> List[FoundObject]:
         return [
             FoundObject(
-                object_id=row.object_id,
+                object_id=cls.get_id(row, keep_originals),
                 parts_found=row.parts_found,
                 payload=row.payload,
                 storage_meta=row.storage_meta,
             )
             for row in rows
         ]
+
+    @classmethod
+    def objects_to_db(cls, objects: List[Object]) -> List["DbObjectPart"]:
+        db_objects = []
+        for obj in objects:
+            db_object = cls.db_object_class(
+                object_id=obj.object_id,
+                payload=obj.payload,
+                storage_meta=obj.storage_meta,
+            )
+            db_objects.append(db_object)
+            for i, part in enumerate(obj.parts):
+                part_id = part.part_id or f"{obj.object_id}_{i}"
+                try:
+                    cls.validate_dimensions(part.vector, cls.search_index)
+                except DimensionsMismatch as err:
+                    raise RuntimeError(
+                        f"Failed to load object part {part_id}"
+                    ) from err
+                db_objects.append(
+                    cls(
+                        object_id=obj.object_id,
+                        part_id=part_id,
+                        vector=part.vector,
+                        object=db_object,
+                    )
+                )
+        return db_objects
 
 
 def get_dbo_table_name(collection_info: CollectionInfo) -> Dict[str, str]:
@@ -437,15 +595,15 @@ def make_db_model(
 
         @classmethod
         def hnsw_index(cls):
-            if search_index.metric_type is MetricType.COSINE:
+            if cls.search_index.metric_type is MetricType.COSINE:
                 index_type = "vector_cosine_ops"
-            elif search_index.metric_type is MetricType.DOT:
+            elif cls.search_index.metric_type is MetricType.DOT:
                 index_type = "vector_ip_ops"
-            elif search_index.metric_type is MetricType.EUCLID:
+            elif cls.search_index.metric_type is MetricType.EUCLID:
                 index_type = "vector_l2_ops"
             else:
                 raise RuntimeError(
-                    f"Unknown metric type: {search_index.metric_type}"
+                    f"Unknown metric type: {cls.search_index.metric_type}"
                 )
 
             return Index(
@@ -453,41 +611,11 @@ def make_db_model(
                 cls.vector,
                 postgresql_using="hnsw",
                 postgresql_with={
-                    "m": search_index.hnsw.m,
-                    "ef_construction": search_index.hnsw.ef_construction,
+                    "m": cls.search_index.hnsw.m,
+                    "ef_construction": cls.search_index.hnsw.ef_construction,
                 },
                 postgresql_ops={"vector": index_type},
             )
-
-        @classmethod
-        def objects_to_db(
-            cls, objects: List[Object], DbObjectClass
-        ) -> List["DbObjectPart"]:
-            db_objects = []
-            for obj in objects:
-                db_object = DbObjectClass(
-                    object_id=obj.object_id,
-                    payload=obj.payload,
-                    storage_meta=obj.storage_meta,
-                )
-                db_objects.append(db_object)
-                for i, part in enumerate(obj.parts):
-                    part_id = part.part_id or f"{obj.object_id}_{i}"
-                    try:
-                        cls.validate_dimensions(part.vector, search_index)
-                    except DimensionsMismatch as err:
-                        raise RuntimeError(
-                            f"Failed to load object part {part_id}"
-                        ) from err
-                    db_objects.append(
-                        cls(
-                            object_id=obj.object_id,
-                            part_id=part_id,
-                            vector=part.vector,
-                            object=db_object,
-                        )
-                    )
-            return db_objects
 
     DbObject.__name__ = f"DbObject_{collection_id}"
     DbObjectPart.__name__ = f"DbObjectPart_{collection_id}"
@@ -496,6 +624,8 @@ def make_db_model(
         DbObjectPart, back_populates="object", cascade="all, delete-orphan"
     )
     DbObjectPart.object = relationship(DbObject, back_populates="parts")
+
+    DbObjectPart.initialize(search_index, DbObject)
 
     configure_mappers()
 

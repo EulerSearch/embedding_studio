@@ -6,6 +6,9 @@ from typing import Dict, List, Optional
 from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
 from embedding_studio.core.config import settings
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
+from embedding_studio.embeddings.improvement.vectors_adjuster import (
+    VectorsAdjuster,
+)
 from embedding_studio.embeddings.inference.triton.client import (
     TritonClientFactory,
 )
@@ -131,6 +134,17 @@ class FineTuningMethod(ABC):
         """
         raise NotImplementedError(
             "Subclasses must implement get_search_index_info"
+        )
+
+    @abstractmethod
+    def get_vectors_adjuster(self) -> VectorsAdjuster:
+        """Return a VectorsAdjuster instance. Define a function of vectors changing procedure.
+
+        Method that should be implemented by subclasses to provide a
+        VectorsAdjuster instance.
+        """
+        raise NotImplementedError(
+            "Subclasses must implement get_vectors_adjuster"
         )
 
 

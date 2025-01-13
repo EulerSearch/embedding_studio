@@ -57,6 +57,21 @@ def init_model_repo_for_plugin(model_repo: str, plugin_name: str):
                 embedding_model_info, search_index_info
             )
 
+        logger.info(f"Creating or retrieving Vector DB query collection")
+        if not vector_db.query_collection_exists(embedding_model_info):
+            logger.warning(
+                f"Query collection with name: {embedding_model_info.full_name} "
+                f"does not exist, creating"
+            )
+            vector_db.create_query_collection(
+                embedding_model_info, search_index_info
+            )
+        else:
+            logger.info(f"Initial collection exists")
+            vector_db.get_or_create_query_collection(
+                embedding_model_info, search_index_info
+            )
+
         vector_db.set_blue_collection(embedding_model_info)
 
         logger.info(f"Initial collection setup finished")
