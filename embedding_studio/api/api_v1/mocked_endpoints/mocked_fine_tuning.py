@@ -1,13 +1,14 @@
 import logging
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, status
 
 from embedding_studio.api.api_v1.schemas.fine_tuning import (
     FineTuningTaskResponse,
     FineTuningTaskRunRequest,
 )
 from embedding_studio.context.app_context import context
+from embedding_studio.utils.plugin_utils import is_basic_plugin
 from embedding_studio.workers.fine_tuning.mocked_worker import (
     fine_tuning_mocked_worker,
 )
@@ -31,6 +32,13 @@ def create_fine_tuning_task(
     :param body: Request body.
     :return: Created task details.
     """
+    plugin = context.plugin_manager.get_plugin(body.fine_tuning_method)
+    if not is_basic_plugin(plugin):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Fine-tuning method for not basic models is not supported",
+        )
+
     # TODO: check if task with the same batch_id and params already exists
     logger.debug(f"POST /task: {body}")
     if body.idempotency_key:
@@ -39,6 +47,7 @@ def create_fine_tuning_task(
         )
         if task is not None:
             return task
+
     task = context.fine_tuning_task.create(schema=body, return_obj=True)
     message = fine_tuning_mocked_worker.send(str(task.id))
     logger.debug(f"fine_tuning_worker message: {message}")

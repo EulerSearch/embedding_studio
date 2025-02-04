@@ -76,9 +76,7 @@ class VectorDb(ABC):
         embedding_model: EmbeddingModelInfo,
         search_index_info: SearchIndexInfo,
     ) -> QueryCollection:
-        if not self.query_collection_exists(
-            embedding_model, search_index_info
-        ):
+        if not self.query_collection_exists(embedding_model):
             return self.create_query_collection(
                 embedding_model, search_index_info
             )

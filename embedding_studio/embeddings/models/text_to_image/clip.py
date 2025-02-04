@@ -67,6 +67,10 @@ class TextToImageCLIPModel(EmbeddingsModelInterface):
     def get_items_model_params(self) -> Iterator[Parameter]:
         return self.vision_model.parameters()
 
+    @property
+    def is_named_inputs(self) -> bool:
+        return False
+
     @torch.no_grad()
     def get_query_model_inputs(self, device=None) -> Dict[str, Tensor]:
         # Define an example text

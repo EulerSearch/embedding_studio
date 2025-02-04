@@ -11,9 +11,6 @@ from embedding_studio.workers.inference.utils.file_locks import (
     acquire_lock,
     release_lock,
 )
-from embedding_studio.workers.inference.utils.init_model_repo import (
-    plugin_manager,
-)
 from embedding_studio.workers.inference.utils.prepare_for_triton import (
     convert_for_triton,
 )
@@ -69,7 +66,7 @@ def handle_deployment(task_id: str):
         task.status = TaskStatus.processing
         context.model_deployment_task.update(obj=task)
 
-        plugin = plugin_manager.get_plugin(task.fine_tuning_method)
+        plugin = context.plugin_manager.get_plugin(task.fine_tuning_method)
         experiments_manager = plugin.get_manager()
         model = experiments_manager.download_model_by_run_id(
             task.embedding_model_id

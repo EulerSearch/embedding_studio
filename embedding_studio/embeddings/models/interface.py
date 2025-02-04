@@ -28,6 +28,10 @@ class EmbeddingsModelInterface(pl.LightningModule):
     def get_items_model_params(self) -> Iterator[Parameter]:
         pass
 
+    @property
+    def is_named_inputs(self) -> bool:
+        raise NotImplementedError()
+
     @abstractmethod
     def get_query_model_inputs(self, device=None) -> Dict[str, Tensor]:
         pass

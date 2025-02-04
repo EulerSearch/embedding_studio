@@ -82,7 +82,7 @@ from embedding_studio.workers.fine_tuning.prepare_data import prepare_data
 
 class DefaultDictTextFineTuningMethod(FineTuningMethod):
     meta = PluginMeta(
-        name="DefaultFineTuningMethodForDictObjectsTextOnly",  # Should be a python-like naming
+        name="DictDefaultMethodForObjectsTextOnly",  # Should be a python-like naming
         version="0.0.1",
         description="A default fine-tuning text plugin",
     )

@@ -18,6 +18,10 @@ from embedding_studio.utils.dramatiq_middlewares import (
 )
 from embedding_studio.utils.dramatiq_task_handler import create_and_send_task
 from embedding_studio.utils.initializer_actions import init_nltk
+from embedding_studio.utils.plugin_utils import is_basic_plugin
+from embedding_studio.workers.fine_tuning.exceptions import (
+    FineTuningWorkerException,
+)
 from embedding_studio.workers.upsertion.worker import reindex_worker
 
 logger = logging.getLogger(__name__)
@@ -26,12 +30,6 @@ plugin_manager = PluginManager()
 plugin_manager.discover_plugins(directory=settings.ES_PLUGINS_PATH)
 
 redis_broker.add_middleware(ActionsOnStartMiddleware([init_nltk]))
-
-
-class MockedFineTuningWorkerException(Exception):
-    """
-    Custom exception class for fine-tuning related errors.
-    """
 
 
 @dramatiq.actor(
@@ -51,9 +49,7 @@ def fine_tuning_mocked_worker(task_id: str):
 
     task = context.fine_tuning_task.get(id=task_id)
     if not task:
-        raise MockedFineTuningWorkerException(
-            f"Task with ID `{task_id}` not found"
-        )
+        raise FineTuningWorkerException(f"Task with ID `{task_id}` not found")
 
     try:
         task.status = TaskStatus.processing
@@ -61,10 +57,20 @@ def fine_tuning_mocked_worker(task_id: str):
 
         fine_tuning_plugin = plugin_manager.get_plugin(task.fine_tuning_method)
         if not fine_tuning_plugin:
-            raise MockedFineTuningWorkerException(
+            raise FineTuningWorkerException(
                 f"Fine tuning plugin with name `{task.fine_tuning_method}` "
                 f"not found"
             )
+
+        if not is_basic_plugin(fine_tuning_plugin):
+            task.status = TaskStatus.refused
+            context.fine_tuning_task.update(obj=task)
+
+            raise FineTuningWorkerException(
+                f"Fine tuning is not available for `{task.fine_tuning_method}` "
+                f"with {fine_tuning_plugin.meta.use_case.name} use case."
+            )
+
         if not fine_tuning_plugin.get_manager().has_initial_model():
             logger.info("No initial model found, uploading.")
             logger.info(f"Upload initial model...")

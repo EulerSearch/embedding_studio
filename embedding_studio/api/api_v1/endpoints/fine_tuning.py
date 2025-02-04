@@ -11,6 +11,7 @@ from embedding_studio.api.api_v1.schemas.fine_tuning import (
 from embedding_studio.context.app_context import context
 from embedding_studio.models.task import TaskStatus
 from embedding_studio.utils.dramatiq_task_handler import create_and_send_task
+from embedding_studio.utils.plugin_utils import is_basic_plugin
 from embedding_studio.utils.tasks import convert_to_response
 from embedding_studio.workers.fine_tuning.worker import fine_tuning_worker
 
@@ -34,6 +35,13 @@ def create_fine_tuning_task(
     :return: Created task details.
     """
     logger.debug(f"POST /task: {body}")
+
+    plugin = context.plugin_manager.get_plugin(body.fine_tuning_method)
+    if is_basic_plugin(plugin):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Fine-tuning method for not basic models is not supported",
+        )
 
     # Check for existing task using idempotency key
     if body.idempotency_key:

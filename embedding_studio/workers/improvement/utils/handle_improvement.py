@@ -30,7 +30,7 @@ def handle_improvement(
 
         except Exception:
             logger.exception(
-                f"Something went wrong during retrieveing session with ID: {session.session_id}"
+                f"Something went wrong during retrieving session with ID: {session.session_id}"
             )
             session.status = TaskStatus.failed
             session.detail = traceback.format_exc()
@@ -46,7 +46,7 @@ def handle_improvement(
 
     except Exception:
         logger.exception(
-            f"Something went wrong during retrieveing blue collection"
+            f"Something went wrong during retrieving blue collection"
         )
         for session in sessions_for_improvement:
             session.status = TaskStatus.failed

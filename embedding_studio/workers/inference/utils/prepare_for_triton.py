@@ -57,6 +57,7 @@ def convert_for_triton(
     query_model = model.get_query_model().to(query_device)
     query_model.eval()
     query_example_inputs = model.get_query_model_inputs(device=query_device)
+
     query_model_storage_info = ModelStorageInfo(
         model_repo=model_repo,
         embedding_studio_path=embedding_studio_path,
@@ -70,7 +71,9 @@ def convert_for_triton(
     query_model_manager = model.get_query_model_inference_manager_class()(
         query_model_storage_info
     )
-    query_model_manager.save_model(query_model, query_example_inputs)
+    query_model_manager.save_model(
+        query_model, query_example_inputs, named_inputs=model.is_named_inputs
+    )
 
     # Check if the same model is used for both queries and items
     if model.same_query_and_items:

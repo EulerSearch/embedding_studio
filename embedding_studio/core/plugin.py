@@ -12,6 +12,7 @@ from embedding_studio.embeddings.improvement.vectors_adjuster import (
 from embedding_studio.embeddings.inference.triton.client import (
     TritonClientFactory,
 )
+from embedding_studio.embeddings.selectors.selector import AbstractSelector
 from embedding_studio.embeddings.splitters.item_splitter import ItemSplitter
 from embedding_studio.embeddings.splitters.no_splitter import NoSplitter
 from embedding_studio.experiments.experiments_tracker import ExperimentsManager
@@ -123,7 +124,9 @@ class FineTuningMethod(ABC):
         :param id: ID of an embedding model in model storage system.
         :return: An instance of EmbeddingModelInfo.
         """
-        return EmbeddingModelInfo(name=self.meta.name, id=id)
+        return EmbeddingModelInfo(
+            name=self.meta.name, id=id, use_case=meta.use_case
+        )
 
     @abstractmethod
     def get_search_index_info(self) -> SearchIndexInfo:
@@ -146,6 +149,38 @@ class FineTuningMethod(ABC):
         raise NotImplementedError(
             "Subclasses must implement get_vectors_adjuster"
         )
+
+
+class CategoriesFineTuningMethod(FineTuningMethod):
+    meta: PluginMeta
+
+    @abstractmethod
+    def get_category_selector(self) -> AbstractSelector:
+        """Return a AbstractSelector instance. Define a function of selecting categories.
+
+        Method that should be implemented by subclasses to provide a AbstractSelector instance.
+        """
+        raise NotImplementedError(
+            "Subclasses must implement get_category_selector"
+        )
+
+    @abstractmethod
+    def get_max_similar_categories(self) -> int:
+        """Return a number of max similar categories being retrieved.
+
+        Method that should be implemented by subclasses to provide a max similar categories being retrieved.
+        """
+        raise NotImplementedError(
+            "Subclasses must implement get_max_similar_categories"
+        )
+
+    @abstractmethod
+    def get_max_margin(self) -> float:
+        """Return a number of maximum distance/similarity of categories being retrieved.
+
+        Method that should be implemented by subclasses to provide a maximum distance/similarity of categories being retrieved.
+        """
+        raise NotImplementedError("Subclasses must implement get_max_margin")
 
 
 class PluginManager:
@@ -187,6 +222,7 @@ class PluginManager:
                         isinstance(obj, type)
                         and issubclass(obj, FineTuningMethod)
                         and obj != FineTuningMethod
+                        and obj != CategoriesFineTuningMethod
                     ):
                         if not hasattr(obj, "meta"):
                             raise ValueError(

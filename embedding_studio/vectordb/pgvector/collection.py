@@ -308,6 +308,32 @@ class PgvectorCollection(Collection):
                 next_offset=next_offset,
             )
 
+    def find_similar_objects(
+        self,
+        query_vector: List[float],
+        limit: int,
+        offset: Optional[int] = None,
+        max_distance: Optional[float] = None,
+        payload_filter: Optional[PayloadFilter] = None,
+        user_id: Optional[str] = None,
+    ) -> List[Object]:
+        with self.Session() as session, session.begin():
+            search_st = self.DbObjectPart.similarity_search_statement(
+                query_vector=query_vector,
+                limit=limit,
+                offset=offset,
+                max_distance=max_distance,
+                payload_filter=payload_filter,
+                user_id=user_id,
+                with_vectors=True,
+            )
+            logger.debug(f"Search statement: {search_st}")
+            rows = session.execute(search_st)
+            found_objects = self.DbObjectPart.objects_from_db(rows)
+            logger.debug(f"found db_objects: {found_objects}")
+
+            return found_objects
+
     def find_by_payload_filter(
         self,
         payload_filter: PayloadFilter,

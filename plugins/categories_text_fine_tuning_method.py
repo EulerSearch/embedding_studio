@@ -1,7 +1,8 @@
+import gc
 from typing import List
 
-from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer
+import torch.cuda
+from transformers import AutoModel, AutoTokenizer
 
 from embedding_studio.clickstream_storage.converters.converter import (
     ClickstreamSessionConverter,
@@ -12,7 +13,7 @@ from embedding_studio.clickstream_storage.text_query_retriever import (
 )
 from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
-from embedding_studio.core.plugin import FineTuningMethod
+from embedding_studio.core.plugin import CategoriesFineTuningMethod
 from embedding_studio.data_storage.loaders.cloud_storage.gcp.gcp_text_loader import (
     GCPTextLoader,
 )
@@ -39,28 +40,28 @@ from embedding_studio.embeddings.data.items.managers.text import (
 from embedding_studio.embeddings.data.utils.fields_normalizer import (
     DatasetFieldsNormalizer,
 )
-from embedding_studio.embeddings.improvement.torch_based_adjuster import (
-    TorchBasedAdjuster,
-)
 from embedding_studio.embeddings.improvement.vectors_adjuster import (
     VectorsAdjuster,
 )
 from embedding_studio.embeddings.inference.triton.client import (
     TritonClientFactory,
 )
-from embedding_studio.embeddings.inference.triton.text_to_text.e5 import (
-    TextToTextE5TritonClientFactory,
+from embedding_studio.embeddings.inference.triton.text_to_text.bert import (
+    TextToTextBERTTritonClientFactory,
 )
 from embedding_studio.embeddings.losses.prob_cosine_margin_ranking_loss import (
     CosineProbMarginRankingLoss,
 )
-from embedding_studio.embeddings.models.text_to_text.e5 import (
-    TextToTextE5Model,
+from embedding_studio.embeddings.models.text_to_text.bert import (
+    TextToTextBertModel,
 )
+from embedding_studio.embeddings.selectors.prob_dist_based_selector import (
+    ProbsDistBasedSelector,
+)
+from embedding_studio.embeddings.selectors.selector import AbstractSelector
 from embedding_studio.embeddings.splitters.dataset_splitter import (
     ItemsSetSplitter,
 )
-from embedding_studio.embeddings.splitters.item_splitter import ItemSplitter
 from embedding_studio.embeddings.splitters.text.dummy_sentence_splitter import (
     DummySentenceSplitter,
 )
@@ -81,11 +82,11 @@ from embedding_studio.models.plugin import FineTuningBuilder, PluginMeta
 from embedding_studio.workers.fine_tuning.prepare_data import prepare_data
 
 
-class DefaultTextFineTuningMethod(FineTuningMethod):
+class CategoriesTextFineTuningMethod(CategoriesFineTuningMethod):
     meta = PluginMeta(
-        name="TextDefaultFineTuningMethodForText",  # Should be a python-like naming
+        name="CategoriesTextFineTuningMethod",  # Should be a python-like naming
         version="0.0.1",
-        description="A default fine-tuning text plugin",
+        description="A default text fine-tuning plugin for categories predictor",
     )
 
     def __init__(self):
@@ -95,11 +96,18 @@ class DefaultTextFineTuningMethod(FineTuningMethod):
         #     "use_system_info": False
         # }
 
-        self.model_name = "intfloat/multilingual-e5-base"
+        self.model_name = (
+            "EmbeddingStudio/all-MiniLM-L6-v2-huggingface-categories"
+        )
+        self.tokenizer_name = (
+            "EmbeddingStudio/all-MiniLM-L6-v2-huggingface-categories"
+        )
         self.inference_client_factory = None
         # with empty creds, use anonymous session
         creds = {"use_system_info": True}
         self.data_loader = GCPTextLoader(**creds)
+
+        self.field_names = []  # Provide your dict field names here
 
         self.retriever = TextQueryRetriever()
         self.sessions_converter = ClickstreamSessionConverter(
@@ -173,23 +181,23 @@ class DefaultTextFineTuningMethod(FineTuningMethod):
         self.settings = FineTuningSettings(
             loss_func=CosineProbMarginRankingLoss(),
             step_size=35,
-            test_each_n_sessions=0.5,
+            test_each_n_inputs=0.5,
             num_epochs=3,
         )
 
     def upload_initial_model(self) -> None:
         model = context.model_downloader.download_model(
             model_name=self.model_name,
-            download_fn=lambda mn: SentenceTransformer(mn),
+            download_fn=lambda mn: AutoModel.from_pretrained(mn),
         )
-        model = TextToTextE5Model(model)
+        model = TextToTextBertModel(model, max_length=256)
         self.manager.upload_initial_model(model)
+        del model
+        gc.collect()
+        torch.cuda.empty_cache()
 
     def get_query_retriever(self) -> QueryRetriever:
         return self.retriever
-
-    def get_items_splitter(self) -> ItemSplitter:
-        return DummySentenceSplitter()
 
     def get_data_loader(self) -> DataLoader:
         return self.data_loader
@@ -199,10 +207,9 @@ class DefaultTextFineTuningMethod(FineTuningMethod):
 
     def get_inference_client_factory(self) -> TritonClientFactory:
         if self.inference_client_factory is None:
-            self.inference_client_factory = TextToTextE5TritonClientFactory(
+            self.inference_client_factory = TextToTextBERTTritonClientFactory(
                 f"{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}",
                 plugin_name=self.meta.name,
-                preprocessor=self.items_set_manager.preprocessor,
                 model_name=self.model_name,
             )
         return self.inference_client_factory
@@ -237,12 +244,31 @@ class DefaultTextFineTuningMethod(FineTuningMethod):
     def get_search_index_info(self) -> SearchIndexInfo:
         """Return a SearchIndexInfo instance. Define a parameters of vectordb index."""
         return SearchIndexInfo(
-            dimensions=768,
+            dimensions=384,
             metric_type=MetricType.COSINE,
             metric_aggregation_type=MetricAggregationType.AVG,
         )
 
     def get_vectors_adjuster(self) -> VectorsAdjuster:
-        return TorchBasedAdjuster(
-            adjustment_rate=0.1, search_index_info=self.get_search_index_info()
+        raise NotImplementedError()
+
+    def get_category_selector(self) -> AbstractSelector:
+        # TODO: do a category selector versioning, just as embedding model
+        return ProbsDistBasedSelector(
+            search_index_info=SearchIndexInfo(
+                dimensions=384,
+                metric_type=MetricType.DOT,
+                metric_aggregation_type=MetricAggregationType.AVG,
+            ),
+            is_similarity=True,
+            margin=0.2,
+            scale=10.0,
+            scale_to_one=True,
+            prob_threshold=0.7,
         )
+
+    def get_max_similar_categories(self) -> int:
+        return 100
+
+    def get_max_margin(self) -> float:
+        return 0.7

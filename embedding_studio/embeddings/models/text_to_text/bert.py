@@ -2,12 +2,10 @@ import logging
 from typing import Dict, Iterator, List, Optional, Type, Union
 
 import torch
-from sentence_transformers import SentenceTransformer
 from torch import FloatTensor, Tensor
 from torch.nn import Module, Parameter
-from transformers import AutoModel, AutoTokenizer, XLMRobertaModel
+from transformers import AutoModel, AutoTokenizer, BertModel
 
-from embedding_studio.context.app_context import context
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
@@ -24,72 +22,62 @@ from embedding_studio.inference_management.triton.manager import (
 logger = logging.getLogger(__name__)
 
 
-class E5ModelSimplifiedWrapper(torch.nn.Module):
-    def __init__(self, model: Union[XLMRobertaModel, torch.nn.Module]):
-        super(E5ModelSimplifiedWrapper, self).__init__()
+class BertModelSimplifiedWrapper(torch.nn.Module):
+    def __init__(self, model: Union[BertModel, torch.nn.Module]):
+        super(BertModelSimplifiedWrapper, self).__init__()
         self.model = model
 
     def forward(self, input_ids: Tensor, attention_mask: Tensor) -> Tensor:
-        output = self.model.forward(
+        # Use BERT's pooler output which applies a linear layer and tanh to the first token
+        embedding_output = self.model(
             input_ids=input_ids, attention_mask=attention_mask
-        )
+        ).pooler_output
 
-        sum_embeddings = torch.sum(output.last_hidden_state, dim=1)
-        sum_mask = torch.sum(attention_mask, dim=1, keepdim=True)
-        pooled = sum_embeddings / sum_mask.clamp(
-            min=1
-        )  # Avoid division by zero
-
-        return torch.nn.functional.normalize(pooled, p=2, dim=1)
+        return embedding_output
 
 
-class TextToTextE5Model(EmbeddingsModelInterface):
-    """Wrapper to AutoModel or SentenceTransformer E5 model.
-    Usage: model = TextToTextE5Model(SentenceTransformer('intfloat/multilingual-e5-large'))
+class TextToTextBertModel(EmbeddingsModelInterface):
+    """Wrapper for BERT models using AutoModel.
+    Usage: model = TextToBertModel(AutoModel.from_pretrained('bert-base-uncased'))
 
-    :param e5_model: E5 type model, either AutoModel, either SentenceTransformer.
-    :param e5_tokenizer: E5 tokenizer. If None, will upload it by name. Don't need to speсify for SentenceTransformer version.
-    :param max_length: maximum tokens count being used.
+    This implementation expects a BERT model with hidden size of 384 dimensions.
+
+    :param bert_model: BERT model from AutoModel with hidden_size=384
+    :param bert_tokenizer: BERT tokenizer. If None, will upload it by name
+    :param max_length: maximum tokens count being used
     """
 
     def __init__(
         self,
-        e5_model: Union[AutoModel, SentenceTransformer],
-        e5_tokenizer: Optional[AutoTokenizer] = None,
+        bert_model: Union[str, AutoModel],
+        bert_tokenizer: Optional[AutoTokenizer] = None,
         max_length: int = 512,
     ):
-        super(TextToTextE5Model, self).__init__(same_query_and_items=True)
-        if isinstance(e5_model, AutoModel):
-            if e5_tokenizer is None:
-                self.e5_tokenizer = context.model_downloader.download_model(
-                    model_name=e5_model.name_or_path,
-                    download_fn=lambda tn: AutoTokenizer.from_pretrained(tn),
-                )
+        super(TextToTextBertModel, self).__init__(same_query_and_items=True)
 
-            else:
-                self.e5_tokenizer = e5_tokenizer
+        if isinstance(bert_model, str):
+            self.bert_model = AutoModel.from_pretrained(bert_model)
+        else:
+            self.bert_model = bert_model
 
-        elif isinstance(e5_model, SentenceTransformer):
-            self.e5_tokenizer = e5_model.tokenizer
+        if bert_tokenizer is None:
+            self.bert_tokenizer = AutoTokenizer.from_pretrained(
+                self.bert_model.config.name_or_path
+            )
+        else:
+            self.bert_tokenizer = bert_tokenizer
 
-        elif isinstance(e5_model, str):
-            e5_model = SentenceTransformer(e5_model)
-            self.e5_tokenizer = e5_model.tokenizer
-
-        self.e5_model = E5ModelSimplifiedWrapper(
-            e5_model._modules["0"]._modules["auto_model"]
-        )
-
+        self.model = BertModelSimplifiedWrapper(self.bert_model)
         self.max_length = max_length
 
     def get_query_model(self) -> Module:
-        return self.e5_model
+        return self.model
 
     def get_items_model(self) -> Module:
-        return self.e5_model
+        return self.model
 
     def get_query_model_params(self) -> Iterator[Parameter]:
-        return self.e5_model.parameters()
+        return self.model.parameters()
 
     def get_items_model_params(self) -> Iterator[Parameter]:
         return self.get_query_model_params()
@@ -100,15 +88,13 @@ class TextToTextE5Model(EmbeddingsModelInterface):
 
     @torch.no_grad()
     def get_query_model_inputs(self, device=None) -> Dict[str, Tensor]:
-        # Tokenize the text
-        inputs = self.e5_tokenizer(
+        inputs = self.bert_tokenizer(
             TEST_INPUT_TEXTS,
             return_tensors="pt",
             max_length=self.max_length,
             padding="max_length",
             truncation=True,
         )
-
         inputs = {
             key: value
             for key, value in inputs.items()
@@ -122,7 +108,7 @@ class TextToTextE5Model(EmbeddingsModelInterface):
 
     @torch.no_grad()
     def get_items_model_inputs(self, device=None) -> Dict[str, Tensor]:
-        return self.get_query_model_input(device)
+        return self.get_query_model_inputs(device)
 
     def get_query_model_inference_manager_class(
         self,
@@ -135,22 +121,19 @@ class TextToTextE5Model(EmbeddingsModelInterface):
         return JitTraceTritonModelStorageManager
 
     def fix_query_model(self, num_fixed_layers: int):
-        if len(self.e5_model._modules["encoder"].layer) <= num_fixed_layers:
+        if len(self.bert_model.encoder.layer) <= num_fixed_layers:
             raise ValueError(
                 f"Number of fixed layers ({num_fixed_layers}) >= number "
-                f"of existing layers ({len(self.e5_model._modules['encoder'].layer)})"
+                f"of existing layers ({len(self.bert_model.encoder.layer)})"
             )
-        self.e5_model._modules["embeddings"].requires_grad = False
-        for i, attn in enumerate(self.e5_model._modules["encoder"].layer):
-            if i < num_fixed_layers:
-                self.e5_model._modules["encoder"].layer[
-                    i
-                ].requires_grad = False
+        self.bert_model.embeddings.requires_grad = False
+        for i in range(num_fixed_layers):
+            self.bert_model.encoder.layer[i].requires_grad = False
 
     def unfix_query_model(self):
-        self.e5_model._modules["embeddings"].requires_grad = True
-        for i, attn in enumerate(self.e5_model._modules["encoder"].layer):
-            self.e5_model._modules["encoder"].layer[i].requires_grad = True
+        self.bert_model.embeddings.requires_grad = True
+        for layer in self.bert_model.encoder.layer:
+            layer.requires_grad = True
 
     def fix_item_model(self, num_fixed_layers: int):
         self.fix_query_model(num_fixed_layers)
@@ -158,15 +141,9 @@ class TextToTextE5Model(EmbeddingsModelInterface):
     def unfix_item_model(self):
         self.unfix_query_model()
 
-    def tokenize(self, query: Union[str, List[str]]) -> List[Dict]:
-        return self.e5_tokenizer(
-            (
-                [
-                    query,
-                ]
-                if isinstance(query, str)
-                else query
-            ),
+    def tokenize(self, query: Union[str, List[str]]) -> Dict:
+        return self.bert_tokenizer(
+            [query] if isinstance(query, str) else query,
             max_length=self.max_length,
             padding="max_length",
             truncation=True,
@@ -177,8 +154,8 @@ class TextToTextE5Model(EmbeddingsModelInterface):
         if len(query) == 0:
             logger.warning("Provided query is empty")
 
-        tokenized = self.tokenize(f"query: {query}")
-        return self.e5_model.forward(
+        tokenized = self.tokenize(query)
+        return self.model.forward(
             input_ids=tokenized["input_ids"].to(self.device),
             attention_mask=tokenized["attention_mask"].to(self.device),
         )
@@ -188,7 +165,7 @@ class TextToTextE5Model(EmbeddingsModelInterface):
             raise ValueError("items list must not be empty")
 
         tokenized = self.tokenize(items)
-        return self.e5_model.forward(
+        return self.model.forward(
             input_ids=tokenized["input_ids"].to(self.device),
             attention_mask=tokenized["attention_mask"].to(self.device),
         )

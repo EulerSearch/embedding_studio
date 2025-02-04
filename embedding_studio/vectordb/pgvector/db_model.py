@@ -15,7 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB, insert as pg_insert
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import configure_mappers, mapped_column, relationship
+from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.sql import func
 
 from embedding_studio.models.embeddings.collections import CollectionInfo
@@ -54,7 +54,7 @@ class DbObjectBase(Base):
 
     @declared_attr
     def payload(cls):
-        return mapped_column(JSONB, index=True)
+        return mapped_column(JSONB)
 
     @declared_attr
     def storage_meta(cls):
@@ -62,15 +62,15 @@ class DbObjectBase(Base):
 
     @declared_attr
     def original_id(cls):
-        return mapped_column(String(128), index=True)
+        return mapped_column(String(128))
 
     @declared_attr
     def user_id(cls):
-        return mapped_column(String(128), index=True)
+        return mapped_column(String(128))
 
     @declared_attr
     def session_id(cls):
-        return mapped_column(String(128), index=True)
+        return mapped_column(String(128))
 
 
 class DbObjectPartBase(Base):
@@ -272,6 +272,7 @@ class DbObjectPartImpl:
         max_distance: Optional[float],
         payload_filter: Optional[PayloadFilter],
         user_id: Optional[str] = None,  # Add user_id as an optional parameter
+        with_vectors: bool = False,
     ):
         # TODO: Profile query performance on large collections to measure execution times.
         # TODO: Test scalability by simulating high user load and frequent vector additions.
@@ -294,9 +295,22 @@ class DbObjectPartImpl:
             .subquery()
         )
 
-        # Base query excluding original objects that have modified copies
-        select_st = (
-            select(
+        selection_part = None
+        if with_vectors:
+            selection_part = select(
+                cls.db_object_class.object_id,
+                adist_expr.label("distance"),
+                func.count(cls.part_id).label("parts_found"),
+                cls.db_object_class.payload,
+                cls.db_object_class.storage_meta,
+                cls.db_object_class.original_id,
+                cls.db_object_class.user_id,
+                cls.db_object_class.session_id,
+                cls.vector,
+            )
+
+        else:
+            selection_part = select(
                 cls.db_object_class.object_id,
                 adist_expr.label("distance"),
                 func.count(cls.part_id).label("parts_found"),
@@ -306,7 +320,10 @@ class DbObjectPartImpl:
                 cls.db_object_class.user_id,
                 cls.db_object_class.session_id,
             )
-            .join(cls.db_object_class)
+
+        # Base query excluding original objects that have modified copies
+        select_st = (
+            selection_part.join(cls.db_object_class)
             .where(
                 ~cls.db_object_class.object_id.in_(subquery)
             )  # Exclude originals with copies
@@ -326,6 +343,17 @@ class DbObjectPartImpl:
         if max_distance is not None:
             dist_expr = cls.distance_expression(query_vector)
             conditions.append(dist_expr < max_distance)
+
+            if cls.search_index.metric_type in [
+                MetricType.COSINE,
+                MetricType.DOT,
+            ]:
+                # For similarity-based metrics, threshold should be greater than or equal
+                conditions.append(dist_expr >= max_distance)
+
+            elif cls.search_index.metric_type == MetricType.EUCLID:
+                # For distance-based metrics, threshold should be less than or equal
+                conditions.append(dist_expr <= max_distance)
 
         if payload_filter:
             payload_conditions = translate_query_to_orm_filters(
@@ -558,7 +586,10 @@ def get_dbo_table_name(collection_info: CollectionInfo) -> Dict[str, str]:
         "dbop_collection": f"dbop_{collection_info.collection_id}",
         "dbo_relation": f"DbObject_{collection_info.collection_id}",
         "dbop_relation": f"DbObjectPart_{collection_info.collection_id}",
-        "index": f"idx_{collection_info.collection_id}",
+        "dbo_payload_index": f"ix_dbo_{collection_info.collection_id}_p",
+        "dbo_session_id_index": f"ix_{collection_info.collection_id}_sid",
+        "dbo_original_id_index": f"ix_{collection_info.collection_id}_oid",
+        "dbo_user_id_index": f"ix_{collection_info.collection_id}_uid",
     }
 
 
@@ -575,9 +606,21 @@ def make_db_model(
 
         __table_args__ = (
             Index(
-                _names["index"],
+                _names["dbo_payload_index"],
                 "payload",
                 postgresql_using="gin",
+            ),
+            Index(
+                _names["dbo_session_id_index"],
+                "session_id",
+            ),
+            Index(
+                _names["dbo_original_id_index"],
+                "original_id",
+            ),
+            Index(
+                _names["dbo_user_id_index"],
+                "user_id",
             ),
             {"extend_existing": True},
         )
@@ -626,7 +669,5 @@ def make_db_model(
     DbObjectPart.object = relationship(DbObject, back_populates="parts")
 
     DbObjectPart.initialize(search_index, DbObject)
-
-    configure_mappers()
 
     return DbObject, DbObjectPart

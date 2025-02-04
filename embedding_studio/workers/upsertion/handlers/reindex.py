@@ -4,6 +4,7 @@ from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
 from embedding_studio.models.reindex import ReindexTaskInDb
 from embedding_studio.models.task import TaskStatus
+from embedding_studio.utils.plugin_utils import get_vectordb
 from embedding_studio.workers.upsertion.utils.deployment import (
     blue_switch,
     initiate_model_deployment_and_wait,
@@ -31,8 +32,9 @@ def handle_reindex(
     task.status = TaskStatus.processing
     context.reindex_task.update(obj=task)
 
-    vector_db = context.vectordb
     plugin = plugin_manager.get_plugin(task.source.fine_tuning_method)
+    vectordb = get_vectordb(plugin)
+
     embedding_model_info = plugin.get_embedding_model_info(
         task.source.embedding_model_id
     )
@@ -41,9 +43,7 @@ def handle_reindex(
     )
 
     # Get collections for source and destination
-    source_collection = context.vectordb.get_collection(
-        embedding_model_info.to_collection()
-    )
+    source_collection = vectordb.get_collection(embedding_model_info)
     if not source_collection:
         logger.error(f"Source collection is not found [task ID: {task.id}]")
         task.status = TaskStatus.failed
@@ -52,12 +52,12 @@ def handle_reindex(
     logger.info(f"Creating Vector DB dest collection [task ID: {task.id}]")
     try:
 
-        _ = vector_db.get_or_create_collection(
+        _ = vectordb.get_or_create_collection(
             dest_embedding_model_info,
             plugin.get_search_index_info(),
         )  # Ensure destination collection exists
 
-        _ = vector_db.get_or_create_query_collection(
+        _ = vectordb.get_or_create_query_collection(
             dest_embedding_model_info,
             plugin.get_search_index_info(),
         )

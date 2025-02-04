@@ -85,6 +85,18 @@ class Collection(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    def find_similar_objects(
+        self,
+        query_vector: List[float],
+        limit: int,
+        offset: Optional[int] = None,
+        max_distance: Optional[float] = None,
+        payload_filter: Optional[PayloadFilter] = None,
+        user_id: Optional[str] = None,
+    ) -> List[Object]:
+        raise NotImplementedError()
+
+    @abstractmethod
     def find_by_payload_filter(
         self,
         payload_filter: PayloadFilter,

@@ -32,11 +32,13 @@ class PgvectorDb(VectorDb):
         self,
         pg_database: sqlalchemy.Engine,
         embeddings_mongo_database: pymongo.database.Database,
+        prefix: str = "basic",
     ):
+        db_id: str = f"{prefix}_pgvector_single_db"
         self._pg_database = pg_database
         self._collection_info_cache = CollectionInfoCache(
             mongo_database=embeddings_mongo_database,
-            db_id="pgvector_single_db",
+            db_id=db_id,
         )
         self._init_pgvector()
 
@@ -52,9 +54,7 @@ class PgvectorDb(VectorDb):
     def list_collections(self) -> List[CollectionStateInfo]:
         return self._collection_info_cache.list_collections()
 
-    def list_query_collections(
-        self, contains_queries: bool = False
-    ) -> List[CollectionStateInfo]:
+    def list_query_collections(self) -> List[CollectionStateInfo]:
         return self._collection_info_cache.list_query_collections()
 
     def get_collection(
@@ -63,7 +63,7 @@ class PgvectorDb(VectorDb):
     ) -> Collection:
         return PgvectorCollection(
             pg_database=self._pg_database,
-            collection_id=embedding_model.full_name,
+            collection_id=embedding_model.collection_id,
             collection_info_cache=self._collection_info_cache,
         )
 
@@ -74,7 +74,7 @@ class PgvectorDb(VectorDb):
         return PgvectorQueryCollection(
             pg_database=self._pg_database,
             collection_id=self.get_query_collection_id(
-                embedding_model.full_name
+                embedding_model.collection_id
             ),
             collection_info_cache=self._collection_info_cache,
         )
@@ -95,7 +95,7 @@ class PgvectorDb(VectorDb):
         self,
         embedding_model: EmbeddingModelInfo,
     ) -> None:
-        collection_id = embedding_model.full_name
+        collection_id = embedding_model.collection_id
         query_collection_id = self.get_query_collection_id(collection_id)
         self._collection_info_cache.set_blue_collection(
             collection_id,
@@ -111,7 +111,7 @@ class PgvectorDb(VectorDb):
         search_index_info: SearchIndexInfo,
     ) -> Collection:
         collection_info = CollectionInfo(
-            collection_id=embedding_model.full_name,
+            collection_id=embedding_model.collection_id,
             embedding_model=embedding_model,
             search_index_info=search_index_info,
         )
@@ -138,7 +138,7 @@ class PgvectorDb(VectorDb):
     ) -> QueryCollection:
         collection_info = CollectionInfo(
             collection_id=self.get_query_collection_id(
-                embedding_model.full_name
+                embedding_model.collection_id
             ),
             embedding_model=embedding_model,
             search_index_info=search_index_info,
@@ -161,7 +161,7 @@ class PgvectorDb(VectorDb):
 
     def collection_exists(self, embedding_model: EmbeddingModelInfo) -> bool:
         collection_info = self._collection_info_cache.get_collection(
-            embedding_model.full_name
+            embedding_model.collection_id
         )
         return collection_info is not None
 
@@ -169,7 +169,7 @@ class PgvectorDb(VectorDb):
         self, embedding_model: EmbeddingModelInfo
     ) -> bool:
         collection_info = self._collection_info_cache.get_collection(
-            self.get_query_collection_id(embedding_model.full_name)
+            self.get_query_collection_id(embedding_model.collection_id)
         )
         return collection_info is not None
 
@@ -178,10 +178,10 @@ class PgvectorDb(VectorDb):
         embedding_model: EmbeddingModelInfo,
     ) -> None:
         col_info = self._collection_info_cache.get_collection(
-            embedding_model.full_name
+            embedding_model.collection_id
         )
         if not col_info:
-            raise CollectionNotFoundError(embedding_model.full_name)
+            raise CollectionNotFoundError(embedding_model.collection_id)
         if col_info.work_state == CollectionWorkState.BLUE:
             raise DeleteBlueCollectionError()
 
@@ -191,7 +191,7 @@ class PgvectorDb(VectorDb):
 
         # TODO: protect from inconsistent state (after crash at this point)
         self._collection_info_cache.delete_collection(
-            embedding_model.full_name
+            embedding_model.collection_id
         )
 
     def delete_query_collection(
@@ -199,11 +199,11 @@ class PgvectorDb(VectorDb):
         embedding_model: EmbeddingModelInfo,
     ) -> None:
         col_info = self._collection_info_cache.get_collection(
-            self.get_query_collection_id(embedding_model.full_name)
+            self.get_query_collection_id(embedding_model.collection_id)
         )
         if not col_info:
             raise CollectionNotFoundError(
-                self.get_query_collection_id(embedding_model.full_name)
+                self.get_query_collection_id(embedding_model.collection_id)
             )
         if col_info.work_state == CollectionWorkState.BLUE:
             raise DeleteBlueCollectionError()
@@ -214,5 +214,5 @@ class PgvectorDb(VectorDb):
 
         # TODO: protect from inconsistent state (after crash at this point)
         self._collection_info_cache.delete_collection(
-            self.get_query_collection_id(embedding_model.full_name)
+            self.get_query_collection_id(embedding_model.collection_id)
         )

@@ -6,6 +6,7 @@ from embedding_studio.api.api_v1.endpoints import (
     delete,
     fine_tuning,
     ping,
+    query_parsing,
     similarity_search,
     upsert,
 )
@@ -24,6 +25,9 @@ from embedding_studio.workers.upsertion.worker import (
 api_router = APIRouter()
 api_router.include_router(ping.router, tags=["ping"])
 
+api_router.include_router(
+    query_parsing.router, prefix="/parse-query", tags=["query_parsing"]
+)
 api_router.include_router(
     similarity_search.router, prefix="/embeddings", tags=["similarity_search"]
 )

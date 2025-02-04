@@ -13,6 +13,7 @@ from embedding_studio.models.inference_deployment_tasks import (
 from embedding_studio.models.reindex import ReindexTaskInDb
 from embedding_studio.models.task import ModelParams, TaskStatus
 from embedding_studio.utils.dramatiq_task_handler import create_and_send_task
+from embedding_studio.utils.plugin_utils import is_basic_plugin
 from embedding_studio.workers.upsertion.utils.reindex import logger
 
 
@@ -141,21 +142,39 @@ def blue_switch(task: ReindexTaskInDb, deletion_worker: Actor):
         f"Switching model with ID {task.dest.embedding_model_id} to blue status."
     )
 
-    embedding_model_info = EmbeddingModelInfo(
-        name=task.dest.fine_tuning_method, id=task.dest.embedding_model_id
+    dest_plugin = context.plugin_manager.get_plugin(
+        task.dest.fine_tuning_method
     )
-    # Get the current blue collection and its state
-    context.vectordb.set_blue_collection(embedding_model_info)
+
+    embedding_model_info = EmbeddingModelInfo(
+        name=task.dest.fine_tuning_method,
+        id=task.dest.embedding_model_id,
+        use_case=dest_plugin.meta.use_case,
+    )
+    if is_basic_plugin(dest_plugin):
+        # Get the current blue collection and its state
+        context.vectordb.set_blue_collection(embedding_model_info)
+    else:
+        context.categories_vectordb.set_blue_collection(embedding_model_info)
 
     logger.info(
         f"Deleting source model collection with ID {task.source.embedding_model_id}"
     )
+
+    source_plugin = context.plugin_manager.get_plugin(
+        task.source.fine_tuning_method
+    )
     source_model_info = EmbeddingModelInfo(
         name=task.source.fine_tuning_method,
         id=task.source.embedding_model_id,
+        use_case=source_plugin.meta.use_case,
     )
+
     context.vectordb.delete_collection(source_model_info)
-    context.vectordb.delete_query_collection(source_model_info)
+    if is_basic_plugin(source_plugin):
+        context.vectordb.delete_query_collection(source_model_info)
+    else:
+        context.categories_vectordb.delete_query_collection(source_model_info)
 
     logger.info(
         f"Initiating deletion of source model with ID {task.source.embedding_model_id}"

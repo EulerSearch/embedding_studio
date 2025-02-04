@@ -2,6 +2,7 @@ from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
 from embedding_studio.models.task import TaskStatus
 from embedding_studio.models.upsert import UpsertionTaskInDb
+from embedding_studio.utils.plugin_utils import get_vectordb
 from embedding_studio.vectordb.exceptions import LockAcquisitionError
 from embedding_studio.workers.upsertion.utils.upsert import (
     logger,
@@ -20,10 +21,10 @@ def handle_upsert(task: UpsertionTaskInDb):
 
     task.status = TaskStatus.processing
     context.upsertion_task.update(obj=task)
-
-    vector_db = context.vectordb
-    vector_db.update_info()
     plugin = plugin_manager.get_plugin(task.fine_tuning_method)
+
+    vector_db = get_vectordb(plugin)
+    vector_db.update_info()
     embedding_model_info = plugin.get_embedding_model_info(
         task.embedding_model_id
     )

@@ -135,6 +135,7 @@ class Settings(BaseSettings):
     # Inference
     INFERENCE_USED_PLUGINS: List[str] = [
         "DefaultFineTuningMethod",
+        "CategoriesTextFineTuningMethod",
     ]
 
     INFERENCE_MODEL_REPO: str = os.getenv("INFERENCE_MODEL_REPO", os.getcwd())

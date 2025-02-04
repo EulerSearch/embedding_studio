@@ -8,7 +8,7 @@ from dramatiq import Middleware
 
 from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
-from embedding_studio.core.plugin import PluginManager
+from embedding_studio.utils.plugin_utils import get_vectordb
 from embedding_studio.workers.inference.utils.file_locks import (
     acquire_lock,
     release_lock,
@@ -16,10 +16,6 @@ from embedding_studio.workers.inference.utils.file_locks import (
 from embedding_studio.workers.inference.utils.prepare_for_triton import (
     convert_for_triton,
 )
-
-plugin_manager = PluginManager()
-# Initialize and discover plugins
-plugin_manager.discover_plugins(directory=settings.ES_PLUGINS_PATH)
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +25,7 @@ def init_model_repo_for_plugin(model_repo: str, plugin_name: str):
     Initialize the model repository for a specific plugin.
     Uploads initial models or converts best models for Triton if necessary.
     """
-    plugin = plugin_manager.get_plugin(plugin_name)
+    plugin = context.plugin_manager.get_plugin(plugin_name)
     experiments_manager = plugin.get_manager()
     if not experiments_manager.has_initial_model():
         logger.info("No initial model found, uploading")
@@ -39,7 +35,7 @@ def init_model_repo_for_plugin(model_repo: str, plugin_name: str):
     logger.info(f"Initial model run_id: {run_id}")
 
     try:
-        vector_db = context.vectordb
+        vector_db = get_vectordb(plugin)
         embedding_model_info = plugin.get_embedding_model_info(run_id)
         search_index_info = plugin.get_search_index_info()
         logger.info(f"Creating or retrieving Vector DB collection")
@@ -73,7 +69,6 @@ def init_model_repo_for_plugin(model_repo: str, plugin_name: str):
             )
 
         vector_db.set_blue_collection(embedding_model_info)
-
         logger.info(f"Initial collection setup finished")
 
     except Exception:
@@ -97,6 +92,8 @@ class OnStartMiddleware(Middleware):
     def after_worker_boot(self, broker, worker):
         super().after_worker_boot(broker, worker)
         # Specify the worker name that should execute the initialization
+
+        context.plugin_manager.discover_plugins(settings.ES_PLUGINS_PATH)
 
         model_repo = os.getenv("MODEL_REPOSITORY")
         if not model_repo:

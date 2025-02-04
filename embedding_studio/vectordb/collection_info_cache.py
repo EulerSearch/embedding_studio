@@ -3,7 +3,7 @@ import logging
 from typing import List, Optional
 
 import pymongo
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from embedding_studio.data_access.mongo.mongo_dao import MongoDao
 from embedding_studio.models.embeddings.collections import (
@@ -21,7 +21,7 @@ class CollectionInfoCache:
     class BlueCollectionId(BaseModel):
         db_id: str
         collection_id: str
-        query_collection_id: str
+        query_collection_id: Optional[str] = Field(default=None)
 
     class CollectionInfoDb(CollectionInfo):
         db_id: str
@@ -60,6 +60,8 @@ class CollectionInfoCache:
 
     def invalidate_cache(self):
         self._collections = []
+        self._query_collections = []
+
         self._blue_collection = None
         db_collections = self._collection_info_dao.find(
             filter={self._DB_ID: self._db_id}
@@ -140,7 +142,6 @@ class CollectionInfoCache:
         )
 
         self._blue_collection_id_dao.upsert_one(blue_id)
-
         self.invalidate_cache()
 
     def set_index_state(self, collection_id: str, created: bool):
@@ -180,6 +181,7 @@ class CollectionInfoCache:
             index_created=False,
             contains_queries=True,
         )
+
         try:
             self._collection_info_dao.insert_one(collection_info_db)
         except pymongo.errors.DuplicateKeyError:

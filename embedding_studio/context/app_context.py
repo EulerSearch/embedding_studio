@@ -51,6 +51,7 @@ class AppContext:
     model_deployment_task: CRUDModelDeploymentTasks
     model_deletion_task: CRUDModelDeletionTasks
     vectordb: VectorDb
+    categories_vectordb: VectorDb
     plugin_manager: PluginManager
     model_downloader: ModelDownloader
     task_scheduler: Optional[BackgroundScheduler] = None
@@ -104,6 +105,12 @@ context = AppContext(
     vectordb=PgvectorDb(
         pg_database=postgres.pg_database,
         embeddings_mongo_database=mongo.embeddings_mongo_database,
+        prefix="basic",
+    ),
+    categories_vectordb=PgvectorDb(
+        pg_database=postgres.pg_database,
+        embeddings_mongo_database=mongo.embeddings_mongo_database,
+        prefix="categories",
     ),
     plugin_manager=PluginManager(),
     model_downloader=ModelDownloader(),

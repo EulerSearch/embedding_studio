@@ -5,7 +5,6 @@ import dramatiq
 
 from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
-from embedding_studio.core.plugin import PluginManager
 from embedding_studio.db.redis import redis_broker  # noqa
 from embedding_studio.experiments.finetuning_iteration import (
     FineTuningIteration,
@@ -17,6 +16,10 @@ from embedding_studio.utils.dramatiq_middlewares import (
 )
 from embedding_studio.utils.dramatiq_task_handler import create_and_send_task
 from embedding_studio.utils.initializer_actions import init_nltk
+from embedding_studio.utils.plugin_utils import is_basic_plugin
+from embedding_studio.workers.fine_tuning.exceptions import (
+    FineTuningWorkerException,
+)
 from embedding_studio.workers.fine_tuning.finetune_embedding import (
     finetune_embedding_model,
 )
@@ -24,16 +27,7 @@ from embedding_studio.workers.upsertion.worker import reindex_worker
 
 logger = logging.getLogger(__name__)
 
-plugin_manager = PluginManager()
-plugin_manager.discover_plugins(directory=settings.ES_PLUGINS_PATH)
-
 redis_broker.add_middleware(ActionsOnStartMiddleware([init_nltk]))
-
-
-class FineTuningWorkerException(Exception):
-    """
-    Custom exception class for fine-tuning related errors.
-    """
 
 
 @dramatiq.actor(
@@ -81,7 +75,18 @@ def fine_tuning_worker(task_id: str):
                 f"Clickstream batch with ID `{task.batch_id}` not found"
             )
 
-        fine_tuning_plugin = plugin_manager.get_plugin(task.fine_tuning_method)
+        fine_tuning_plugin = context.plugin_manager.get_plugin(
+            task.fine_tuning_method
+        )
+        if not is_basic_plugin(fine_tuning_plugin):
+            task.status = TaskStatus.refused
+            context.fine_tuning_task.update(obj=task)
+
+            raise FineTuningWorkerException(
+                f"Fine tuning is not available for `{task.fine_tuning_method}` "
+                f"with {fine_tuning_plugin.meta.use_case.name} use case."
+            )
+
         if not fine_tuning_plugin:
             task.status = TaskStatus.refused
             context.fine_tuning_task.update(obj=task)
