@@ -2,10 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 
 from embedding_studio.models.embeddings.collections import CollectionStateInfo
-from embedding_studio.models.embeddings.models import (
-    EmbeddingModelInfo,
-    SearchIndexInfo,
-)
+from embedding_studio.models.embeddings.models import EmbeddingModelInfo
 from embedding_studio.vectordb.collection import Collection, QueryCollection
 
 
@@ -34,75 +31,57 @@ class VectorDb(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def get_collection(
-        self, embedding_model: EmbeddingModelInfo
-    ) -> Collection:
+    def get_collection(self, embedding_model_id: str) -> Collection:
         raise NotImplementedError()
 
     @abstractmethod
-    def get_query_collection(
-        self, embedding_model: EmbeddingModelInfo
-    ) -> QueryCollection:
+    def get_query_collection(self, embedding_model_id: str) -> QueryCollection:
         raise NotImplementedError()
 
     @abstractmethod
     def create_collection(
-        self,
-        embedding_model: EmbeddingModelInfo,
-        search_index_info: SearchIndexInfo,
+        self, embedding_model: EmbeddingModelInfo
     ) -> Collection:
         raise NotImplementedError()
 
     @abstractmethod
     def create_query_collection(
-        self,
-        embedding_model: EmbeddingModelInfo,
-        search_index_info: SearchIndexInfo,
+        self, embedding_model: EmbeddingModelInfo
     ) -> QueryCollection:
         raise NotImplementedError()
 
     def get_or_create_collection(
-        self,
-        embedding_model: EmbeddingModelInfo,
-        search_index_info: SearchIndexInfo,
+        self, embedding_model: EmbeddingModelInfo
     ) -> Collection:
-        if not self.collection_exists(embedding_model):
-            return self.create_collection(embedding_model, search_index_info)
+        if not self.collection_exists(embedding_model.id):
+            return self.create_collection(embedding_model)
         else:
-            return self.get_collection(embedding_model)
+            return self.get_collection(embedding_model.id)
 
     def get_or_create_query_collection(
-        self,
-        embedding_model: EmbeddingModelInfo,
-        search_index_info: SearchIndexInfo,
+        self, embedding_model: EmbeddingModelInfo
     ) -> QueryCollection:
-        if not self.query_collection_exists(embedding_model):
-            return self.create_query_collection(
-                embedding_model, search_index_info
-            )
+        if not self.query_collection_exists(embedding_model.id):
+            return self.create_query_collection(embedding_model)
         else:
-            return self.get_query_collection(embedding_model)
+            return self.get_query_collection(embedding_model.id)
 
     @abstractmethod
-    def collection_exists(self, embedding_model: EmbeddingModelInfo) -> bool:
+    def collection_exists(self, embedding_model_id: str) -> bool:
         raise NotImplementedError()
 
     @abstractmethod
-    def query_collection_exists(
-        self, embedding_model: EmbeddingModelInfo
-    ) -> bool:
+    def query_collection_exists(self, embedding_model_id: str) -> bool:
         raise NotImplementedError()
 
     @abstractmethod
-    def delete_collection(self, embedding_model: EmbeddingModelInfo) -> None:
+    def delete_collection(self, embedding_model_id: str) -> None:
         raise NotImplementedError()
 
     @abstractmethod
-    def delete_query_collection(
-        self, embedding_model: EmbeddingModelInfo
-    ) -> None:
+    def delete_query_collection(self, embedding_model_id: str) -> None:
         raise NotImplementedError()
 
     @abstractmethod
-    def set_blue_collection(self, embedding_model: EmbeddingModelInfo) -> None:
+    def set_blue_collection(self, embedding_model_id: str) -> None:
         raise NotImplementedError()

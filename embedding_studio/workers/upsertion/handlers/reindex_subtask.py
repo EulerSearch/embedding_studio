@@ -7,6 +7,9 @@ from embedding_studio.core.plugin import PluginManager
 from embedding_studio.models.items_handler import DataItem
 from embedding_studio.models.reindex import ReindexSubtaskInDb
 from embedding_studio.models.task import TaskStatus
+from embedding_studio.workers.upsertion.utils.exceptions import (
+    ReindexException,
+)
 from embedding_studio.workers.upsertion.utils.upsert import process_upsert
 
 logger = logging.getLogger(__name__)
@@ -28,16 +31,42 @@ def handle_reindex_subtask(task: ReindexSubtaskInDb):
     task.status = TaskStatus.processing
     context.reindex_subtask.update(obj=task)
 
-    plugin = plugin_manager.get_plugin(task.source.fine_tuning_method)
-    embedding_model_info = plugin.get_embedding_model_info(
+    source_iteration = context.mlflow_client.get_iteration_by_id(
         task.source.embedding_model_id
     )
-    dest_embedding_model_info = plugin.get_embedding_model_info(
+    if source_iteration is None:
+        task.status = TaskStatus.failed
+        context.reindex_task.update(obj=task)
+        raise ReindexException(
+            f"Fine tuning iteration with ID"
+            f"[{task.source.embedding_model_id}] does not exist."
+        )
+
+    source_plugin = plugin_manager.get_plugin(source_iteration.plugin_name)
+    embedding_model_info = source_plugin.get_embedding_model_info(
+        task.source.embedding_model_id
+    )
+
+    dest_iteration = context.mlflow_client.get_iteration_by_id(
+        task.dest.embedding_model_id
+    )
+    if dest_iteration is None:
+        task.status = TaskStatus.failed
+        context.reindex_task.update(obj=task)
+        raise ReindexException(
+            f"Fine tuning iteration with ID"
+            f"[{task.dest.embedding_model_id}] does not exist."
+        )
+
+    dest_plugin = plugin_manager.get_plugin(dest_iteration.plugin_name)
+    dest_embedding_model_info = dest_plugin.get_embedding_model_info(
         task.dest.embedding_model_id
     )
 
     # Get collections for source and destination
-    source_collection = context.vectordb.get_collection(embedding_model_info)
+    source_collection = context.vectordb.get_collection(
+        embedding_model_info.id
+    )
     if not source_collection:
         logger.error(f"Source collection is not found [task ID: {task.id}]")
         task.status = TaskStatus.failed
@@ -46,7 +75,7 @@ def handle_reindex_subtask(task: ReindexSubtaskInDb):
 
     # Get collections for source and destination
     dest_collection = context.vectordb.get_collection(
-        dest_embedding_model_info
+        dest_embedding_model_info.id
     )
     if not source_collection:
         logger.error(f"Dest collection is not found [task ID: {task.id}]")
@@ -79,9 +108,9 @@ def handle_reindex_subtask(task: ReindexSubtaskInDb):
         context.reindex_subtask.update(obj=task)
         return
 
-    data_loader = plugin.get_data_loader()
-    items_splitter = plugin.get_items_splitter()
-    inference_client = plugin.get_inference_client_factory().get_client(
+    data_loader = dest_plugin.get_data_loader()
+    items_splitter = dest_plugin.get_items_splitter()
+    inference_client = dest_plugin.get_inference_client_factory().get_client(
         task.dest.embedding_model_id
     )
 

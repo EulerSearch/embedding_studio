@@ -11,7 +11,6 @@ from embedding_studio.api.api_v1.schemas.upsert import FailedDataItem
 
 class ModelParams(BaseModel):
     embedding_model_id: str = Field(...)
-    fine_tuning_method: str = Field(...)
 
 
 class ReindexTaskRunRequest(BaseTaskRequest):

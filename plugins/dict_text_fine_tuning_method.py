@@ -152,8 +152,8 @@ class DefaultDictTextFineTuningMethod(FineTuningMethod):
             MetricsAccumulator("test_irrelevant_dist_shift"),
         ]
 
-        self.manager = ExperimentsManager(
-            tracking_uri=settings.MLFLOW_TRACKING_URI,
+        self.manager = ExperimentsManager.from_wrapper(
+            wrapper=context.mlflow_client,
             main_metric="test_not_irrelevant_dist_shift",
             plugin_name=self.meta.name,
             accumulators=self.accumulators,

@@ -32,7 +32,16 @@ def create_fine_tuning_task(
     :param body: Request body.
     :return: Created task details.
     """
-    plugin = context.plugin_manager.get_plugin(body.fine_tuning_method)
+    iteration = context.mlflow_client.get_iteration_by_id(
+        body.embedding_model_id
+    )
+    if iteration is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Fine-tuning iteration for run with ID {body.embedding_model_id} is not found.",
+        )
+
+    plugin = context.plugin_manager.get_plugin(iteration.plugin_name)
     if not is_basic_plugin(plugin):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

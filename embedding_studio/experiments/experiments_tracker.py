@@ -90,6 +90,26 @@ class ExperimentsManager(MLflowClientWrapper):
         self._run_params = None
         self._run_id = None
 
+    @staticmethod
+    def from_wrapper(
+        wrapper: MLflowClientWrapper,
+        main_metric: str,
+        plugin_name: str,
+        accumulators: List[MetricsAccumulator],
+        is_loss: bool = False,
+        n_top_runs: int = 10,
+    ) -> "ExperimentsManager":
+        return ExperimentsManager(
+            wrapper.tracking_uri,
+            main_metric,
+            plugin_name,
+            accumulators,
+            is_loss,
+            n_top_runs,
+            wrapper.requirements,
+            wrapper.retry_config,
+        )
+
     @property
     def is_loss(self) -> bool:
         return self._is_loss

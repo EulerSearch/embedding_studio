@@ -7,13 +7,13 @@ from embedding_studio.vectordb.vectordb import VectorDb
 
 
 def is_basic_plugin(plugin: FineTuningMethod) -> bool:
-    return issubclass(plugin, FineTuningMethod) and not issubclass(
-        plugin, CategoriesFineTuningMethod
+    return issubclass(plugin.__class__, FineTuningMethod) and not issubclass(
+        plugin.__class__, CategoriesFineTuningMethod
     )
 
 
 def is_categories_plugin(plugin: FineTuningMethod) -> bool:
-    return issubclass(plugin, CategoriesFineTuningMethod)
+    return issubclass(plugin.__class__, CategoriesFineTuningMethod)
 
 
 def get_vectordb(plugin: FineTuningMethod) -> VectorDb:
@@ -21,7 +21,7 @@ def get_vectordb(plugin: FineTuningMethod) -> VectorDb:
         return context.vectordb
 
     elif is_categories_plugin(plugin):
-        return context.vectordb_categories
+        return context.categories_vectordb
 
     else:
         raise ValueError(f"Plugin {plugin} is not a known FineTuningMethod")

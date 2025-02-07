@@ -22,6 +22,10 @@ class Object(ObjectСommonData):
     parts: List[ObjectPart]
 
 
+class ObjectWithDistance(Object):
+    distance: Optional[float] = None
+
+
 class ObjectsCommonDataBatch(BaseModel):
     objects_info: List[ObjectСommonData]
     total: int

@@ -125,7 +125,6 @@ def handle_improvement(
             )
 
         state_info = blue_collection.get_state_info()
-
         plugin = plugin_manager.get_plugin(state_info.embedding_model.name)
         adjuster = plugin.get_vectors_adjuster()
 

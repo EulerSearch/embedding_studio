@@ -63,11 +63,12 @@ class CollectionInfoCache:
         self._query_collections = []
 
         self._blue_collection = None
+
         db_collections = self._collection_info_dao.find(
             filter={self._DB_ID: self._db_id}
         )
         blue_collection_info = self._blue_collection_id_dao.find_one(
-            self._db_id
+            filter={self._DB_ID: self._db_id}
         )
 
         blue_collection_id = None

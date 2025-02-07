@@ -10,7 +10,6 @@ from embedding_studio.utils.datetime_utils import current_time
 
 class ModelParams(BaseModel):
     embedding_model_id: str = Field(...)
-    fine_tuning_method: str = Field(...)
 
 
 class BaseTaskMetadata(BaseModel):

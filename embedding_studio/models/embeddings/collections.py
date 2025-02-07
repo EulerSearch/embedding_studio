@@ -2,10 +2,7 @@ from enum import Enum
 
 from pydantic import AwareDatetime, BaseModel
 
-from embedding_studio.models.embeddings.models import (
-    EmbeddingModelInfo,
-    SearchIndexInfo,
-)
+from embedding_studio.models.embeddings.models import EmbeddingModelInfo
 
 
 class CollectionWorkState(str, Enum):
@@ -16,7 +13,6 @@ class CollectionWorkState(str, Enum):
 class CollectionInfo(BaseModel):
     collection_id: str
     embedding_model: EmbeddingModelInfo
-    search_index_info: SearchIndexInfo
 
 
 class CollectionStateInfo(CollectionInfo):

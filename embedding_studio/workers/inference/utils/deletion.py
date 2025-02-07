@@ -27,13 +27,23 @@ def handle_deletion(task_id: str):
     """
     model_repo = os.getenv("MODEL_REPOSITORY", os.getcwd())
     task = context.model_deletion_task.get(id=task_id)
-
     if not task:
         raise InferenceWorkerException(
             f"Deployment task with ID `{task_id}` not found"
         )
 
-    if task.fine_tuning_method not in settings.INFERENCE_USED_PLUGINS:
+    iteration = context.mlflow_client.get_iteration_by_id(
+        task.embedding_model_id
+    )
+    if iteration is None:
+        task.status = TaskStatus.failed
+        context.model_deletion_task.update(obj=task)
+
+        message = f"Can not find iteration for embedding model {task.embedding_model_id}"
+        logger.error(message)
+        raise InferenceWorkerException(message)
+
+    if iteration.plugin_name not in settings.INFERENCE_USED_PLUGINS:
         task.status = TaskStatus.refused
         context.model_deletion_task.update(obj=task)
 
@@ -60,10 +70,20 @@ def handle_deletion(task_id: str):
         task.status = TaskStatus.processing
         context.model_deletion_task.update(obj=task)
 
+        iteration = context.mlflow_client.get_iteration_by_id(
+            task.embedding_model_id
+        )
+        if iteration is None:
+            task.status = TaskStatus.failed
+            logger.error(
+                f"Can not find iteration for embedding model {task.embedding_model_id}"
+            )
+            return
+
         query_model_storage_info = ModelStorageInfo(
             model_repo=model_repo,
             deployed_model_info=DeployedModelInfo(
-                plugin_name=task.fine_tuning_method,
+                plugin_name=iteration.plugin_name,
                 model_type="query",
                 embedding_model_id=task.embedding_model_id,
                 version="1",
@@ -79,7 +99,7 @@ def handle_deletion(task_id: str):
             items_model_storage_info = ModelStorageInfo(
                 model_repo=model_repo,
                 deployed_model_info=DeployedModelInfo(
-                    plugin_name=task.fine_tuning_method,
+                    plugin_name=iteration.plugin_name,
                     model_type="items",
                     embedding_model_id=task.embedding_model_id,
                     version="1",

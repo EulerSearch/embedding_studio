@@ -28,6 +28,7 @@ from embedding_studio.models.embeddings.objects import (
     Object,
     ObjectPart,
     ObjectСommonData,
+    ObjectWithDistance,
     SimilarObject,
 )
 from embedding_studio.models.payload.models import PayloadFilter
@@ -296,6 +297,7 @@ class DbObjectPartImpl:
         )
 
         selection_part = None
+        group_by = []
         if with_vectors:
             selection_part = select(
                 cls.db_object_class.object_id,
@@ -307,8 +309,18 @@ class DbObjectPartImpl:
                 cls.db_object_class.user_id,
                 cls.db_object_class.session_id,
                 cls.vector,
+                cls.part_id
             )
-
+            group_by = [
+                cls.db_object_class.object_id,
+                cls.db_object_class.payload,
+                cls.db_object_class.storage_meta,
+                cls.db_object_class.original_id,
+                cls.db_object_class.user_id,
+                cls.db_object_class.session_id,
+                cls.vector,
+                cls.part_id
+            ]
         else:
             selection_part = select(
                 cls.db_object_class.object_id,
@@ -320,6 +332,14 @@ class DbObjectPartImpl:
                 cls.db_object_class.user_id,
                 cls.db_object_class.session_id,
             )
+            group_by = [
+                cls.db_object_class.object_id,
+                cls.db_object_class.payload,
+                cls.db_object_class.storage_meta,
+                cls.db_object_class.original_id,
+                cls.db_object_class.user_id,
+                cls.db_object_class.session_id,
+            ]
 
         # Base query excluding original objects that have modified copies
         select_st = (
@@ -328,12 +348,7 @@ class DbObjectPartImpl:
                 ~cls.db_object_class.object_id.in_(subquery)
             )  # Exclude originals with copies
             .group_by(
-                cls.db_object_class.object_id,
-                cls.db_object_class.payload,
-                cls.db_object_class.storage_meta,
-                cls.db_object_class.original_id,
-                cls.db_object_class.user_id,
-                cls.db_object_class.session_id,
+                *group_by
             )
             .limit(limit)
         )
@@ -516,6 +531,30 @@ class DbObjectPartImpl:
         return list(objects_by_id.values())
 
     @classmethod
+    def objects_with_distance_from_db(cls, rows) -> List[ObjectWithDistance]:
+        objects_by_id: Dict[str, Object] = {}
+        for row in rows:
+            obj = objects_by_id.setdefault(
+                row.object_id,
+                ObjectWithDistance(
+                    object_id=row.object_id,
+                    parts=[],
+                    payload=row.payload,
+                    storage_meta=row.storage_meta,
+                    user_id=row.user_id,
+                    original_id=row.original_id,
+                    distance=row.distance
+                ),
+            )
+            obj.parts.append(
+                ObjectPart(
+                    part_id=row.part_id,
+                    vector=row.vector,
+                )
+            )
+        return list(objects_by_id.values())
+
+    @classmethod
     def get_id(cls, row, keep_originals: bool = True):
         if keep_originals and row.original_id is not None:
             return row.original_id
@@ -596,7 +635,7 @@ def get_dbo_table_name(collection_info: CollectionInfo) -> Dict[str, str]:
 def make_db_model(
     collection_info: CollectionInfo,
 ) -> Tuple[Type[DbObjectBase], Type[DbObjectPartBase]]:
-    search_index = collection_info.search_index_info
+    search_index = collection_info.embedding_model
     collection_id = collection_info.collection_id
 
     _names = get_dbo_table_name(collection_info)

@@ -124,8 +124,14 @@ class FineTuningMethod(ABC):
         :param id: ID of an embedding model in model storage system.
         :return: An instance of EmbeddingModelInfo.
         """
+        search_index_info = self.get_search_index_info()
         return EmbeddingModelInfo(
-            name=self.meta.name, id=id, use_case=meta.use_case
+            name=self.meta.name,
+            id=id,
+            dimensions=search_index_info.dimensions,
+            metric_type=search_index_info.metric_type,
+            metric_aggregation_type=search_index_info.metric_aggregation_type,
+            hnsw=search_index_info.hnsw,
         )
 
     @abstractmethod

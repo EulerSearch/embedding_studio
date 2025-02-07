@@ -1,3 +1,4 @@
+import logging
 import os
 import tempfile
 
@@ -15,6 +16,8 @@ from embedding_studio.workers.inference.utils.prepare_for_triton import (
     convert_for_triton,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def handle_deployment(task_id: str):
     """
@@ -28,7 +31,18 @@ def handle_deployment(task_id: str):
             f"Deployment task with ID `{task_id}` not found"
         )
 
-    if task.fine_tuning_method not in settings.INFERENCE_USED_PLUGINS:
+    iteration = context.mlflow_client.get_iteration_by_id(
+        task.embedding_model_id
+    )
+    if iteration is None:
+        task.status = TaskStatus.failed
+        context.model_deployment_task.update(obj=task)
+
+        message = f"Can not find iteration for embedding model {task.embedding_model_id}"
+        logger.error(message)
+        raise InferenceWorkerException(message)
+
+    if iteration.plugin_name not in settings.INFERENCE_USED_PLUGINS:
         task.status = TaskStatus.refused
         context.model_deletion_task.update(obj=task)
 
@@ -66,7 +80,7 @@ def handle_deployment(task_id: str):
         task.status = TaskStatus.processing
         context.model_deployment_task.update(obj=task)
 
-        plugin = context.plugin_manager.get_plugin(task.fine_tuning_method)
+        plugin = context.plugin_manager.get_plugin(iteration.plugin_name)
         experiments_manager = plugin.get_manager()
         model = experiments_manager.download_model_by_run_id(
             task.embedding_model_id
@@ -74,7 +88,7 @@ def handle_deployment(task_id: str):
 
         convert_for_triton(
             model=model,
-            plugin_name=task.fine_tuning_method,
+            plugin_name=iteration.plugin_name,
             model_repo=model_repo,
             model_version=1,
             embedding_model_id=task.embedding_model_id,

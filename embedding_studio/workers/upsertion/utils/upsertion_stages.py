@@ -162,7 +162,9 @@ def upload_vectors(
             len(object_ids) > 0
             and settings.DELETE_IMPROVED_VECTORS_ON_UPSERTION
         ):
-            improved_objects = collection.find_by_original_ids(object_ids)
+            improved_objects = collection.find_by_original_ids(
+                list(object_ids)
+            )
             if len(improved_objects) > 0:
                 logger.info(
                     f"Found {len(improved_objects)} improved object - execute deletion."

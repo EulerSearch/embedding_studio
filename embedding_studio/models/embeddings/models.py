@@ -1,4 +1,3 @@
-import hashlib
 from enum import Enum
 
 from pydantic import BaseModel
@@ -27,15 +26,6 @@ class SearchIndexInfo(BaseModel):
     hnsw: HnswParameters = HnswParameters()
 
 
-class EmbeddingModelInfo(BaseModel):
+class EmbeddingModelInfo(SearchIndexInfo):
     name: str
     id: str
-
-    @property
-    def full_name(self) -> str:
-        return f"{self.name}_{self.id}"
-
-    @property
-    def collection_id(self) -> str:
-        # Generate a 32-character hash of the full_name
-        return hashlib.md5(self.full_name.encode("utf-8")).hexdigest()

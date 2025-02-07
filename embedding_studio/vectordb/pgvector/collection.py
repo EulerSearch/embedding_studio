@@ -10,6 +10,7 @@ from embedding_studio.models.embeddings.collections import CollectionStateInfo
 from embedding_studio.models.embeddings.objects import (
     Object,
     ObjectsCommonDataBatch,
+    ObjectWithDistance,
     SearchResults,
 )
 from embedding_studio.models.payload.models import PayloadFilter
@@ -316,7 +317,7 @@ class PgvectorCollection(Collection):
         max_distance: Optional[float] = None,
         payload_filter: Optional[PayloadFilter] = None,
         user_id: Optional[str] = None,
-    ) -> List[Object]:
+    ) -> List[ObjectWithDistance]:
         with self.Session() as session, session.begin():
             search_st = self.DbObjectPart.similarity_search_statement(
                 query_vector=query_vector,
@@ -329,8 +330,7 @@ class PgvectorCollection(Collection):
             )
             logger.debug(f"Search statement: {search_st}")
             rows = session.execute(search_st)
-            found_objects = self.DbObjectPart.objects_from_db(rows)
-            logger.debug(f"found db_objects: {found_objects}")
+            found_objects = self.DbObjectPart.objects_with_distance_from_db(rows)
 
             return found_objects
 

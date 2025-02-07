@@ -59,10 +59,19 @@ def deletion_worker(task_id: str):
 
             context.deletion_task.remove(task_id)
 
+            iteration = context.mlflow_client.get_iteration_by_id(
+                reindex_lock.dst_embedding_model.id
+            )
+            if iteration is None:
+                task.status = TaskStatus.failed
+                raise DeletionException(
+                    f"Fine tuning iteration with ID"
+                    f"[{reindex_lock.dst_embedding_model.id}] does not exist."
+                )
+
             task = context.deletion_task.create(
                 schema=DeletionTaskCreateSchema(
                     embedding_model_id=reindex_lock.dst_embedding_model.id,
-                    fine_tuning_method=reindex_lock.dst_fine_tuning_method,
                     object_ids=task.object_ids,
                 ),
                 return_obj=True,
@@ -124,7 +133,6 @@ def upsertion_worker(task_id: str):
             task = context.upsertion_task.create(
                 schema=UpsertionTaskCreateSchema(
                     embedding_model_id=reindex_lock.dst_embedding_model.id,
-                    fine_tuning_method=reindex_lock.dst_fine_tuning_method,
                     items=task.items,
                 ),
                 return_obj=True,
@@ -338,9 +346,7 @@ def reindex_worker(task_id: str):
         lock = context.reindex_locks.create(
             schema=ReindexLockCreateSchema(
                 embedding_model_id=task.source.embedding_model_id,
-                fine_tuning_method=task.source.fine_tuning_method,
                 dst_embedding_model_id=task.dest.embedding_model_id,
-                dst_fine_tuning_method=task.dest.fine_tuning_method,
             ),
             id=task_id,
             return_obj=True,

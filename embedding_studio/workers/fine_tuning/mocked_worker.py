@@ -51,14 +51,22 @@ def fine_tuning_mocked_worker(task_id: str):
     if not task:
         raise FineTuningWorkerException(f"Task with ID `{task_id}` not found")
 
+    iteration = context.mlflow_client.get_iteration_by_id(
+        task.embedding_model_id
+    )
+    if iteration is None:
+        raise FineTuningWorkerException(
+            f"Fine-tuning iteration for run with ID {task.embedding_model_id} is not found.",
+        )
+
     try:
         task.status = TaskStatus.processing
         context.fine_tuning_task.update(obj=task)
 
-        fine_tuning_plugin = plugin_manager.get_plugin(task.fine_tuning_method)
+        fine_tuning_plugin = plugin_manager.get_plugin(iteration.plugin_name)
         if not fine_tuning_plugin:
             raise FineTuningWorkerException(
-                f"Fine tuning plugin with name `{task.fine_tuning_method}` "
+                f"Fine tuning plugin with name `{iteration.plugin_name}` "
                 f"not found"
             )
 
@@ -67,8 +75,7 @@ def fine_tuning_mocked_worker(task_id: str):
             context.fine_tuning_task.update(obj=task)
 
             raise FineTuningWorkerException(
-                f"Fine tuning is not available for `{task.fine_tuning_method}` "
-                f"with {fine_tuning_plugin.meta.use_case.name} use case."
+                f"Fine tuning is not available for `{iteration.plugin_name}`"
             )
 
         if not fine_tuning_plugin.get_manager().has_initial_model():
@@ -126,18 +133,15 @@ def fine_tuning_mocked_worker(task_id: str):
 
     if task.deploy_as_blue:
         logger.info(
-            f"Starting reindex task for model with "
-            f"ID {task.fine_tuning_method}/{task.best_run_id}"
+            f"Starting reindex task for model with " f"ID {task.best_run_id}"
         )
         reindex_task = context.reindex_task.create(
             schema=ReindexTaskCreateSchema(
                 source=ModelParams(
                     embedding_model_id=task.embedding_model_id,
-                    fine_tuning_method=task.fine_tuning_method,
                 ),
                 dest=ModelParams(
                     embedding_model_id=task.best_run_id,
-                    fine_tuning_method=task.fine_tuning_method,
                 ),
                 deploy_as_blue=True,
                 wait_on_conflict=task.wait_on_conflict,

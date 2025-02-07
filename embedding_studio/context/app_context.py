@@ -4,6 +4,7 @@ from typing import Optional
 import pymongo
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from embedding_studio.core.config import settings
 from embedding_studio.core.plugin import PluginManager
 from embedding_studio.data_access.clickstream import ClickstreamDao
 from embedding_studio.data_access.deletion_tasks import CRUDDeletion
@@ -23,6 +24,9 @@ from embedding_studio.data_access.reindex_tasks import (
 )
 from embedding_studio.data_access.upsertion_tasks import CRUDUpsertion
 from embedding_studio.db import mongo, postgres
+from embedding_studio.experiments.mlflow_client_wrapper import (
+    MLflowClientWrapper,
+)
 from embedding_studio.models.delete import DeletionTaskInDb
 from embedding_studio.models.fine_tuning import FineTuningTaskInDb
 from embedding_studio.models.improvement import SessionForImprovementInDb
@@ -54,6 +58,7 @@ class AppContext:
     categories_vectordb: VectorDb
     plugin_manager: PluginManager
     model_downloader: ModelDownloader
+    mlflow_client: MLflowClientWrapper
     task_scheduler: Optional[BackgroundScheduler] = None
 
 
@@ -114,4 +119,7 @@ context = AppContext(
     ),
     plugin_manager=PluginManager(),
     model_downloader=ModelDownloader(),
+    mlflow_client=MLflowClientWrapper(
+        tracking_uri=settings.MLFLOW_TRACKING_URI,
+    ),
 )

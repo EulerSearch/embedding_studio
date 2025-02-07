@@ -8,6 +8,9 @@ from embedding_studio.models.delete import DeletionTaskInDb
 from embedding_studio.models.task import TaskStatus
 from embedding_studio.models.utils import create_failed_deletion_data_item
 from embedding_studio.utils.plugin_utils import get_vectordb
+from embedding_studio.workers.upsertion.utils.exceptions import (
+    DeletionException,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +30,19 @@ def handle_delete(task: DeletionTaskInDb):
     task.status = TaskStatus.processing
     context.deletion_task.update(obj=task)
 
-    plugin = plugin_manager.get_plugin(task.fine_tuning_method)
+    iteration = context.mlflow_client.get_iteration_by_id(
+        task.embedding_model_id
+    )
+    if iteration is None:
+        task.status = TaskStatus.failed
+        context.deletion_task.update(obj=task)
+
+        raise DeletionException(
+            f"Fine tuning iteration with ID"
+            f"[{task.embedding_model_id}] does not exist."
+        )
+
+    plugin = plugin_manager.get_plugin(iteration.plugin_name)
     vector_db = get_vectordb(plugin)
     vector_db.update_info()
 
@@ -39,9 +54,7 @@ def handle_delete(task: DeletionTaskInDb):
         f"Creating or retrieving " f"Vector DB collection [task ID: {task.id}]"
     )
     try:
-        collection = vector_db.get_or_create_collection(
-            embedding_model_info, plugin.get_search_index_info()
-        )
+        collection = vector_db.get_or_create_collection(embedding_model_info)
     except Exception:
         logger.exception(
             f"Something went wrong during "

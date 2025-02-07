@@ -9,6 +9,7 @@ from embedding_studio.models.embeddings.collections import (
 from embedding_studio.models.embeddings.objects import (
     Object,
     ObjectsCommonDataBatch,
+    ObjectWithDistance,
     SearchResults,
 )
 from embedding_studio.models.payload.models import PayloadFilter
@@ -42,10 +43,7 @@ class Collection(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def upsert(
-        self,
-        objects: List[Object],
-    ) -> None:
+    def upsert(self, objects: List[Object], shrink_parts: bool = True) -> None:
         raise NotImplementedError()
 
     @abstractmethod
@@ -93,7 +91,7 @@ class Collection(ABC):
         max_distance: Optional[float] = None,
         payload_filter: Optional[PayloadFilter] = None,
         user_id: Optional[str] = None,
-    ) -> List[Object]:
+    ) -> List[ObjectWithDistance]:
         raise NotImplementedError()
 
     @abstractmethod

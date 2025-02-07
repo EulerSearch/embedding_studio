@@ -6,14 +6,16 @@ from dramatiq import Actor
 from embedding_studio.context.app_context import context
 from embedding_studio.core.config import settings
 from embedding_studio.core.plugin import FineTuningMethod
-from embedding_studio.models.embeddings.models import EmbeddingModelInfo
 from embedding_studio.models.inference_deployment_tasks import (
     ModelManagementTaskCreateSchema,
 )
 from embedding_studio.models.reindex import ReindexTaskInDb
 from embedding_studio.models.task import ModelParams, TaskStatus
 from embedding_studio.utils.dramatiq_task_handler import create_and_send_task
-from embedding_studio.utils.plugin_utils import is_basic_plugin
+from embedding_studio.utils.plugin_utils import get_vectordb
+from embedding_studio.workers.upsertion.utils.exceptions import (
+    ReindexException,
+)
 from embedding_studio.workers.upsertion.utils.reindex import logger
 
 
@@ -28,12 +30,11 @@ def initiate_model_deployment_and_wait(
     """
     logger.info(
         f"Starting deployment for model with "
-        f"ID {embedding_model.fine_tuning_method}/{embedding_model.embedding_model_id}"
+        f"ID {embedding_model.embedding_model_id}"
     )
     deployment_task = context.model_deployment_task.create(
         schema=ModelManagementTaskCreateSchema(
             embedding_model_id=embedding_model.embedding_model_id,
-            fine_tuning_method=embedding_model.fine_tuning_method,
             parent_id=task.id,
         ),
         return_obj=True,
@@ -104,20 +105,17 @@ def initiate_model_deployment_and_wait(
 
 def initiate_model_deletion(
     task: ReindexTaskInDb,
-    embedding_model_info: EmbeddingModelInfo,
+    embedding_model_id: str,
     deletion_worker: Actor,
 ):
     """
     Initiates the deletion of a model.
     """
-    logger.info(
-        f"Initiating deletion for model with ID {embedding_model_info.id}"
-    )
+    logger.info(f"Initiating deletion for model with ID {embedding_model_id}")
 
     deletion_task = context.model_deletion_task.create(
         schema=ModelManagementTaskCreateSchema(
-            embedding_model_id=embedding_model_info.id,
-            fine_tuning_method=embedding_model_info.name,
+            embedding_model_id=embedding_model_id,
             parent_id=task.id,
         ),
         return_obj=True,
@@ -129,7 +127,7 @@ def initiate_model_deletion(
 
     if not updated_task:
         raise Exception(
-            f"Failed to create and send deletion task for model {embedding_model_info.id}"
+            f"Failed to create and send deletion task for model {embedding_model_id}"
         )
 
 
@@ -142,41 +140,44 @@ def blue_switch(task: ReindexTaskInDb, deletion_worker: Actor):
         f"Switching model with ID {task.dest.embedding_model_id} to blue status."
     )
 
-    dest_plugin = context.plugin_manager.get_plugin(
-        task.dest.fine_tuning_method
+    dest_iteration = context.mlflow_client.get_iteration_by_id(
+        task.dest.embedding_model_id
     )
+    if dest_iteration is None:
+        task.status = TaskStatus.failed
+        raise ReindexException(
+            f"Fine tuning iteration with ID"
+            f"[{task.dest.embedding_model_id}] does not exist."
+        )
 
-    embedding_model_info = EmbeddingModelInfo(
-        name=task.dest.fine_tuning_method,
-        id=task.dest.embedding_model_id,
-        use_case=dest_plugin.meta.use_case,
-    )
-    if is_basic_plugin(dest_plugin):
-        # Get the current blue collection and its state
-        context.vectordb.set_blue_collection(embedding_model_info)
-    else:
-        context.categories_vectordb.set_blue_collection(embedding_model_info)
+    dest_plugin = context.plugin_manager.get_plugin(dest_iteration.plugin_name)
+    dest_vector_db = get_vectordb(dest_plugin)
+    dest_vector_db.set_blue_collection(task.dest.embedding_model_id)
 
     logger.info(
         f"Deleting source model collection with ID {task.source.embedding_model_id}"
     )
 
-    source_plugin = context.plugin_manager.get_plugin(
-        task.source.fine_tuning_method
+    source_iteration = context.mlflow_client.get_iteration_by_id(
+        task.source.embedding_model_id
     )
-    source_model_info = EmbeddingModelInfo(
-        name=task.source.fine_tuning_method,
-        id=task.source.embedding_model_id,
-        use_case=source_plugin.meta.use_case,
-    )
+    if source_iteration is None:
+        task.status = TaskStatus.failed
+        raise ReindexException(
+            f"Fine tuning iteration with ID"
+            f"[{task.source.embedding_model_id}] does not exist."
+        )
 
-    context.vectordb.delete_collection(source_model_info)
-    if is_basic_plugin(source_plugin):
-        context.vectordb.delete_query_collection(source_model_info)
-    else:
-        context.categories_vectordb.delete_query_collection(source_model_info)
+    source_plugin = context.plugin_manager.get_plugin(
+        source_iteration.plugin_name
+    )
+    source_vector_db = get_vectordb(source_plugin)
+    source_vector_db.delete_collection(task.source.embedding_model_id)
+    source_vector_db.delete_query_collection(task.source.embedding_model_id)
 
     logger.info(
         f"Initiating deletion of source model with ID {task.source.embedding_model_id}"
     )
-    initiate_model_deletion(task, source_model_info, deletion_worker)
+    initiate_model_deletion(
+        task, task.source.embedding_model_id, deletion_worker
+    )

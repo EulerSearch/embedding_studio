@@ -37,38 +37,29 @@ def init_model_repo_for_plugin(model_repo: str, plugin_name: str):
     try:
         vector_db = get_vectordb(plugin)
         embedding_model_info = plugin.get_embedding_model_info(run_id)
-        search_index_info = plugin.get_search_index_info()
         logger.info(f"Creating or retrieving Vector DB collection")
-        if not vector_db.collection_exists(embedding_model_info):
+        if not vector_db.collection_exists(embedding_model_info.id):
             logger.warning(
-                f"Collection with name: {embedding_model_info.full_name} "
+                f"Collection with name: {embedding_model_info.id} "
                 f"does not exist, creating"
             )
-            vector_db.create_collection(
-                embedding_model_info, search_index_info
-            )
+            vector_db.create_collection(embedding_model_info)
         else:
             logger.info(f"Initial collection exists")
-            vector_db.get_or_create_collection(
-                embedding_model_info, search_index_info
-            )
+            vector_db.get_or_create_collection(embedding_model_info)
 
         logger.info(f"Creating or retrieving Vector DB query collection")
-        if not vector_db.query_collection_exists(embedding_model_info):
+        if not vector_db.query_collection_exists(embedding_model_info.id):
             logger.warning(
-                f"Query collection with name: {embedding_model_info.full_name} "
+                f"Query collection with name: {embedding_model_info.id} "
                 f"does not exist, creating"
             )
-            vector_db.create_query_collection(
-                embedding_model_info, search_index_info
-            )
+            vector_db.create_query_collection(embedding_model_info)
         else:
             logger.info(f"Initial collection exists")
-            vector_db.get_or_create_query_collection(
-                embedding_model_info, search_index_info
-            )
+            vector_db.get_or_create_query_collection(embedding_model_info)
 
-        vector_db.set_blue_collection(embedding_model_info)
+        vector_db.set_blue_collection(embedding_model_info.id)
         logger.info(f"Initial collection setup finished")
 
     except Exception:

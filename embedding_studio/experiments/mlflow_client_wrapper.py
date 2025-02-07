@@ -14,6 +14,9 @@ from embedding_studio.core.config import settings
 from embedding_studio.embeddings.models.interface import (
     EmbeddingsModelInterface,
 )
+from embedding_studio.experiments.finetuning_iteration import (
+    FineTuningIteration,
+)
 from embedding_studio.experiments.finetuning_params import FineTuningParams
 from embedding_studio.experiments.status import MLflowStatus
 from embedding_studio.utils.mlflow_utils import (
@@ -66,6 +69,14 @@ class MLflowClientWrapper:
             if requirements is None
             else requirements
         )
+
+    @property
+    def tracking_uri(self) -> str:
+        return self._tracking_uri
+
+    @property
+    def requirements(self) -> List[str]:
+        return self._requirements
 
     @staticmethod
     def _get_default_retry_config() -> RetryConfig:
@@ -298,6 +309,31 @@ class MLflowClientWrapper:
         )
 
         return FineTuningParams(**rows[0])
+
+    @retry_method(name="search_runs")
+    def get_iteration_by_id(self, run_id: str) -> FineTuningIteration:
+        """Get a fine-tuning iteration info from a run by ID.
+
+        :param run_id: ID of a run.
+        :return: fine-tuning iteration info.
+        """
+        # Get all experiments
+        experiments = mlflow.search_experiments()
+
+        # Collect all experiment IDs
+        experiment_ids = [exp.experiment_id for exp in experiments]
+
+        # Get all runs from all experiments
+        runs: pd.DataFrame = mlflow.search_runs(experiment_ids=experiment_ids)
+        specific_run = runs[runs["run_id"] == run_id]
+
+        if specific_run.empty:
+            logger.error(f"No run with ID {run_id} was found.")
+            return None
+
+        experiment_id = specific_run["experiment_id"].iloc[0]
+        experiment = mlflow.get_experiment(experiment_id)
+        return FineTuningIteration.parse(experiment.name)
 
     @retry_method(name="search_runs")
     def get_experiment_id(self, run_id: str) -> Optional[str]:

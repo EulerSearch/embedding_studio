@@ -156,8 +156,8 @@ class CategoriesTextFineTuningMethod(CategoriesFineTuningMethod):
             MetricsAccumulator("test_irrelevant_dist_shift"),
         ]
 
-        self.manager = ExperimentsManager(
-            tracking_uri=settings.MLFLOW_TRACKING_URI,
+        self.manager = ExperimentsManager.from_wrapper(
+            wrapper=context.mlflow_client,
             main_metric="test_not_irrelevant_dist_shift",
             plugin_name=self.meta.name,
             accumulators=self.accumulators,
@@ -268,7 +268,7 @@ class CategoriesTextFineTuningMethod(CategoriesFineTuningMethod):
         )
 
     def get_max_similar_categories(self) -> int:
-        return 100
+        return 20
 
     def get_max_margin(self) -> float:
         return 0.7
