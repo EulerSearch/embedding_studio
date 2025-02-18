@@ -39,6 +39,30 @@ class Settings(BaseSettings):
         f"{FINETUNING_MONGO_HOST}:{FINETUNING_MONGO_PORT}"
     )
 
+    # Suggesting
+    SUGGESTING_MONGO_HOST: str = os.getenv("SUGGESTING_MONGO_HOST", "mongo")
+    SUGGESTING_MONGO_PORT: int = os.getenv("SUGGESTING_MONGO_PORT", 27017)
+    SUGGESTING_MONGO_DB_NAME: str = os.getenv(
+        "SUGGESTING_MONGO_DB_NAME", "embedding_studio"
+    )
+
+    SUGGESTING_MONGO_USERNAME: str = os.getenv(
+        "SUGGESTING_MONGO_USERNAME", "root"
+    )
+    SUGGESTING_MONGO_PASSWORD: str = os.getenv(
+        "SUGGESTING_MONGO_PASSWORD", "mongopassword"
+    )
+    SUGGESTING_MONGO_URL: str = (
+        f"mongodb://{SUGGESTING_MONGO_USERNAME}:{SUGGESTING_MONGO_PASSWORD}@"
+        f"{SUGGESTING_MONGO_HOST}:{SUGGESTING_MONGO_PORT}"
+    )
+
+    SUGGESTING_MAX_CHUNKS: int = os.getenv("SUGGESTING_MAX_CHUNKS", 20)
+    SUGGESTING_MONGO_COLLECTION: str = os.getenv(
+        "SUGGESTING_MONGO_COLLECTION", "suggestion_phrases"
+    )
+
+    # Constant Improvement
     SESSIONS_FOR_IMPROVEMENT_MONGO_HOST: str = os.getenv(
         "SESSIONS_FOR_IMPROVEMENT_MONGO_HOST", "mongo"
     )

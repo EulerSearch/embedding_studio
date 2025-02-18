@@ -69,3 +69,6 @@ clickstream_mongo_database = clickstream_mongo_client[
 embeddings_mongo_database = clickstream_mongo_client[
     settings.EMBEDDINGS_MONGO_DB_NAME
 ]
+suggesting_mongo_database = clickstream_mongo_client[
+    settings.SUGGESTING_MONGO_DB_NAME
+]

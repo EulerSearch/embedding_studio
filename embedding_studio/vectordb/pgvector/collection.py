@@ -330,7 +330,9 @@ class PgvectorCollection(Collection):
             )
             logger.debug(f"Search statement: {search_st}")
             rows = session.execute(search_st)
-            found_objects = self.DbObjectPart.objects_with_distance_from_db(rows)
+            found_objects = self.DbObjectPart.objects_with_distance_from_db(
+                rows
+            )
 
             return found_objects
 

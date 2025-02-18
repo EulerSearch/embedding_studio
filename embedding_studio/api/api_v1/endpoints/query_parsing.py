@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from typing import Any, List
 
 import torch
@@ -11,7 +10,7 @@ from embedding_studio.api.api_v1.schemas.query_parsing import (
 )
 from embedding_studio.api.api_v1.schemas.similarity_search import SearchResult
 from embedding_studio.context.app_context import context
-from embedding_studio.models.embeddings.objects import SearchResults, SimilarObject
+from embedding_studio.models.embeddings.objects import SearchResults
 
 # Initialize logger for this module
 logger = logging.getLogger(__name__)

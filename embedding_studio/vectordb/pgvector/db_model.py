@@ -27,8 +27,8 @@ from embedding_studio.models.embeddings.objects import (
     FoundObject,
     Object,
     ObjectPart,
-    ObjectСommonData,
     ObjectWithDistance,
+    ObjectСommonData,
     SimilarObject,
 )
 from embedding_studio.models.payload.models import PayloadFilter
@@ -309,7 +309,7 @@ class DbObjectPartImpl:
                 cls.db_object_class.user_id,
                 cls.db_object_class.session_id,
                 cls.vector,
-                cls.part_id
+                cls.part_id,
             )
             group_by = [
                 cls.db_object_class.object_id,
@@ -319,7 +319,7 @@ class DbObjectPartImpl:
                 cls.db_object_class.user_id,
                 cls.db_object_class.session_id,
                 cls.vector,
-                cls.part_id
+                cls.part_id,
             ]
         else:
             selection_part = select(
@@ -347,9 +347,7 @@ class DbObjectPartImpl:
             .where(
                 ~cls.db_object_class.object_id.in_(subquery)
             )  # Exclude originals with copies
-            .group_by(
-                *group_by
-            )
+            .group_by(*group_by)
             .limit(limit)
         )
 
@@ -543,7 +541,7 @@ class DbObjectPartImpl:
                     storage_meta=row.storage_meta,
                     user_id=row.user_id,
                     original_id=row.original_id,
-                    distance=row.distance
+                    distance=row.distance,
                 ),
             )
             obj.parts.append(

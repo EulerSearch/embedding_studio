@@ -37,6 +37,11 @@ from embedding_studio.models.inference_deployment_tasks import (
 from embedding_studio.models.reindex import ReindexSubtaskInDb, ReindexTaskInDb
 from embedding_studio.models.reindex_lock import ReindexLockInDb
 from embedding_studio.models.upsert import UpsertionTaskInDb
+from embedding_studio.suggesting.abstract_suggester import AbstractSuggester
+from embedding_studio.suggesting.mongo.complex_mongo_suggester import (
+    ComplexMongoSuggester,
+)
+from embedding_studio.suggesting.tokenizer import SuggestingTokenizer
 from embedding_studio.utils.model_download import ModelDownloader
 from embedding_studio.vectordb.pgvector.vectordb import PgvectorDb
 from embedding_studio.vectordb.vectordb import VectorDb
@@ -59,6 +64,7 @@ class AppContext:
     plugin_manager: PluginManager
     model_downloader: ModelDownloader
     mlflow_client: MLflowClientWrapper
+    suggester: AbstractSuggester
     task_scheduler: Optional[BackgroundScheduler] = None
 
 
@@ -121,5 +127,11 @@ context = AppContext(
     model_downloader=ModelDownloader(),
     mlflow_client=MLflowClientWrapper(
         tracking_uri=settings.MLFLOW_TRACKING_URI,
+    ),
+    suggester=ComplexMongoSuggester(
+        mongo_database=mongo.suggesting_mongo_database,
+        tokenizer=SuggestingTokenizer(),
+        collection_name=settings.SUGGESTING_MONGO_COLLECTION,
+        max_chunks=settings.SUGGESTING_MAX_CHUNKS,
     ),
 )
