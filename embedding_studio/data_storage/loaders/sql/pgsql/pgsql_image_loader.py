@@ -1,12 +1,15 @@
 import io
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, Type
 
 from datasets import Features
 from PIL import Image
 
 from embedding_studio.data_storage.loaders.sql.pgsql.pgsql_loader import (
     PgsqlDataLoader,
+)
+from embedding_studio.data_storage.loaders.sql.query_generator import (
+    AbstractQueryGenerator,
 )
 from embedding_studio.workers.fine_tuning.utils.config import RetryConfig
 
@@ -17,6 +20,7 @@ class PgsqlImageLoader(PgsqlDataLoader):
     def __init__(
         self,
         connection_string: str,
+        query_generator: Type[AbstractQueryGenerator],
         image_column: str = "image_data",
         retry_config: Optional[RetryConfig] = None,
         features: Optional[Features] = None,
@@ -25,12 +29,17 @@ class PgsqlImageLoader(PgsqlDataLoader):
         """Images loader from PostgreSQL.
 
         :param connection_string: PostgreSQL connection string.
+        :param query_generator: PostgreSQL query generator class.
         :param image_column: The column in the database where image data is stored (default: 'image_data').
         :param retry_config: Retry strategy (default: None).
         :param features: Expected features for the dataset (default: None).
         """
         super(PgsqlImageLoader, self).__init__(
-            connection_string, retry_config, features, **kwargs
+            connection_string,
+            query_generator,
+            retry_config,
+            features,
+            **kwargs,
         )
         self.image_column = image_column
 

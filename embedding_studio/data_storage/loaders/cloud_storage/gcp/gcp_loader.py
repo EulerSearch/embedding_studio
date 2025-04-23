@@ -16,16 +16,28 @@ from embedding_studio.data_storage.loaders.downloaded_item import (
     DownloadedItem,
 )
 from embedding_studio.data_storage.loaders.item_meta import ItemMeta
+from embedding_studio.utils.retry import retry_method
 from embedding_studio.workers.fine_tuning.utils.config import (
     RetryConfig,
     RetryParams,
 )
-from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 
 logger = logging.getLogger(__name__)
 
 
 class GCPCredentials(BaseModel):
+    """
+    Configuration model for GCP authentication credentials.
+
+    This class defines the required parameters for authenticating with
+    Google Cloud Platform services.
+
+    Attributes:
+        project_id: Optional identifier for the GCP project.
+        credentials_path: Optional path to the service account credentials file.
+        use_system_info: Whether to use system-provided credentials instead of explicit ones.
+    """
+
     project_id: Optional[str] = None
     credentials_path: Optional[str] = None
     use_system_info: bool = False
@@ -87,6 +99,11 @@ class GCPDataLoader(DataLoader):
 
     @property
     def item_meta_cls(self) -> Type[ItemMeta]:
+        """
+        Return the class used for item metadata.
+
+        :return: The GCPFileMeta class used for representing file metadata.
+        """
         return GCPFileMeta
 
     @staticmethod

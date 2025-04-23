@@ -1,22 +1,25 @@
 from fastapi import APIRouter, HTTPException, Query, status
 
 from embedding_studio.api.api_v1.schemas.suggesting import (
-    GetSuggestionPhraseIDResponse,
     GetSuggestionsRequest,
     GetSuggestionsResponse,
     ListPhrasesRequest,
     ListPhrasesResponse,
     Span,
+    SuggestingPhrase,
+    SuggestingPhrasesAddDomainsRequest,
     SuggestingPhrasesAddingRequest,
     SuggestingPhrasesAddingResponse,
     SuggestingPhrasesAddLabelsRequest,
     SuggestingPhrasesAdjustProbabilityRequest,
+    SuggestingPhrasesRemoveAllDomainsRequest,
     SuggestingPhrasesRemoveAllLabelsRequest,
+    SuggestingPhrasesRemoveDomainsRequest,
     SuggestingPhrasesRemoveLabelsRequest,
-    SuggestingPhraseWithID,
     Suggestion,
 )
 from embedding_studio.context.app_context import context
+from embedding_studio.utils.redis_utils import ft_unescape_punctuation
 from embedding_studio.utils.string_utils import combine_chunks
 
 router = APIRouter()
@@ -33,23 +36,21 @@ router = APIRouter()
     response_model_exclude_none=True,
 )
 def get_suggestions(body: GetSuggestionsRequest):
-    if len(body.phrase.strip()) == 0:
-        return GetSuggestionsResponse(suggestions=[])
-
     suggestion_request = (
         context.suggester.phrases_manager.convert_phrase_to_request(
-            phrase=body.phrase
+            phrase=body.phrase, domain=body.domain
         )
     )
-
     raw_suggestions = context.suggester.get_topk_suggestions(
-        request=suggestion_request.chunks, top_k=body.top_k
+        request=suggestion_request, top_k=body.top_k
     )
 
     suggestions = []
     for raw_suggestion in raw_suggestions:
         # Build the suggestion body from the suggestion’s chunks.
-        suggestion_body = combine_chunks(raw_suggestion.chunks)
+        suggestion_body = combine_chunks(
+            [ft_unescape_punctuation(chunk) for chunk in raw_suggestion.chunks]
+        )
 
         # Get the list of prefix chunks.
         prefix_chunks = raw_suggestion.prefix_chunks
@@ -84,40 +85,71 @@ def get_suggestions(body: GetSuggestionsRequest):
                 )
 
             matching_span_end = suggestion_request.spans.next_chunk_span.end
-        else:
+
+        elif matched_index < len(suggestion_request.spans.found_chunk_spans):
             span = suggestion_request.spans.found_chunk_spans[matched_index]
             matching_span_start = span.start
             matching_span_end = span.end
 
-        # Combine all prefix chunks except the last one.
-        combined_prefix = combine_chunks(prefix_chunks[:-1])
-        last_chunk = prefix_chunks[-1]
+        else:
+            span = Span(start=0, end=0)
+            matching_span_start = 0
+            matching_span_end = 0
 
-        # Calculate the split index in the last prefix chunk.
-        split_index = span.end - len(combined_prefix)
-        split_index = max(0, min(len(last_chunk), split_index))
-
-        # Split the last prefix chunk.
-        prefix_part = last_chunk[:split_index]
-        postfix_prefix_part = last_chunk[split_index:]
-
-        # Build the aligned prefix and postfix.
-        suggestion_prefix = combined_prefix + prefix_part
-        suggestion_postfix = postfix_prefix_part + " " + suggestion_body
-
-        suggestions.append(
-            Suggestion(
-                prefix=suggestion_prefix,
-                postfix=suggestion_postfix,
-                matching_span=Span(
-                    start=matching_span_start,
-                    end=matching_span_end,
-                ),
-                match_type=raw_suggestion.match_type,
-                prob=raw_suggestion.prob,
-                labels=raw_suggestion.labels,
+        if matching_span_start == 0 and matching_span_end == 0:
+            combined_prefix = combine_chunks(
+                [ft_unescape_punctuation(chunk) for chunk in prefix_chunks]
             )
-        )
+            suggestions.append(
+                Suggestion(
+                    prefix="",
+                    postfix=combined_prefix,
+                    matching_span=Span(
+                        start=matching_span_start,
+                        end=matching_span_end,
+                    ),
+                    match_type=raw_suggestion.match_type,
+                    prob=raw_suggestion.prob,
+                    labels=raw_suggestion.labels,
+                )
+            )
+
+        else:
+
+            # Combine all prefix chunks except the last one.
+            combined_prefix = combine_chunks(
+                [
+                    ft_unescape_punctuation(chunk)
+                    for chunk in prefix_chunks[:-1]
+                ]
+            )
+            last_chunk = ft_unescape_punctuation(prefix_chunks[-1])
+
+            # Calculate the split index in the last prefix chunk.
+            split_index = span.end - len(combined_prefix)
+            split_index = max(0, min(len(last_chunk), split_index))
+
+            # Split the last prefix chunk.
+            prefix_part = last_chunk[:split_index]
+            postfix_prefix_part = last_chunk[split_index:]
+
+            # Build the aligned prefix and postfix.
+            suggestion_prefix = combined_prefix + " " + prefix_part
+            suggestion_postfix = postfix_prefix_part + " " + suggestion_body
+
+            suggestions.append(
+                Suggestion(
+                    prefix=suggestion_prefix,
+                    postfix=suggestion_postfix,
+                    matching_span=Span(
+                        start=matching_span_start,
+                        end=matching_span_end,
+                    ),
+                    match_type=raw_suggestion.match_type,
+                    prob=raw_suggestion.prob,
+                    labels=raw_suggestion.labels,
+                )
+            )
 
     return GetSuggestionsResponse(suggestions=suggestions)
 
@@ -190,6 +222,44 @@ def remove_labels(body: SuggestingPhrasesRemoveLabelsRequest):
 
 
 @router.post(
+    "/phrases/add-domains",
+    status_code=status.HTTP_200_OK,
+)
+def add_domains(body: SuggestingPhrasesAddDomainsRequest):
+    """
+    Add domains to a phrase.
+    """
+    try:
+        context.suggester.phrases_manager.add_domains(
+            phrase_id=body.phrase_id, labels=body.domains
+        )
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Phrase {body.phrase_id} not found",
+        )
+
+
+@router.post(
+    "/phrases/remove-domains",
+    status_code=status.HTTP_200_OK,
+)
+def remove_domains(body: SuggestingPhrasesRemoveDomainsRequest):
+    """
+    Remove domains from a phrase.
+    """
+    try:
+        context.suggester.phrases_manager.remove_domains(
+            phrase_id=body.phrase_id, labels=body.domains
+        )
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Phrase {body.phrase_id} not found",
+        )
+
+
+@router.post(
     "/phrases/update-probability",
     status_code=status.HTTP_200_OK,
 )
@@ -209,35 +279,8 @@ def update_probability(body: SuggestingPhrasesAdjustProbabilityRequest):
 
 
 @router.get(
-    "/phrases/get-id",
-    response_model=GetSuggestionPhraseIDResponse,
-    status_code=status.HTTP_200_OK,
-    response_model_by_alias=False,
-    response_model_exclude_none=True,
-)
-def get_phrase_id(
-    phrase: str = Query(..., description="Phrase to get ID for")
-):
-    """
-    Return the internal ID for a given phrase string.
-    """
-    phrase_ids = context.suggester.phrases_manager.find_phrases_by_values(
-        [
-            phrase,
-        ]
-    )
-    if phrase_ids[0]:
-        return GetSuggestionPhraseIDResponse(phrase_id=phrase_ids[0])
-
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"Phrase {phrase} not found",
-    )
-
-
-@router.get(
     "/phrases/get-info",
-    response_model=SuggestingPhraseWithID,
+    response_model=SuggestingPhrase,
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
     response_model_exclude_none=True,
@@ -247,8 +290,7 @@ def get_phrase_info(phrase_id: str = Query(..., description="Phrase ID")):
         search_document = context.suggester.phrases_manager.get_info_by_id(
             phrase_id=phrase_id
         )
-        return SuggestingPhraseWithID(
-            phrase_id=search_document.id,
+        return SuggestingPhrase(
             phrase=search_document.phrase,
             prob=search_document.prob,
             labels=search_document.labels,
@@ -269,6 +311,14 @@ def remove_labels(body: SuggestingPhrasesRemoveAllLabelsRequest):
     context.suggester.phrases_manager.remove_all_label_values(body.labels)
 
 
+@router.post(
+    "/phrases/remove-all-domains",
+    status_code=status.HTTP_200_OK,
+)
+def remove_domains(body: SuggestingPhrasesRemoveAllDomainsRequest):
+    context.suggester.phrases_manager.remove_all_domain_values(body.domains)
+
+
 @router.get(
     "/phrases/list",
     response_model=ListPhrasesResponse,
@@ -284,8 +334,7 @@ def list_phrases(body: ListPhrasesRequest):
     )
     return ListPhrasesResponse(
         items=[
-            SuggestingPhraseWithID(
-                phrase_id=doc.id,
+            SuggestingPhrase(
                 phrase=doc.phrase,
                 prob=doc.prob,
                 labels=doc.labels,

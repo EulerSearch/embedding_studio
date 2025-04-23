@@ -17,6 +17,12 @@ from embedding_studio.models.task import (
 
 
 class ReindexTaskCreateSchema(BaseModel):
+    """
+    A blueprint for tasks that move data between different embedding models.
+    Think of it like a migration plan - it defines how to transfer data
+    from one model to another, with options for how to handle the switch.
+    """
+
     id: Optional[PyObjectId] = Field(default=ObjectId, alias="_id")
     source: ModelParams = Field(...)
     dest: ModelParams = Field(...)
@@ -28,6 +34,12 @@ class ReindexTaskCreateSchema(BaseModel):
 
 
 class ReindexSubtaskCreateSchema(BaseTaskInfo):
+    """
+    A blueprint for smaller chunks of work within a reindexing job.
+    Since reindexing can involve lots of data, this breaks it into
+    manageable pieces that can be processed separately.
+    """
+
     limit: int = Field(...)
     offset: Optional[int] = Field(...)
     source: ModelParams = Field(...)
@@ -35,6 +47,12 @@ class ReindexSubtaskCreateSchema(BaseTaskInfo):
 
 
 class ReindexTask(BaseTaskInfo):
+    """
+    Manages the overall process of transferring data between embedding models.
+    It tracks progress, coordinates all the subtasks, and handles the final
+    deployment of the new model when everything is done.
+    """
+
     source: ModelParams = Field(...)
     dest: ModelParams = Field(...)
 
@@ -66,6 +84,12 @@ class ReindexTask(BaseTaskInfo):
 
 
 class ReindexSubtask(BaseDataHandlingTask, BaseTaskInfo, BaseTaskMetadata):
+    """
+    Handles one batch of data during reindexing. Each subtask processes
+    a specific chunk of data (like items 1-100), making it possible to
+    work on different parts of the data at the same time.
+    """
+
     limit: int = Field(...)
     offset: Optional[int] = Field(...)
 
@@ -74,8 +98,19 @@ class ReindexSubtask(BaseDataHandlingTask, BaseTaskInfo, BaseTaskMetadata):
 
 
 class ReindexTaskInDb(BaseTaskInDb, ReindexTask):
+    """
+    The database-friendly version of a reindex task. It includes
+    everything needed to save the main reindexing job's details
+    in the database.
+    """
+
     ...
 
 
 class ReindexSubtaskInDb(BaseTaskInDb, ReindexSubtask):
+    """
+    The database-friendly version of a reindex subtask. It stores
+    information about one batch of the reindexing process in the database.
+    """
+
     ...

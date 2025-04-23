@@ -15,9 +15,32 @@ class DummySentenceSplitter(ItemSplitter):
     CODE_BLOCK_PLACEHOLDER = "CODE_BLOCK_PLACEHOLDER"
 
     def __init__(self):
-        pass
+        """Initialize a splitter that preserves code blocks while splitting sentences.
+
+        This splitter is specifically designed for text that contains both regular text
+        and code blocks (marked with triple backticks). It preserves the integrity of code blocks
+        while splitting the surrounding text into sentences.
+        """
 
     def __call__(self, item: str) -> List[str]:
+        """Split text into sentences while preserving code blocks as individual chunks.
+
+        This method performs the following steps:
+        1. Identifies and extracts code blocks (text between triple backticks)
+        2. Replaces code blocks with placeholders
+        3. Splits the remaining text into sentences using NLTK's sent_tokenize
+        4. Handles numbered list items specially to preserve their context
+        5. Reconstructs the original text with code blocks intact but as separate chunks
+
+        :param item: Text string containing both prose and potentially code blocks
+        :return: List of text chunks where code blocks are preserved and prose is split into sentences
+
+        Example:
+        ```
+        # For input: "This is a sentence. Here's some code:\n```python\nprint('hello')\n```\nAnother sentence."
+        # Returns: ["This is a sentence.", "```python\nprint('hello')\n```", "Another sentence."]
+        ```
+        """
         # Extract code blocks and replace them with placeholders
         code_blocks = CODE_BLOCK_REGEX.findall(item)
         text_without_code = CODE_BLOCK_REGEX.sub(

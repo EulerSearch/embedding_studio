@@ -1,0 +1,33 @@
+<svg viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="400" height="250" fill="#f9f9fd" rx="10" ry="10"/>
+  
+  <!-- Simple purple group (left) -->
+  <circle cx="100" cy="110" r="40" fill="#6d57ff" fill-opacity="0.15" stroke="#6d57ff" stroke-width="1.5"/>
+  <circle cx="100" cy="110" r="20" fill="#6d57ff" fill-opacity="0.4"/>
+  
+  <!-- Simple red group (right) -->
+  <circle cx="300" cy="140" r="45" fill="#ff5757" fill-opacity="0.15" stroke="#ff5757" stroke-width="1.5"/>
+  <circle cx="300" cy="140" r="22" fill="#ff5757" fill-opacity="0.4"/>
+  
+  <!-- Connection curved path -->
+  <path d="M135,120 C175,130 225,120 260,135" 
+        stroke="#333" stroke-width="2" stroke-opacity="0.6"
+        fill="none" stroke-linecap="round"/>
+  
+  <!-- Middle search element -->
+  <circle cx="200" cy="125" r="25" fill="#43a047" fill-opacity="0.15" stroke="#43a047" stroke-width="1.5"/>
+  <circle cx="200" cy="125" r="12" fill="#43a047" fill-opacity="0.5"/>
+  
+  <!-- Additional simple visual elements -->
+  <!-- Small purple dots in the left group -->
+  <circle cx="85" cy="100" r="5" fill="#6d57ff" fill-opacity="0.8"/>
+  <circle cx="110" cy="95" r="6" fill="#6d57ff" fill-opacity="0.8"/>
+  <circle cx="90" cy="125" r="4" fill="#6d57ff" fill-opacity="0.8"/>
+  <circle cx="115" cy="120" r="5" fill="#6d57ff" fill-opacity="0.8"/>
+  
+  <!-- Small red elements in the right group -->
+  <line x1="285" y1="130" x2="315" y2="130" stroke="#ff5757" stroke-width="2.5" stroke-opacity="0.8" stroke-linecap="round"/>
+  <line x1="280" y1="140" x2="320" y2="140" stroke="#ff5757" stroke-width="2.5" stroke-opacity="0.8" stroke-linecap="round"/>
+  <line x1="290" y1="150" x2="310" y2="150" stroke="#ff5757" stroke-width="2.5" stroke-opacity="0.8" stroke-linecap="round"/>
+</svg>

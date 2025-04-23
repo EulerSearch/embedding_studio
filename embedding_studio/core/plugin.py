@@ -6,6 +6,9 @@ from typing import Dict, List, Optional
 from embedding_studio.clickstream_storage.query_retriever import QueryRetriever
 from embedding_studio.core.config import settings
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
+from embedding_studio.embeddings.data.preprocessors.preprocessor import (
+    ItemsDatasetDictPreprocessor,
+)
 from embedding_studio.embeddings.improvement.vectors_adjuster import (
     VectorsAdjuster,
 )
@@ -22,6 +25,7 @@ from embedding_studio.models.embeddings.models import (
     SearchIndexInfo,
 )
 from embedding_studio.models.plugin import FineTuningBuilder, PluginMeta
+from embedding_studio.vectordb.optimization import Optimization
 
 
 class FineTuningMethod(ABC):
@@ -40,6 +44,19 @@ class FineTuningMethod(ABC):
         :return: An instance of ItemSplitter.
         """
         return NoSplitter()
+
+    @abstractmethod
+    def get_items_preprocessor(self) -> ItemsDatasetDictPreprocessor:
+        """Return a ItemsDatasetDictPreprocessor instance.
+
+        Method that should be implemented by subclasses to provide a
+        ItemsDatasetDictPreprocessor instance.
+
+        :return: An instance of ItemsDatasetDictPreprocessor.
+        """
+        raise NotImplementedError(
+            "Subclasses must implement get_items_preprocessor"
+        )
 
     @abstractmethod
     def get_data_loader(self) -> DataLoader:
@@ -154,6 +171,16 @@ class FineTuningMethod(ABC):
         """
         raise NotImplementedError(
             "Subclasses must implement get_vectors_adjuster"
+        )
+
+    @abstractmethod
+    def get_vectordb_optimizations(self) -> List[Optimization]:
+        """Return a list of outstanding vectordb optimizations.
+
+        Method that should be implemented by subclasses to provide a list of outstanding vectordb optimizations.
+        """
+        raise NotImplementedError(
+            "Subclasses must implement get_vectordb_optimizations"
         )
 
 

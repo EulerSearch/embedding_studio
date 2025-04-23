@@ -66,6 +66,11 @@ class TrainTestSplitter:
     def _augment_clickstream(
         self, inputs: List[FineTuningInput]
     ) -> List[FineTuningInput]:
+        """Apply augmentation to the clickstream inputs if an augmenter is provided.
+
+        :param inputs: List of fine-tuning inputs to augment
+        :return: Augmented list of fine-tuning inputs
+        """
         if self._augmenter is None:
             return inputs
 
@@ -73,13 +78,21 @@ class TrainTestSplitter:
 
     @property
     def shuffle(self) -> bool:
+        """Get the shuffle setting for this splitter.
+
+        :return: Boolean indicating whether shuffling is enabled
+        """
         return self._shuffle
 
     def split(self, inputs: List[FineTuningInput]) -> DatasetDict:
-        """Split fine-tuning inputs.
+        """Split fine-tuning inputs into train and test sets.
 
-        :param inputs: fine-tuning inputs to be split
-        :return: train / test splits accordingly (PairedClickstreamDataset)
+        Splits the inputs based on result IDs to ensure related inputs stay together.
+        When inputs have overlapping result IDs, they are assigned to the set where
+        the majority of their results belong.
+
+        :param inputs: List of fine-tuning inputs to split
+        :return: DatasetDict containing 'train' and 'test' PairedFineTuningInputsDataset instances
         """
         # Get all IDs
         all_result_ids: Set[str] = set()

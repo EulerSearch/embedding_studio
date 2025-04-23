@@ -32,12 +32,15 @@ class PairedFineTuningInputsDataset(Dataset):
         randomize: bool = False,
         inputs_count: int = -1,
     ):
-        """Irrelevant fine-tuning inputs are quite unuseful, combine them with
-        usual inputs to extract useful information for the future.
+        """ "Combines relevant and irrelevant fine-tuning inputs to create paired training data.
 
-        :param inputs: fine-tuning inputs to group
-        :param randomize: shuffle inputs or not (default: False)
-        :param inputs_count: maximum input pairs to use (default: -1)
+        This dataset pairs relevant and irrelevant inputs together to extract useful information
+        for model training. It handles cases where the counts of relevant and irrelevant inputs
+        differ by making them equal size through cycling.
+
+        :param inputs: List of fine-tuning inputs to group into relevant and irrelevant sets
+        :param randomize: Whether to shuffle the inputs randomly (default: False)
+        :param inputs_count: Maximum number of input pairs to use, -1 for unlimited (default: -1)
         """
         self.randomize = randomize
         self.inputs_count = inputs_count
@@ -95,6 +98,10 @@ class PairedFineTuningInputsDataset(Dataset):
             self.not_irrelevant_ids.update(fine_tuning_input.results)
 
     def __len__(self) -> int:
+        """Return the number of pairs in the dataset.
+
+        :return: Number of paired inputs in the dataset
+        """
         if len(self.irrelevant) == 0:
             return len(self.not_irrelevant)
 
@@ -111,6 +118,15 @@ class PairedFineTuningInputsDataset(Dataset):
         Union[FineTuningInput, Dict, None],
         Union[FineTuningInput, Dict, None],
     ]:
+        """Get a pair of relevant and irrelevant inputs at the specified index.
+
+        Returns a tuple containing a relevant input (or None) and an irrelevant input (or None).
+        If either category is empty, the corresponding tuple element will be None.
+
+        :param idx: Index of the paired inputs to retrieve
+        :return: Tuple of (relevant_input, irrelevant_input) where either could be None if the
+                 corresponding category is empty
+        """
         if len(self.irrelevant) == 0:
             return self.not_irrelevant[self.not_irrelevant_indexes[idx]], None
 

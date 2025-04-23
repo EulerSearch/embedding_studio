@@ -23,6 +23,13 @@ router = APIRouter()
     status_code=status.HTTP_200_OK,
 )
 def use_session_for_improvement(body: UseSessionForImprovementRequest) -> None:
+    """
+    Submits a session for use in search quality improvement processes.
+
+    Validates the session exists and contains events, then schedules it for
+    inclusion in model improvement tasks. Skips payload-search sessions as
+    they're not suitable for training.
+    """
     logger.debug(f"Push session to be used for improvement: {body}")
     session = context.clickstream_dao.get_session(session_id=body.session_id)
     if not session:
@@ -30,6 +37,12 @@ def use_session_for_improvement(body: UseSessionForImprovementRequest) -> None:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session with id={body.session_id} not found",
         )
+
+    if session.is_payload_search:
+        logger.warning(
+            f"Session with id {body.session_id} is payload search, so can't be used."
+        )
+
     if session.is_irrelevant or len(session.events) > 0:
         task = context.sessions_for_improvement.create(
             schema=SessionForImprovementCreateSchema(
@@ -39,7 +52,7 @@ def use_session_for_improvement(body: UseSessionForImprovementRequest) -> None:
         )
         context.sessions_for_improvement.update(obj=task)
 
-        logger.debug(f"Session has been pushed: {session}")
+        logger.debug(f"Session has been pushed: {session.session_id}")
     else:
         logger.debug(f"No events, session has not been pushed: {session}")
 
@@ -55,6 +68,13 @@ def get_batch_sessions(
     limit: int = 10,
     events_limit: int = 100,
 ):
+    """
+    Retrieves a paginated batch of sessions for processing.
+
+    Supports efficient iteration through large session collections with
+    pagination and event limiting. Returns session data ready for batch
+    processing in model improvement workflows.
+    """
     logger.debug(
         f"Get batch sessions: "
         f"batch_id={batch_id}, "
@@ -85,6 +105,12 @@ def get_batch_sessions(
 def release_batch(
     body: BatchReleaseRequest,
 ):
+    """
+    Marks a batch of sessions as processed and ready for deployment.
+
+    Finalizes a batch processing operation, making processed data available
+    for downstream consumers. Returns 404 if no active collection batch exists.
+    """
     logger.debug(f"Release batch: {body}")
     batch = context.clickstream_dao.release_batch(release_id=body.release_id)
     if not batch:

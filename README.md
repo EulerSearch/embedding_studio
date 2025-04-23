@@ -3,7 +3,11 @@
 </p>
 
 <p align="center">
-    <a href="#"><img src="https://img.shields.io/badge/version-0.0.1-orange.svg" alt="version"></a>
+<a href="https://hugsearch.demo.embeddingstud.io/" style="font-size: 20px;"><strong>👉 Try the Live Demo</strong></a>
+</p>
+
+<p align="center">
+    <a href="#"><img src="https://img.shields.io/badge/version-1.0.0-green.svg" alt="version"></a>
     <a href="https://www.python.org/downloads/release/python-31014/"><img src="https://img.shields.io/badge/python-3.10-blue.svg" alt="Python 3.10"></a>
     <a href="#"><img src="https://img.shields.io/badge/CUDA-11.7.1-green.svg" alt="CUDA 11.7.1"></a>
     <a href="#"><img src="https://img.shields.io/badge/docker--compose-2.17.0-blue.svg" alt="Docker Compose Version"></a>
@@ -16,10 +20,9 @@
     <a href="https://embeddingstud.io/challenges/">Use Cases</a>
 </p>
 
-**Embedding Studio** is an innovative open-source framework designed to seamlessly convert a combined
-embedding model and vector database into a comprehensive search engine. With built-in functionalities for
-clickstream collection, continuous improvement of search experiences, and automatic adaptation of
-the embedding model, it offers an out-of-the-box solution for a full-cycle search engine.
+**Embedding Studio** is an innovative open-source framework designed to transform embedding models and vector databases into comprehensive, self-improving search engines. With built-in clickstream collection, continuous model refinement, and intelligent vector optimization, it creates a feedback loop that enhances search quality over time based on real user interactions.
+
+Demo: 
 
 <table style="margin-left: auto; margin-right: auto">
     <tr align="center"><td>Community Support</td></tr>
@@ -36,191 +39,136 @@ the embedding model, it offers an out-of-the-box solution for a full-cycle searc
 
 ## Features
 
-1. 🔄 Turn your vector database into a full-cycle search engine
-2. 🖱️ Collect users feedback like clickstream
-3. 🚀 (*) Improve search experience on-the-fly without frustrating wait times
-4. 📊 (*) Monitor your search quality
-5. 🎯 Improve your embedding model through an iterative metric fine-tuning procedure
-6. 🆕 Use the new version of the embedding model for inference
-7. 🛠️ (*) Priorly fine-tune your Embedding on your catalogue data. 
-8. 🔍 (*) Use and improve the Zero-Shot Query Parser to mix your structured database with unstructured search.
+### Core Capabilities
 
-(*) - features in development
+1. 🔄 **Full-Cycle Search Engine** - Transform your vector database into a complete search solution
+2. 🖱️ **User Feedback Collection** - Automatically gather clickstream and session data
+3. 🚀 **Continuous Improvement** - Enhance search quality on-the-fly without long waiting periods
+4. 📊 **Performance Monitoring** - Track search quality metrics through comprehensive dashboards
+5. 🎯 **Iterative Fine-Tuning** - Improve your embedding model through user interaction data
+6. 🔍 **Blue-Green Deployment** - Zero-downtime deployment of improved embedding models
+7. 💾 **Multi-Source Integration** - Connect to various data sources (S3, GCP, PostgreSQL, etc.)
+8. 🧠 **Vector Optimization** - Apply post-training adjustments for incremental improvements
 
-Embedding Studio is highly customizable, so you can bring your own:
+### Specialized Features
 
-1. Data source
-2. Vector database
-3. Clickstream database
-4. Embedding model
+- 📈 **Personalization Support** - Create user-specific vector adjustments based on individual behavior
+- 💬 **Suggestion System** - Generate intelligent query autocompletions based on user patterns
+- 🔎 **Category Prediction** - Automatically identify relevant categories for search queries
+- 🔤 **Multi-Modal Support** - Work with text, images, and structured data in one framework
+- 🧩 **Plugin Architecture** - Extend functionality through a comprehensive plugin system
 
-## When is Embedding Studio the best fit?
+### In Development (*)
+
+- 📑 **Zero-Shot Query Parser** - Mix structured and unstructured search queries
+- 📚 **Catalog Pre-Training** - Fine-tune embedding models on your specific content before deployment
+- 📊 **Advanced Analytics** - More detailed insights into search performance and user behavior
+
+(*) - Features in active development
+
+## When is Embedding Studio the Best Fit?
 
 More about it [here](docs/when-to-use-the-embeddingstudio.md).
 
-- 📚💼 Businesses with extensive catalogs and rich unstructured data.
-- 🛍️🤝 Customer-centric platforms prioritizing personalized experiences.
-- 🔄📊 Dynamic content platforms with evolving content and user preferences.
-- 🔍🧠 Platforms handling nuanced and multifaceted search queries.
-- 🔄📊 Integration of mixed data types in search processes.
-- 🔄🚀 Platforms seeking ongoing optimization through user interactions.
-- 💵💡 Budget-conscious organizations seeking powerful yet affordable solutions.
+- 📚💼 **Rich Content Collections** - Businesses with extensive catalogs and unstructured data
+- 🛍️🤝 **Customer-Centric Platforms** - Applications prioritizing personalized user experiences
+- 🔄📊 **Dynamic Content** - Platforms with evolving content and changing user preferences
+- 🔍🧠 **Complex Queries** - Systems handling nuanced and multifaceted search needs
+- 🔄📊 **Mixed Data Types** - Applications integrating different data formats in search
+- 🔄🚀 **Continuous Improvement** - Platforms seeking ongoing optimization through user interactions
+- 💵💡 **Cost-Conscious Organizations** - Teams looking for powerful yet affordable solutions
 
-### Challenges can be solved
+## Challenges Solved
 
-**Disclaimer:** Embedding Studio is not a yet another Vector Database, it's a framework which allows you transform your Vector Database into a Search Engine with all nuances.  
+**Disclaimer:** Embedding Studio is not another Vector Database - it's a framework that transforms your Vector Database into a complete Search Engine with all necessary components.
 
-- Nothing but a catalogue, but you want a quick demo
-- Static search quality, but you want it to be improved with time
-- User experience improvement takes too long, and your users feel themselves frustrated
-- Slow and resource exhausted index updating
-- Mix of structured and unstructured search, and you don't know how to combine them
-- Structured search with unstructured queries, and you want to parse them properly
-- Fresh items are getting lost
+- ✅ **Cold Start Problems** - Jump-start search quality with minimal data
+- ✅ **Static Search Quality** - Create systems that improve automatically over time
+- ✅ **Long Improvement Cycles** - Reduce frustration with fast feedback loops
+- ✅ **Resource-Heavy Reindexing** - Optimize the updating process for better performance
+- ✅ **Hybrid Search Complexity** - Seamlessly combine structured and unstructured search
+- ✅ **Query Understanding** - Parse natural language queries more effectively
+- ✅ **New Content Discovery** - Ensure fresh items get proper visibility
 
 More about challenges and solutions [here](https://embeddingstud.io/challenges/)
 
-## Overview
+## System Architecture
 
-Our framework enables you to continuously fine-tune your model based on user experience, allowing you to form search 
-results for user queries faster and more accurately.
+Embedding Studio uses a modular, service-based architecture:
 
-$\color{red}{\textsf{RED:}}$ On the graph, typical search solutions without enhancements, 
-such as Full Text Searching (FTS), Nearest Neighbor Search (NNS), and others, are marked in red. Without the use of 
-additional tools, the search quality remains unchanged over time.
+### Core Components
 
-$\color{orange}{\textsf{ORANGE:}}$ Solutions are depicted that accumulate some feedback (clicks, reviews, votes, discussions, etc.) and then
-initiate a full model retraining. The primary issue with these solutions is that full model retraining is a
-time-consuming and expensive procedure, thus lacking reactive adjustments (for example, when a product suddenly
-experiences increased demand, and the search system has not yet adapted to it).
+- **API Service** - Central coordination point for applications
+- **Vector Database** - PostgreSQL with pgvector for embedding storage
+- **Clickstream System** - Captures and processes user interactions
+- **Worker Services**:
+  - **Fine-Tuning Worker** - Handles model training and improvement
+  - **Inference Worker** - Manages Triton Inference Server for embeddings
+  - **Improvement Worker** - Processes incremental vector adjustments
+  - **Upsertion Worker** - Manages content updates and indexing
 
-$\color{#6666ff}{\textsf{INDIGO:}}$ We propose a solution that allows collecting user feedback and rapidly retraining the model on the difference between
-the old and new versions. This enables a smoother and more relevant search quality curve for your system.
+### Data Flow
+
+1. **Content Ingestion** - Load data from various sources
+2. **User Interaction** - Collect clickstream data through API endpoints
+3. **Fine-Tuning** - Use interaction data to improve embedding models
+4. **Model Deployment** - Update inference service with improved models
+5. **Search and Retrieval** - Deliver better results based on fine-tuned models
+
+## Comparison with Traditional Approaches
 
 ![Embedding Studio Chart](assets/embedding_studio_chart.png)
 
-## Documentation
+$\color{red}{\textsf{RED:}}$ Traditional search solutions (FTS, NNS) without enhancement remain static in quality over time.
 
-View our [official documentation](https://embeddingstud.io/tutorial/getting_started/).
+$\color{orange}{\textsf{ORANGE:}}$ Solutions that accumulate feedback but require expensive periodic full retraining, causing delayed improvements.
+
+$\color{#6666ff}{\textsf{INDIGO:}}$ Embedding Studio's approach with continuous incremental improvement, providing smoother quality gains based on user feedback.
 
 ## Getting Started
 
-### Hello, Unstructured World!
+### Prerequisites
 
-To try out Embedding Studio, you can launch the pre-configured demonstration project. We've prepared a dataset stored in
-a public S3 bucket, an emulator for user clicks, and a basic script for fine-tuning the model. By adapting it to your
-requirements, you can initiate fine-tuning for your model.
+- Docker Compose v2.17.0+
+- For fine-tuning: NVIDIA GPU with CUDA support
+- Minimum 8GB RAM allocated to Docker
 
+## Documentation
 
-Ensure that you have the `docker compose version` command working on your system:
-```bash
-Docker Compose version v2.23.3
-```
-You can also try the docker-compose version command. Moving forward, we will use the newer docker compose version command, 
-but the docker-compose version command may also work successfully on your system.
+For comprehensive documentation:
 
-Firstly, bring up all the Embedding Studio services by executing the following command:
+- [Core Concepts](docs/tutorial/getting_started/core_concepts.md)
+- [Architecture Overview](docs/tutorial/getting_started/architecture_overview.md)
+- [Docker Quick Start](docs/tutorial/getting_started/docker_quickstart.md)
+- [Configuration Guide](docs/tutorial/getting_started/configurations.md)
+- [Plugin Development](docs/tutorial/plugins/understanding_plugin_system.md)
+- [Vector Database Integration](docs/tutorial/vectordb/integration.md)
+- [Code Documentation](docs/embedding_studio)
 
-```shell
-docker compose up -d
-```
+## Plugin System
 
-Once all services are up, you can start using Embedding Studio. Let's simulate a user search session. We'll run a
-pre-built script that will invoke the Embedding Studio API and emulate user behavior:
+Embedding Studio features a powerful plugin architecture allowing extension of:
 
-```shell
-docker compose --profile demo_stage_clickstream up -d
-```
+- Data loaders for different sources
+- Text and image processors
+- Fine-tuning methods
+- Vector optimization strategies
+- Query processing logic
 
-After the script execution, you can initiate model fine-tuning. Execute the following command:
-
-```shell
-docker compose --profile demo_stage_finetuning up -d
-```
-
-This will queue a task processed by the fine-tuning worker. To fetch all tasks in the fine-tuning queue, send a GET
-request to the endpoint `/api/v1/fine-tuning/task`:
-
-```shell
-curl -X GET http://localhost:5000/api/v1/fine-tuning/task
-```
-
-The answer will be something like:
-
-```json
-[
-  {
-    "fine_tuning_method": "Default Fine Tuning Method",
-    "status": "processing",
-    "created_at": "2023-12-21T14:30:25.823000",
-    "updated_at": "2023-12-21T14:32:16.673000",
-    "batch_id": "65844a671089823652b83d43",
-    "id": "65844c019fa7cf0957d04758"
-  }
-]
-```
-
-Once you have the task ID, you can directly monitor the fine-tuning progress by sending a GET request to the
-endpoint `/api/v1/fine-tuning/task/{task_id}`:
-
-```shell
-curl -X GET http://localhost:5000/api/v1/fine-tuning/task/65844c019fa7cf0957d04758
-```
-
-The result will be similar to what you received when querying all tasks. 
-For a more convenient way to track progress, you can use Mlflow at http://localhost:5001.
-
-It's also beneficial to check the logs of the `fine_tuning_worker` to ensure everything is functioning correctly. To do
-this, list all services using the command:
-
-```shell
-docker logs embedding_studio-fine_tuning_worker-1
-```
-
-If everything completes successfully, you'll see logs similar to:
-
-```shell
-Epoch 2: 100%|██████████| 13/13 [01:17<00:00,  0.17it/s, v_num=8]
-[2023-12-21 14:59:05,931] [PID 7] [Thread-6] [pytorch_lightning.utilities.rank_zero] [INFO] `Trainer.fit` stopped: `max_epochs=3` reached.
-Epoch 2: 100%|██████████| 13/13 [01:17<00:00,  0.17it/s, v_num=8]
-[2023-12-21 14:59:05,975] [PID 7] [Thread-6] [embedding_studio.workers.fine_tuning.finetune_embedding_one_param] [INFO] Save model (best only, current quality: 8.426392069685529e-05)
-[2023-12-21 14:59:05,975] [PID 7] [Thread-6] [embedding_studio.workers.fine_tuning.experiments.experiments_tracker] [INFO] Save model for 2 / 9a9509bf1ed7407fb61f8d623035278e
-[2023-12-21 14:59:06,009] [PID 7] [Thread-6] [embedding_studio.workers.fine_tuning.experiments.experiments_tracker] [WARNING] No finished experiments found with model uploaded, except initial
-[2023-12-21 14:59:16,432] [PID 7] [Thread-6] [embedding_studio.workers.fine_tuning.experiments.experiments_tracker] [INFO] Upload is finished
-[2023-12-21 14:59:16,433] [PID 7] [Thread-6] [embedding_studio.workers.fine_tuning.finetune_embedding_one_param] [INFO] Saving is finished
-[2023-12-21 14:59:16,433] [PID 7] [Thread-6] [embedding_studio.workers.fine_tuning.experiments.experiments_tracker] [INFO] Finish current run 2 / 9a9509bf1ed7407fb61f8d623035278e
-[2023-12-21 14:59:16,445] [PID 7] [Thread-6] [embedding_studio.workers.fine_tuning.experiments.experiments_tracker] [INFO] Current run is finished
-[2023-12-21 14:59:16,656] [PID 7] [Thread-6] [embedding_studio.workers.fine_tuning.experiments.experiments_tracker] [INFO] Finish current iteration 2
-[2023-12-21 14:59:16,673] [PID 7] [Thread-6] [embedding_studio.workers.fine_tuning.experiments.experiments_tracker] [INFO] Current iteration is finished
-[2023-12-21 14:59:16,673] [PID 7] [Thread-6] [embedding_studio.workers.fine_tuning.worker] [INFO] Fine tuning of the embedding model was completed successfully!
-```
-
-**Congratulations! You've successfully improved the model!**
-
-To download the best model you can use Embedding Studio API:
-```bash
-curl -X GET http://localhost:5000/api/v1/fine-tuning/task/65844c019fa7cf0957d04758
-```
-
-If everything is OK, you will see following output:
-```json
-{
-  "fine_tuning_method": "Default Fine Tuning Method", 
-  "status": "done", 
-  "best_model_url": "http://localhost:5001/get-artifact?path=model%2Fdata%2Fmodel.pth&run_uuid=571304f0c330448aa8cbce831944cfdd", 
-  ...
-}
-```
-And `best_model_url` field contains HTTP accessible `model.pth` file.
-
-You can download *.pth file by executing following command:
-```bash
-wget http://localhost:5001/get-artifact?path=model%2Fdata%2Fmodel.pth&run_uuid=571304f0c330448aa8cbce831944cfdd
-```
+Create custom plugins by extending base classes and implementing your specific logic.
 
 ## Contributing
 
-We welcome contributions to Embedding Studio!
+We welcome contributions to Embedding Studio! To contribute:
+
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
+
+Please check our contributing guidelines for detailed information.
+
+## 📬 Contact Us
+<strong>EulerSearch Inc.</strong><br/> 3416, 1007 N Orange St. 4th Floor,<br/> Wilmington, DE, New Castle, US, 19801<br/> Contact Email: <a href="mailto:aleksandr.iudaev@eulersearch.com">aleksandr.iudaev@eulersearch.com</a><br/> Phone: +34 (691) 454 148<br/> LinkedIn: <a href="https://www.linkedin.com/in/alexanderyudaev/">https://www.linkedin.com/in/alexanderyudaev/</a>
 
 ## License
 

@@ -1,17 +1,31 @@
-from typing import List
+from abc import abstractmethod
+from typing import List, Optional
 
 import torch
-import torch.nn.functional as F
 
 from embedding_studio.embeddings.selectors.selector import AbstractSelector
 from embedding_studio.models.embeddings.models import (
-    MetricAggregationType,
     MetricType,
     SearchIndexInfo,
 )
+from embedding_studio.models.embeddings.objects import ObjectWithDistance
 
 
 class DistBasedSelector(AbstractSelector):
+    """
+    A selector that makes selection decisions based on distance values.
+
+    This abstract class provides a base implementation for selectors that operate
+    on pre-calculated distance metrics without requiring access to the actual vectors.
+
+    :param search_index_info: Information about the search index and its configuration
+    :param is_similarity: Whether the distance values represent similarity (higher is better)
+                         rather than distance (lower is better)
+    :param margin: Threshold margin for positive selection
+    :param softmin_temperature: Temperature parameter for softmin operations
+    :param scale_to_one: Whether to normalize values to a [0, 1] range
+    """
+
     def __init__(
         self,
         search_index_info: SearchIndexInfo,
@@ -26,116 +40,89 @@ class DistBasedSelector(AbstractSelector):
         self._softmin_temperature = softmin_temperature
         self._scale_to_one = scale_to_one
 
-    def _calculate_distance(
-        self,
-        query_vector: torch.Tensor,  # Shape: [N1, D]
-        item_vectors: torch.Tensor,  # Shape: [N2, M, D]
-        softmin_temperature: float = 1.0,  # Temperature for soft minimum
-        is_similarity: bool = False,
-    ) -> torch.Tensor:
+    @property
+    def vectors_are_needed(self) -> bool:
         """
-        Compute similarity or distance between queries and items.
+        Indicates whether this selector requires access to the actual embedding vectors.
 
-        Args:
-            query_vector: Tensor of shape [N1, D]
-            item_vectors: Tensor of shape [N2, M, D]
-            softmin_temperature: Temperature for differentiable softmin approximation
-            is_similarity: Whether to treat values as similarity or distance.
-
-        Returns:
-            Tensor of shape [N1, N2]
+        :return: False, as distance-based selectors only use pre-calculated distances
         """
-        # Calculate initial similarities/distances [N1, N2, M]
-        if self._search_index_info.metric_type == MetricType.COSINE:
-            queries_norm = (
-                F.normalize(query_vector, p=2, dim=-1)
-                .unsqueeze(1)
-                .unsqueeze(2)
-            )  # [N1, 1, 1, D]
-            items_norm = F.normalize(item_vectors, p=2, dim=-1)  # [N2, M, D]
-            items_norm = items_norm.unsqueeze(0)  # [1, N2, M, D]
-            values = torch.sum(
-                queries_norm * items_norm, dim=-1
-            )  # [N1, N2, M]
-            if self._scale_to_one:
-                values = (values + 1) / 2
+        return False
 
-            if not is_similarity:
-                values = 1 - values
-
-        elif self._search_index_info.metric_type == MetricType.DOT:
-            queries_exp = query_vector.unsqueeze(1).unsqueeze(
-                2
-            )  # [N1, 1, 1, D]
-            items_exp = item_vectors.unsqueeze(0)  # [1, N2, M, D]
-            values = torch.sum(queries_exp * items_exp, dim=-1)  # [N1, N2, M]
-            if self._scale_to_one:
-                values = (values + 1) / 2
-
-            if not is_similarity:
-                values = -values
-
-        elif self._search_index_info.metric_type == MetricType.EUCLID:
-            queries_exp = query_vector.unsqueeze(1).unsqueeze(
-                2
-            )  # [N1, 1, 1, D]
-            items_exp = item_vectors.unsqueeze(0)  # [1, N2, M, D]
-            differences = queries_exp - items_exp  # [N1, N2, M, D]
-            values = torch.norm(differences, dim=-1)  # [N1, N2, M]
-            if is_similarity:
-                values = -values
-
-        else:
-            raise ValueError(
-                f"Unsupported MetricType: {self._search_index_info.metric_type}"
-            )
-
-        # Aggregate across the `M` dimension -> [N1, N2]
-        if (
-            self._search_index_info.metric_aggregation_type
-            == MetricAggregationType.MIN
-        ):
-            # Differentiable soft minimum using log-sum-exp
-            softmin_weights = torch.exp(
-                -values / softmin_temperature
-            )  # [N1, N2, M]
-            softmin_weights /= softmin_weights.sum(
-                dim=-1, keepdim=True
-            )  # Normalize weights along M
-            values = torch.sum(
-                softmin_weights * values, dim=-1
-            )  # Weighted sum -> [N1, N2]
-
-        elif (
-            self._search_index_info.metric_aggregation_type
-            == MetricAggregationType.AVG
-        ):
-            values = values.mean(dim=-1)  # [N1, N2]
-
-        else:
-            raise ValueError(
-                f"Unsupported MetricAggregationType: {self._search_index_info.metric_aggregation_type}"
-            )
-
-        return values
-
+    @abstractmethod
     def _calculate_binary_labels(
         self, corrected_values: torch.Tensor
     ) -> torch.Tensor:
+        """
+        Calculates binary selection labels (0 or 1) from corrected distance values.
+
+        This abstract method must be implemented by subclasses to define the specific
+        decision boundary for selection based on the corrected distance values.
+
+        :param corrected_values: Tensor of distances that have been adjusted by the margin
+        :return: Binary tensor indicating which items should be selected (1) or not (0)
+
+        Example implementation:
+        ```python
+        def _calculate_binary_labels(self, corrected_values: torch.Tensor) -> torch.Tensor:
+            # Simple threshold-based selection
+            return corrected_values > 0
+        ```
+        """
         raise NotImplementedError
 
+    def _convert_values(
+        self, categories: List[ObjectWithDistance]
+    ) -> torch.Tensor:
+        """
+        Converts raw distance values from objects to a normalized tensor.
+
+        This method extracts distance values from objects and normalizes them
+        based on the metric type and similarity/distance mode.
+
+        :param categories: List of objects with distance metrics
+        :return: Tensor of normalized distance values
+        """
+        values = []
+        for category in categories:
+            value = category.distance
+            if self._is_similarity:
+                if self._search_index_info.metric_type == MetricType.DOT:
+                    value = value * -1.0
+
+                elif self._search_index_info.metric_type == MetricType.COSINE:
+                    value = 1.0 - value
+
+                elif self._search_index_info.metric_type == MetricType.EUCLID:
+                    value = 1.0 / max(value, 1e-8)
+
+            values.append(value)
+
+        return torch.tensor(values)
+
     def select(
-        self, query_vector: torch.Tensor, item_vectors: torch.Tensor
+        self,
+        categories: List[ObjectWithDistance],
+        query_vector: Optional[torch.Tensor] = None,
     ) -> List[int]:
-        values = self._calculate_distance(
-            query_vector,
-            item_vectors,
-            self._softmin_temperature,
-            self._is_similarity,
-        )
+        """
+        Selects indices of objects based on their distance values.
+
+        This method implements the selection logic by:
+        1. Converting raw distances to normalized values
+        2. Applying the margin threshold
+        3. Calculating binary selection labels
+        4. Returning indices of selected objects
+
+        :param categories: List of objects with distance metrics
+        :param query_vector: Optional query vector (not used in distance-based selectors)
+        :return: List of indices of selected objects
+        """
+        values = self._convert_values(categories)
+
         positive_threshold_min = (
             1 - self._margin if self._is_similarity else self._margin
         )
         corrected_values = values - positive_threshold_min
         bin_labels = self._calculate_binary_labels(corrected_values)
-        return torch.nonzero(bin_labels).T[1].tolist()
+        return torch.nonzero(bin_labels).T[0].tolist()

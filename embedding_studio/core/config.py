@@ -1,6 +1,6 @@
 import os
 import secrets
-from typing import List, Union
+from typing import Any, List, Union
 
 from pydantic import AnyHttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -40,26 +40,9 @@ class Settings(BaseSettings):
     )
 
     # Suggesting
-    SUGGESTING_MONGO_HOST: str = os.getenv("SUGGESTING_MONGO_HOST", "mongo")
-    SUGGESTING_MONGO_PORT: int = os.getenv("SUGGESTING_MONGO_PORT", 27017)
-    SUGGESTING_MONGO_DB_NAME: str = os.getenv(
-        "SUGGESTING_MONGO_DB_NAME", "embedding_studio"
-    )
-
-    SUGGESTING_MONGO_USERNAME: str = os.getenv(
-        "SUGGESTING_MONGO_USERNAME", "root"
-    )
-    SUGGESTING_MONGO_PASSWORD: str = os.getenv(
-        "SUGGESTING_MONGO_PASSWORD", "mongopassword"
-    )
-    SUGGESTING_MONGO_URL: str = (
-        f"mongodb://{SUGGESTING_MONGO_USERNAME}:{SUGGESTING_MONGO_PASSWORD}@"
-        f"{SUGGESTING_MONGO_HOST}:{SUGGESTING_MONGO_PORT}"
-    )
-
     SUGGESTING_MAX_CHUNKS: int = os.getenv("SUGGESTING_MAX_CHUNKS", 20)
-    SUGGESTING_MONGO_COLLECTION: str = os.getenv(
-        "SUGGESTING_MONGO_COLLECTION", "suggestion_phrases"
+    SUGGESTING_REDIS_COLLECTION: str = os.getenv(
+        "SUGGESTING_REDIS_COLLECTION", "suggestion_phrases"
     )
 
     # Constant Improvement
@@ -157,9 +140,10 @@ class Settings(BaseSettings):
     )
 
     # Inference
+    # Important: define your plugins there:
     INFERENCE_USED_PLUGINS: List[str] = [
-        "DefaultFineTuningMethod",
-        "CategoriesTextFineTuningMethod",
+        "HFDictTextFineTuningMethod",
+        "HFCategoriesTextFineTuningMethod",
     ]
 
     INFERENCE_MODEL_REPO: str = os.getenv("INFERENCE_MODEL_REPO", os.getcwd())
@@ -204,8 +188,13 @@ class Settings(BaseSettings):
     )
 
     # Upsertion
-    UPSERTION_BATCH_SIZE: int = 16
-    UPSERTION_IGNORE_FAILED_ITEMS: bool = True
+    UPSERTION_BATCH_SIZE: int = os.getenv("UPSERTION_BATCH_SIZE", 16)
+    UPSERTION_INFERENCE_BATCH_SIZE: int = os.getenv(
+        "UPSERTION_INFERENCE_BATCH_SIZE", 16
+    )
+    UPSERTION_IGNORE_FAILED_ITEMS: bool = os.getenv(
+        "UPSERTION_IGNORE_FAILED_ITEMS", True
+    )
     UPSERTION_PASS_TO_REINDEXING_MODEL: int = os.getenv(
         "UPSERTION_PASS_TO_REINDEXING_MODEL", True
     )
@@ -489,6 +478,9 @@ class Settings(BaseSettings):
         f"postgresql+psycopg://"
         f"{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
     )
+
+    # Query Parsing
+    QUERY_PARSING_DB_META_INFO: Any = {"enlarged_limit": 36}
 
     # Inference
     INFERENCE_QUERY_EMBEDDING_ATTEMPTS: int = os.getenv(

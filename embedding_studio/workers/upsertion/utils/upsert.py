@@ -7,6 +7,9 @@ from embedding_studio.core.config import settings
 from embedding_studio.core.plugin import PluginManager
 from embedding_studio.data_access.mongo.crud_base import CRUDBase
 from embedding_studio.data_storage.loaders.data_loader import DataLoader
+from embedding_studio.embeddings.data.preprocessors.preprocessor import (
+    ItemsDatasetDictPreprocessor,
+)
 from embedding_studio.embeddings.inference.triton.client import TritonClient
 from embedding_studio.embeddings.splitters.item_splitter import ItemSplitter
 from embedding_studio.models.items_handler import (
@@ -89,6 +92,7 @@ def upsert_batch(
     batch: List[DataItem],
     data_loader: DataLoader,
     items_splitter: ItemSplitter,
+    preprocessor: ItemsDatasetDictPreprocessor,
     inference_client: TritonClient,
     collection: Collection,
     batch_index: int,
@@ -101,6 +105,7 @@ def upsert_batch(
     :param batch: List of DataItems to be processed.
     :param data_loader: DataLoader instance to download data.
     :param items_splitter: ItemSplitter instance to split data into parts.
+    :param preprocessor: ItemsDatasetDictPreprocessor instance to preprocess data.
     :param inference_client: TritonClient instance to perform inference.
     :param collection: Collection instance to upload vectors to.
     :param batch_index: Index of the current batch.
@@ -122,7 +127,7 @@ def upsert_batch(
             f"with {len(downloaded_items)} items in it [task ID: {task.id}]"
         )
         parts, object_to_parts, failed = split_items(
-            downloaded_items, items_splitter
+            downloaded_items, items_splitter, preprocessor
         )
         logger.info(
             f"Split result for {batch_index} batch: {len(downloaded_items)} "
@@ -157,6 +162,8 @@ def upsert_batch(
             collection=collection,
         )
 
+        logger.info(f"Batch {batch_index} processing is finished.")
+
     except Exception as e:
         tb = traceback.format_exc()[-1500:]
         handle_failed_items(
@@ -172,37 +179,39 @@ def process_upsert(
     collection: Collection,
     data_loader: DataLoader,
     items_splitter: ItemSplitter,
+    preprocessor: ItemsDatasetDictPreprocessor,
     inference_client: TritonClient,
     task_crud: CRUDBase,
 ):
     # Extract all object IDs from the task items
-    all_object_ids = [item.object_id for item in task.items]
+    [item.object_id for item in task.items]
     batches = len(task.items) // settings.UPSERTION_BATCH_SIZE + 1
-    with collection.lock_objects(
-        all_object_ids, max_attempts=5, wait_time=2.0
-    ):
-        for batch_index in range(batches):
-            start = batch_index * settings.UPSERTION_BATCH_SIZE
-            end = min(
-                (batch_index + 1) * settings.UPSERTION_BATCH_SIZE,
-                len(task.items),
+    for batch_index in range(batches):
+        start = batch_index * settings.UPSERTION_BATCH_SIZE
+        end = min(
+            (batch_index + 1) * settings.UPSERTION_BATCH_SIZE,
+            len(task.items),
+        )
+
+        if end <= len(task.items):
+            # with collection.lock_objects(
+            #         all_object_ids[start:end], max_attempts=5, wait_time=2.0
+            # ):
+            batch = task.items[start:end]
+            if len(batch) == 0:
+                continue
+
+            upsert_batch(
+                batch=batch,
+                data_loader=data_loader,
+                items_splitter=items_splitter,
+                preprocessor=preprocessor,
+                inference_client=inference_client,
+                collection=collection,
+                batch_index=batch_index,
+                task=task,
+                task_crud=task_crud,
             )
-
-            if end <= len(task.items):
-                batch = task.items[start:end]
-                if len(batch) == 0:
-                    continue
-
-                upsert_batch(
-                    batch=batch,
-                    data_loader=data_loader,
-                    items_splitter=items_splitter,
-                    inference_client=inference_client,
-                    collection=collection,
-                    batch_index=batch_index,
-                    task=task,
-                    task_crud=task_crud,
-                )
 
     task.status = TaskStatus.done
     task_crud.update(obj=task)

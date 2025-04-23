@@ -20,6 +20,7 @@ async def lifespan(app: FastAPI):
     # pre-launch actions
     init_nltk()
     init_plugin_manager()
+
     yield
     # post actions
 

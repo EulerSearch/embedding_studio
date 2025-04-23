@@ -24,6 +24,17 @@ from pydantic import BaseModel
 
 
 class ItemMeta(BaseModel):
+    """
+    Base class for metadata about items in the data storage system.
+
+    ItemMeta serves as a foundation for tracking and identifying data items.
+    It provides mechanisms for unique identification through either explicit IDs
+    or derived identifiers based on item properties.
+
+    :param object_id: Optional explicit identifier for the item
+    :param payload: Optional dictionary containing additional metadata
+    """
+
     object_id: Optional[str] = None
     payload: Optional[Dict[str, Any]] = None
 
@@ -42,6 +53,13 @@ class ItemMeta(BaseModel):
 
         This mechanism supports polymorphic behavior where different types of items might have different
         methods of constructing a unique ID, which is not possible to standardize at the `ItemMeta` level.
+
+        Example implementation:
+        ```python
+        @property
+        def derived_id(self) -> str:
+            return f"{self.file_path}:{self.creation_timestamp}"
+        ```
         """
         raise NotImplemented()
 
@@ -59,5 +77,48 @@ class ItemMeta(BaseModel):
         return self.object_id or self.derived_id
 
     def __hash__(self) -> int:
+        """
+        Provides a hash implementation based on the unique id.
+
+        This enables instances to be used as keys in dictionaries or stored in sets.
+
+        :return: An integer hash value based on the item's id
+        """
         # Provide a default hash implementation based on the unique id
         return hash(self.id)
+
+
+class ItemMetaWithSourceInfo(ItemMeta):
+    """
+    Extended ItemMeta that includes information about the source of the item.
+
+    This class adds a source identifier to the metadata, which is incorporated into
+    the derived ID to ensure uniqueness across different sources.
+
+    :param source_name: Name of the source from which the item originates
+    """
+
+    source_name: str
+
+    @property
+    def derived_id(self) -> str:
+        """
+        Creates a derived ID that includes the source name.
+
+        Extends the base class derived_id implementation by prefixing it with the source name.
+
+        :return: A string representing a unique identifier that includes source information
+
+        Example usage:
+        ```python
+        class FileItemMeta(ItemMetaWithSourceInfo):
+            file_path: str
+
+            @property
+            def derived_id(self) -> str:
+                # This will call ItemMetaWithSourceInfo.derived_id
+                # which will prefix with source_name
+                return f"{self.file_path}"
+        ```
+        """
+        return f"{self.source_name}:{super().derived_id}"

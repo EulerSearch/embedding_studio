@@ -4,37 +4,113 @@
 
 <section class="es-container">
     <div class="md-grid md-typeset">
-        <div class="es-product">
-            <div class="es-product__image">
-                <img src="images/embedding_studio_product.png" draggable="false">
-            </div>
+        <div class="es-product centered-header">
             <div class="es-product__content">
                 <h1> Embedding Studio </h1>
-                <p class="es-logo-slogan">Turning your embedding model into a <b>search engine</b>.</p>
-                <a href="{{ page.next_page.url | url }}" title="{{ page.next_page.title | striptags }}"
-                   class="md-button md-button--primary">
-                    Get started
-                </a>
-                <a href="{{ config.repo_url }}" title="{{ lang.t('source.link.title') }}" class="md-button">
-                    Support us on GitHub
-                </a>
+                <p class="es-logo-slogan">An open-source framework that transforming embedding models and vector databases into
+                    <b>self-improving search engines that enhance both the recall of similarity search and precision of exact matching</b>.
+                <div class="button-container">
+                    <a href="{{ page.next_page.url | url }}" title="{{ page.next_page.title | striptags }}"
+                       class="md-button md-button--primary">
+                        Get started
+                    </a>
+                    <a href="{{ config.repo_url }}" title="{{ lang.t('source.link.title') }}" class="md-button">
+                        Support us on GitHub
+                    </a>
+                    <a href="https://hugsearch.demo.embeddingstud.io/" class="md-button md-button--primary">
+                        Try the Live Demo
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
+<style>
+    .centered-header {
+        text-align: center;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .es-product {
+        justify-content: center;
+    }
+
+    .es-product__content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .es-logo-slogan {
+        max-width: 800px;
+        font-size: 1.1rem;
+        line-height: 1.5;
+        margin-bottom: 1.5rem;
+    }
+
+    .button-container {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+        .button-container {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+</style>
+
+<style>
+    .top-hr {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        max-width: 1100px;
+    }
+
+    .feature-item {
+        flex: 1;
+        min-width: 250px;
+        padding: 0 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .feature-item h2 {
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .feature-item h2 img {
+        margin-right: 0.5rem;
+        width: 24px;
+        height: 24px;
+    }
+
+    .feature-item p {
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+</style>
+
 <div class="top-hr">
     <div class="feature-item">
         <h2>
             <img src="images/loop.svg"/>
-            Embeddings-in-the-loop
+            Full-Cycle Search Engine
         </h2>
-        <p>Embedding Studio adapts search results nearly online and runs automatic fine-tuning procedure.</p>
+        <p>Transform your vector database into a complete search solution with built-in clickstream collection and continuous model refinement.</p>
     </div>
     <div class="feature-item">
         <h2>
             <img src="images/search.svg"/>
-            Smart search query parser
+            Intelligent Query Processing
         </h2>
         <p>Combine structured and unstructured search with our <a class="es-color"
                                                                   href="https://huggingface.co/EmbeddingStudio/query-parser-falcon-7b-instruct">LLM
@@ -43,34 +119,33 @@
     <div class="feature-item">
         <h2>
             <img src="images/click.svg"/>
-            Collect user search sessions
+            User Feedback Collection
         </h2>
-        <p>Use collected clicks for resource saving and accuracy effective fine-tuning procedure.</p>
+        <p>Automatically gather clickstream and session data for resource-saving and accuracy-effective fine-tuning.</p>
     </div>
-
 </div>
 
 <div class="top-hr">
     <div class="feature-item">
         <h2>
             <img src="images/python_logo.svg"/>
-            Python ecosystem
+            Python Ecosystem
         </h2>
-        <p>Use Embedding Studio together with your preferred Python libraries. </p>
+        <p>Use Embedding Studio together with your preferred Python libraries.</p>
     </div>
     <div class="feature-item">
         <h2>
             <img src="images/plugin.svg"/>
-            Plugin-based system
+            Plugin-Based System
         </h2>
         <p>Connect your own Vector DB, Data Source and Embedding model by implementing a Python plugin.</p>
     </div>
     <div class="feature-item">
         <h2>
             <img src="images/data_model.svg"/>
-            Use your models
+            Continuous Improvement
         </h2>
-        <p>Import embeddings model for your data type.</p>
+        <p>Enhance search quality on-the-fly without long waiting periods through iterative fine-tuning.</p>
     </div>
 </div>
 
@@ -85,136 +160,275 @@
     <div class="feature-item">
         <h2>
             <img src="images/docker.svg"/>
-            Easy deployment
+            Easy Deployment
         </h2>
-        <p>Our goal is to make it simple for customers. You can deploy it and calibrate it without much effort.</p>
+        <p>Simple deployment with Docker Compose and blue-green deployment for zero-downtime updates.</p>
     </div>
     <div class="feature-item">
         <h2>
             <img src="images/mlflow.png"/>
-            MLflow Native
+            Performance Monitoring
         </h2>
-        <p>We use MLflow as a fine-tuning progress tracking system by default.</p>
+        <p>Track search quality metrics through comprehensive dashboards using MLflow.</p>
     </div>
 </div>
 
 <div class="top-hr">
     <div class="hr">
-
     </div>
 </div>
 
 <div class="text-center">
-    <h2>Tasks solved with Embedding Studio</h2>
+    <h2>When to Use Embedding Studio</h2>
     <center>
         <div class="disclaimer">
             <p>
-                Embedding Studio is a framework which allows you transform your Vector Database into a
-                feature-rich Search Engine.
+                Embedding Studio is ideal for these scenarios:
             </p>
         </div>
     </center>
 </div>
 
-<div class="top-hr cards">
-    <div class="card">
-        <div class="card-image">
-            <img src="./images/semantic-search.png" alt="Semantic Search">
-        </div>
-        <div class="card-content">
-            <div class="card-header">
-                <h2>
-                    <img src="images/logo2.svg"/>
-                    Semantic search engine
-                </h2>
-            </div>
-            <div class="card-text">
-                <p class="feature-item-text">Your users look into some images inspired by <i>True Detective</i> or <i>Breaking
-                    Bad</i> series, or some blogposts related to the <i>vector search topic</i>.</p>
-                <p class="feature-item-text">Using multimodal embeddings like <i>CLIP</i> or <i>BLIP</i>, a vector
-                    database like <i>QDrant</i> or <i>Milivus</i>, and Embedding Studio you can easily allow your users
-                    to do it, without using a hashtags, classifiers and classic text indexes.</p>
-            </div>
+<div class="top-hr">
+    <div class="feature-item">
+        <h2>
+            <img src="images/data_model.svg"/>
+            Rich Content Collections
+        </h2>
+        <p>Businesses with extensive catalogs and unstructured data</p>
+    </div>
+    <div class="feature-item">
+        <h2>
+            <img src="images/click.svg"/>
+            Customer-Centric Platforms
+        </h2>
+        <p>Applications prioritizing personalized user experiences</p>
+    </div>
+    <div class="feature-item">
+        <h2>
+            <img src="images/loop.svg"/>
+            Dynamic Content
+        </h2>
+        <p>Platforms with evolving content and changing user preferences</p>
+    </div>
+</div>
+
+<div class="top-hr">
+    <div class="feature-item">
+        <h2>
+            <img src="images/search.svg"/>
+            Complex Queries
+        </h2>
+        <p>Systems handling nuanced and multifaceted search needs</p>
+    </div>
+    <div class="feature-item">
+        <h2>
+            <img src="images/data_model.svg"/>
+            Mixed Data Types
+        </h2>
+        <p>Applications integrating different data formats in search</p>
+    </div>
+    <div class="feature-item">
+        <h2>
+            <img src="images/github.svg"/>
+            Cost-Conscious
+        </h2>
+        <p>Teams looking for powerful yet affordable solutions</p>
+    </div>
+</div>
+
+<div class="top-hr">
+    <div class="hr">
+    </div>
+</div>
+
+
+<div class="text-center">
+    <h2>Core Capabilities</h2>
+    <div class="centered-content">
+        <p class="capabilities-intro">
+            Embedding Studio is a framework which transforms your Vector Database into a
+            feature-rich, self-improving Search Engine.
+        </p>
+    </div>
+</div>
+
+<style>
+    .capabilities-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-gap: 1.5rem;
+        margin: 2rem auto;
+        max-width: 900px;
+    }
+
+    .centered-content {
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .capabilities-intro {
+        font-size: 1.1rem;
+        line-height: 1.5;
+        margin-bottom: 1.5rem;
+    }
+
+    .capability-card {
+        padding: 1.2rem 1.5rem;
+        border-radius: 0;
+        max-width: 100%;
+    }
+
+    .capability-card h2 {
+        margin-top: 0;
+        font-size: 1.2rem;
+        border-bottom: 2px solid;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .capability-card p {
+        margin-bottom: 1rem;
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+
+    .semantic-card {
+        background-color: rgba(240, 248, 255, 0.5);
+        border-left: 4px solid #0078D7;
+    }
+
+    .semantic-card h2 {
+        border-color: #0078D7;
+        color: #0078D7;
+    }
+
+    .fine-tuning-card {
+        background-color: rgba(245, 255, 245, 0.5);
+        border-left: 4px solid #2E7D32;
+    }
+
+    .fine-tuning-card h2 {
+        border-color: #2E7D32;
+        color: #2E7D32;
+    }
+
+    .structured-card {
+        background-color: rgba(255, 248, 240, 0.5);
+        border-left: 4px solid #ED6C02;
+    }
+
+    .structured-card h2 {
+        border-color: #ED6C02;
+        color: #ED6C02;
+    }
+
+    .multi-modal-card {
+        background-color: rgba(243, 240, 255, 0.5);
+        border-left: 4px solid #7B1FA2;
+    }
+
+    .multi-modal-card h2 {
+        border-color: #7B1FA2;
+        color: #7B1FA2;
+    }
+
+    .numbered-list p {
+        margin-bottom: 0.6rem;
+        font-size: 0.95rem;
+    }
+
+    .text-center h2 {
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+    }
+
+    .disclaimer p {
+        font-size: 1rem;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .contact-container {
+        text-align: right;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+</style>
+
+<div class="capabilities-grid">
+    <div class="capability-card semantic-card">
+        <h2>Semantic & Similarity Search</h2>
+        <p>Build powerful search systems for images inspired by <i>True Detective</i> or <i>Breaking Bad</i>, or find blogposts related to <i>vector search topics</i>.</p>
+        <p>Using multimodal embeddings like <i>CLIP</i> or <i>BLIP</i>, a vector database like <i>QDrant</i> or <i>Milvus</i>, Embedding Studio enables powerful search without hashtags, classifiers, or classic text indexes.</p>
+    </div>
+
+    <div class="capability-card fine-tuning-card">
+        <h2>Iterative Fine-Tuning</h2>
+        <p>Embedding Studio implements a full feedback loop that enhances search quality over time based on real user interactions. This creates systems that improve automatically with minimal additional input.</p>
+        <p>With features like vector optimization and blue-green deployment, you can apply incremental improvements and deploy enhanced embedding models with zero downtime.</p>
+    </div>
+
+    <div class="capability-card structured-card">
+        <h2>Structured and Unstructured</h2>
+        <p>Businesses rarely use unstructured search alone. When users search for <i>brick red houses san francisco area for april</i>, they want houses in San Francisco for April rental, with brick-red color as a preference.</p>
+        <p>Embedding Studio provides <i>LLM instruct fine-tuning</i> for <i>Zero-Shot query parsing</i> to bridge the gap before a company collects sufficient data, potentially eliminating complex rule implementation entirely.</p>
+    </div>
+
+    <div class="capability-card multi-modal-card">
+        <h2>Multi-Modal Support</h2>
+        <p>Work with text, images, and structured data in one unified framework. Embedding Studio supports:</p>
+        <div class="numbered-list">
+            <p>1. <a href="https://huggingface.co/EmbeddingStudio/query-parser-falcon-7b-instruct">Zero-Shot queries parser</a> which needs only a filters schema.</p>
+
+            <p>2. Vector database capabilities to implement query-to-filters mapping that improves session by session.</p>
+
+            <p>3. Personalization support for user-specific vector adjustments based on individual behavior.</p>
         </div>
     </div>
 </div>
 
-<div class="top-hr cards">
-    <div class="card">
-        <div class="card-image">
-            <img src="./images/similarity-search.png" alt="Similarity Search">
-        </div>
-        <div class="card-content">
-            <div class="card-header">
-                <h2>
-                    <img src="images/logo4.svg"/>
-                    Similarity search engine
-                </h2>
-            </div>
-            <div class="card-text">
-                <p>Your IT company is at the stage, when users pushing tons of support tickets, bug reports and customer
-                    requests, and your support is looking into tons of logs and messages to find similar cases and a
-                    solution.</p>
-                <p>Using embedding like <a href="https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2"><i>sentence-transformers/all-MiniLM-L6-v2</i></a>,
-                    a vector database and Embedding Studio, you can easily implement internal tickets search and
-                    grouping, which will be fine-tuned with your specific domain.</p>
-            </div>
-        </div>
+<div class="top-hr">
+    <div class="hr">
     </div>
 </div>
 
-<div class="top-hr cards">
-    <div class="card">
-        <div class="card-image">
-            <img src="./images/structured-unstructured.png" alt="Structured and Unstructured">
-        </div>
-        <div class="card-content">
-            <div class="card-header">
-                <h2>
-                    <img src="images/logo7.svg"/>
-                    Structured and unstructured search
-                </h2>
-            </div>
-            <div class="card-text">
-                <p>It's a highly rare case when a company will use unstructured search as is. And by searching <i>brick
-                    red houses san francisco area for april</i> user definitely wants to find some houses in San
-                    Francisco for a month-long rent in April, and then maybe brick-red houses. So, companies need to mix
-                    structured and unstructured search.</p>
-                <p>Embedding Studio team decided to dive into <i>LLM instruct fine-tuning</i> for <i>Zero-Shot query
-                    parsing task</i> to close the first gap while a company doesn't have any rules and data being
-                    collected, or even eliminate exhausted rules implementation, but in the future.</p>
-            </div>
-        </div>
+<div class="text-center">
+    <h2 class="contact-header">Contact Information</h2>
+    <div class="contact-details">
+        <p class="contact-text">
+            <strong>EulerSearch Inc.</strong><br/>
+            3416, 1007 N Orange St. 4th Floor,<br/>
+            Wilmington, DE, New Castle, US, 19801<br/>
+            Email: <a href="mailto:aleksandr.iudaev@eulersearch.com">aleksandr.iudaev@eulersearch.com</a><br/>
+            Phone: +34 (691) 454 148<br/>
+            LinkedIn: <a href="https://www.linkedin.com/in/alexanderyudaev/">alexanderyudaev</a>
+        </p>
     </div>
 </div>
 
-<div class="top-hr cards">
-    <div class="card">
-        <div class="card-image">
-            <img src="./images/structured-unstructured-queries.png" alt="Structured search with Unstructured queries">
-        </div>
-        <div class="card-content">
-            <div class="card-header">
-                <h2>
-                    <img src="images/logo6.svg"/>
-                    Structured search / unstructured queries
-                </h2>
-            </div>
-            <div class="card-text">
-                <p>You don't need any unstructured search underneath you search system, that's ok, especially if you're
-                    a service like taxi or booking, because your customers usually want to arrive exactly to <i>221B
-                        Baker Street, London</i>, and nothing <i>very similar</i>. You'll probably try to implement
-                    search queries parser.</p>
-                <p>So, Embedding Studio can help you too in two ways:</p>
-                <p> 1. <a href="https://huggingface.co/EmbeddingStudio/query-parser-falcon-7b-instruct">Zero-Shot
-                    queries parser</a>, which doesn't need anything except filters schema.<br/>
-                    2. With capability of vector databases and Embedding Studio you can implement query to filters
-                    mapper, which will improve session by session.
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
+<style>
+    .contact-header {
+        font-size: 1.5rem;
+        margin-bottom: 0.8rem;
+        text-align: center;
+    }
+
+    .contact-details {
+        text-align: center;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .contact-text {
+        font-size: 0.95rem;
+        line-height: 1.5;
+        display: inline-block;
+        text-align: left;
+    }
+</style>
 
 {% endblock %}
 {% block content %}{% endblock %}

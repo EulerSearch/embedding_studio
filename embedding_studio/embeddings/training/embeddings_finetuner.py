@@ -41,6 +41,23 @@ logger = logging.getLogger(__name__)
 
 
 class EmbeddingsFineTuner(pl.LightningModule):
+    """This is a class that represents embeddings fine-tuning logic, designed to be used with
+    PytorchLightning Trainer.
+
+    :param model: Embedding model itself, must implement EmbeddingsModelInterface
+    :param items_sets: Items dataset related to a given iteration, as a DatasetDict with train and test keys
+    :param query_retriever: Object to retrieve items related to queries
+    :param loss_func: Loss object for the ranking task
+    :param fine_tuning_params: Hyperparameters of the fine-tuning task
+    :param tracker: Experiment management object for tracking metrics
+    :param metric_calculators: List of trackable metrics calculators. If None, only DistanceShift metric will be used
+    :param ranker: Ranking function that takes (query, items) and returns ranks
+    :param is_similarity: Whether the ranking function is similarity-based (True) or distance-based (False)
+    :param confidence_calculator: Function to calculate result confidences
+    :param step_size: Optimizer step size for learning rate scheduler
+    :param gamma: Optimizer's gamma parameter for learning rate scheduler
+    """
+
     def __init__(
         self,
         model: EmbeddingsModelInterface,
@@ -58,23 +75,6 @@ class EmbeddingsFineTuner(pl.LightningModule):
         step_size: int = 500,
         gamma: float = 0.9,
     ):
-        """This is a class, that represents embeddings fine-tuning logic,
-        designed in the way to be use PytorchLightning Trainer.
-
-        :param model: embedding model itself
-        :param items_sets:  items items_set related to a given iteration, as a datasetdict with train and test keys
-        :param query_retriever: object to get item related to query, that can be used in "forward"
-        :param loss_func: loss object for a ranking task
-        :param fine_tuning_params: hyper params of fine-tuning task
-        :param tracker: experiment management object
-        :param metric_calculators: list of trackable metrics calculators (default: None)
-                                   by default_params only DistanceShift metric
-        :param ranker: ranking function (query, items) -> ranks (defult: cosine similarity)
-        :param is_similarity: is ranking function similarity like or distance (default: True)
-        :param confidence_calculator: function to calculate results confidences (default: dummy_confidences)
-        :param step_size: optimizer steps (default: 500)
-        :param gamma: optimizers gamma (default: 0.9)
-        """
         if not isinstance(model, EmbeddingsModelInterface):
             raise TypeError(
                 "model must be an instance of EmbeddingsModelInterface"
@@ -151,26 +151,44 @@ class EmbeddingsFineTuner(pl.LightningModule):
         self.automatic_optimization = False
 
     def preprocess_inputs(self, clickstream_dataset: DatasetDict):
+        """Preprocesses inputs by calculating ranks for all fine-tuning inputs in the dataset.
+
+        This method ensures that all fine-tuning inputs in the dataset have valid rank values.
+        For each input that has either empty ranks or contains None values, it calculates
+        proper ranks using the features_extractor. This ensures all inputs are properly
+        prepared before the fine-tuning process.
+
+        :param clickstream_dataset: Dataset containing fine-tuning inputs to be preprocessed
+        """
+        # Process each split in the dataset (train, test, etc.)
         for key in clickstream_dataset.keys():
+            # Get the corresponding items set for this split
             items_set = self.items_sets[key]
-            logger.info(
+
+            # Process not irrelevant examples first (positive examples)
+            logger.debug(
                 f"Calculate ranks for {key} not irrelevant fine-tuning inputs"
             )
             for fine_tuning_input in clickstream_dataset[key].not_irrelevant:
+                # Check if ranks need to be calculated (empty or containing None)
                 unique_values = set(fine_tuning_input.ranks.values())
                 if len(unique_values) == 0 or None in unique_values:
+                    # Calculate ranks using the features extractor
                     fine_tuning_input.ranks = (
                         self.features_extractor.calculate_ranks(
                             fine_tuning_input, items_set, self.query_retriever
                         )
                     )
 
-            logger.info(
+            # Process irrelevant examples (negative examples)
+            logger.debug(
                 f"Calculate ranks for {key} irrelevant fine-tuning inputs"
             )
             for fine_tuning_input in clickstream_dataset[key].irrelevant:
+                # Check if ranks need to be calculated (empty or containing None)
                 unique_values = set(fine_tuning_input.ranks.values())
                 if len(unique_values) == 0 or None in unique_values:
+                    # Calculate ranks using the features extractor
                     fine_tuning_input.ranks = (
                         self.features_extractor.calculate_ranks(
                             fine_tuning_input, items_set, self.query_retriever
@@ -182,6 +200,12 @@ class EmbeddingsFineTuner(pl.LightningModule):
     def configure_optimizers(
         self,
     ) -> Tuple[List[Optimizer], List[LRScheduler]]:
+        """Configures optimizers and schedulers for the fine-tuning process.
+
+        This is a standard PyTorch Lightning method for setting up optimizers and learning rate schedulers.
+
+        :return: A tuple containing a list of optimizers and a list of schedulers
+        """
         if not (isinstance(self.step_size, int) and self.step_size > 0):
             raise ValueError("step_size must be a positive integer")
 
@@ -220,6 +244,14 @@ class EmbeddingsFineTuner(pl.LightningModule):
         batch: List[Tuple[FineTuningInput, FineTuningInput]],
         batch_idx: int,
     ) -> Union[FloatTensor, Tensor]:
+        """Performs a single training step with one batch.
+
+        This is a standard PyTorch Lightning method for defining the training logic.
+
+        :param batch: A list of tuples, where each tuple contains two FineTuningInput objects
+        :param batch_idx: The index of the current batch
+        :return: The computed loss
+        """
         if not (
             isinstance(batch, (list, tuple))
             and all(
@@ -286,6 +318,14 @@ class EmbeddingsFineTuner(pl.LightningModule):
         batch: List[Tuple[FineTuningInput, FineTuningInput]],
         batch_idx: int,
     ) -> Union[FloatTensor, Tensor]:
+        """Performs a single validation step with one batch.
+
+        This is a standard PyTorch Lightning method for defining the validation logic.
+
+        :param batch: A list of tuples, where each tuple contains two FineTuningInput objects
+        :param batch_idx: The index of the current batch
+        :return: The computed loss
+        """
         if not (
             isinstance(batch, (list, tuple))
             and all(
@@ -326,6 +366,12 @@ class EmbeddingsFineTuner(pl.LightningModule):
 
     # 4. Aggregation of validation results
     def on_validation_epoch_end(self) -> float:
+        """Aggregates validation results at the end of a validation epoch.
+
+        This is a standard PyTorch Lightning method for post-validation processing.
+
+        :return: The mean validation loss
+        """
         loss: Optional[float] = None
         # And log only averages at the end of validation epoch
         for name, values in self._validation_metrics.items():
@@ -351,13 +397,13 @@ class EmbeddingsFineTuner(pl.LightningModule):
     ):
         """Create embedding fine tuner from settings.
 
-        :param model: embedding model itself
-        :param settings: fine-tuning settings
-        :param items_sets:  items items_set related to a given iteration, as a datasetdict with train and test keys
-        :param query_retriever: object to get item related to query, that can be used in "forward"
-        :param fine_tuning_params: hyper params of fine-tuning task
-        :param tracker: experiment management object
-        :return:
+        :param model: Embedding model itself
+        :param settings: Fine-tuning settings
+        :param items_sets: Items dataset related to a given iteration, as a DatasetDict with train and test keys
+        :param query_retriever: Object to retrieve items related to queries
+        :param fine_tuning_params: Hyperparameters of the fine-tuning task
+        :param tracker: Experiment management object for tracking metrics
+        :return: A configured EmbeddingsFineTuner instance
         """
         return EmbeddingsFineTuner(
             model=model,

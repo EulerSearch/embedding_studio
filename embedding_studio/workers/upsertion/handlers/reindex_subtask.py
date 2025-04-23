@@ -110,6 +110,7 @@ def handle_reindex_subtask(task: ReindexSubtaskInDb):
 
     data_loader = dest_plugin.get_data_loader()
     items_splitter = dest_plugin.get_items_splitter()
+    preprocessor = dest_plugin.get_items_preprocessor()
     inference_client = dest_plugin.get_inference_client_factory().get_client(
         task.dest.embedding_model_id
     )
@@ -119,6 +120,7 @@ def handle_reindex_subtask(task: ReindexSubtaskInDb):
         dest_collection,
         data_loader,
         items_splitter,
+        preprocessor,
         inference_client,
         context.reindex_subtask,
     )

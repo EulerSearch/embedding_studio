@@ -2,11 +2,11 @@ import logging
 from typing import Any, Callable, Dict, Optional
 
 from embedding_studio.core.config import settings
+from embedding_studio.utils.retry import retry_method
 from embedding_studio.workers.fine_tuning.utils.config import (
     RetryConfig,
     RetryParams,
 )
-from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 
 logger = logging.getLogger(__name__)
 

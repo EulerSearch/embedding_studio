@@ -38,8 +38,8 @@ from embedding_studio.models.reindex import ReindexSubtaskInDb, ReindexTaskInDb
 from embedding_studio.models.reindex_lock import ReindexLockInDb
 from embedding_studio.models.upsert import UpsertionTaskInDb
 from embedding_studio.suggesting.abstract_suggester import AbstractSuggester
-from embedding_studio.suggesting.mongo.complex_mongo_suggester import (
-    ComplexMongoSuggester,
+from embedding_studio.suggesting.redis.complex_redis_suggester import (
+    ComplexRedisSuggester,
 )
 from embedding_studio.suggesting.tokenizer import SuggestingTokenizer
 from embedding_studio.utils.model_download import ModelDownloader
@@ -128,10 +128,10 @@ context = AppContext(
     mlflow_client=MLflowClientWrapper(
         tracking_uri=settings.MLFLOW_TRACKING_URI,
     ),
-    suggester=ComplexMongoSuggester(
-        mongo_database=mongo.suggesting_mongo_database,
+    suggester=ComplexRedisSuggester(
+        redis_url=settings.REDIS_URL,
         tokenizer=SuggestingTokenizer(),
-        collection_name=settings.SUGGESTING_MONGO_COLLECTION,
+        index_name=settings.SUGGESTING_REDIS_COLLECTION,
         max_chunks=settings.SUGGESTING_MAX_CHUNKS,
     ),
 )

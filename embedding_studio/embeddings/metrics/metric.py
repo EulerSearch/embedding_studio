@@ -13,7 +13,13 @@ from embedding_studio.experiments.metrics_accumulator import MetricValue
 
 
 class MetricCalculator(ABC):
-    """Interface of metrics calculator"""
+    """
+    Interface for metrics calculators used to evaluate embedding model performance.
+
+    This abstract base class defines the contract for all metric calculators,
+    ensuring they implement a standard way to calculate performance metrics
+    over batches of fine-tuning inputs.
+    """
 
     @abstractmethod
     @torch.no_grad()
@@ -24,11 +30,35 @@ class MetricCalculator(ABC):
         items_set: ItemsSet,
         query_retriever: QueryRetriever,
     ) -> List[MetricValue]:
-        """Calculate abstract metric value over provided batch of items.
-
-        :param batch: batch of pairs clickstream inputs (not_irrelevant, irrelevant)
-        :param extractor: object to extract FineTuningFeatures out of provided inputs
-        :param items_set: items dataset
-        :param query_retriever: how to retrieve a value related to session query
-        :return: list of calculated metrics
         """
+        Calculate metric values over a provided batch of items.
+
+        This method evaluates model performance by calculating specific metrics
+        over pairs of inputs (typically one relevant and one irrelevant).
+        The @torch.no_grad decorator ensures that no gradients are calculated
+        during metric evaluation, which improves performance during validation.
+
+        :param batch: Batch of pairs of clickstream inputs where each pair consists of
+                     (not_irrelevant input, irrelevant input). Either element can be None.
+        :param extractor: Object to extract FineTuningFeatures from provided inputs
+                         and to access the underlying model for inference
+        :param items_set: Dataset of items used to retrieve embeddings by item IDs
+        :param query_retriever: Function to retrieve embedding values for input queries
+        :return: List of calculated metrics as MetricValue objects
+
+        Example implementation:
+        def __call__(
+            self,
+            batch: List[Tuple[FineTuningInput, FineTuningInput]],
+            extractor: FeaturesExtractor,
+            items_set: ItemsSet,
+            query_retriever: QueryRetriever,
+        ) -> List[MetricValue]:
+            results = []
+            for inputs_pair in batch:
+                value = self._calculate_metric(inputs_pair, extractor)
+                results.append(value)
+
+            return [MetricValue("my_metric", np.mean(results))]
+        """
+        raise NotImplemented()

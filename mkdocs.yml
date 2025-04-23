@@ -47,22 +47,314 @@ nav:
           - Examples 💼:
               - Online-store: use_cases/online_store.md
               - Legal firm: use_cases/legal_firm.md
-  - Tutorial:
-      - Getting Started: tutorial/getting_started.md
+  - API:
+      - Ping: api/api_v1/endpoints/ping.py.md
+      - Public:
+          - Similarity Search:
+              - Methods: api/api_v1/endpoints/similarity_search.py.md
+              - About Payload:
+                  - Overview: tutorial/payload/overview.md
+                  - How to Construct: tutorial/payload/how_to_construct.md
+                  - Usage for PostgreSQL: tutorial/payload/usage_for_postgresql.md
+          - Query Parsing: api/api_v1/endpoints/query_parsing.py.md
+          - Suggesting Service: api/api_v1/endpoints/suggesting.py.md
+          - Clickstream:
+              - Management: api/api_v1/endpoints/clickstream_client.py.md
+              - Usage: api/api_v1/endpoints/clickstream_internal.py.md
+          - Fine-Tuning: api/api_v1/endpoints/fine_tuning.py.md
+          - Data Management:
+              - Upsert: api/api_v1/endpoints/upsert.py.md
+              - Delete: api/api_v1/endpoints/delete.py.md
+      - Internal:
+          - Model Management: api/api_v1/internal_endpoints/inference_deployment_tasks.py.md
+          - Vector DB Management: api/api_v1/internal_endpoints/vectordb.py.md
+          - Data Management:
+              - Upsert: api/api_v1/internal_endpoints/upsert.py.md
+              - Delete: api/api_v1/internal_endpoints/delete.py.md
+              - Reindex: api/api_v1/internal_endpoints/reindex.py.md
+  - Tutorials:
+      - Getting Started: tutorial/getting_started/introduction.md
       - Basic:
-        - Hello, Unstructured World!: tutorial/hello_unstructured_world.md
-        - How to get best model?: tutorial/how_to_get_best_model.md
-        - Iteration emulator: tutorial/iteration_emulator.md
+          - Core Concepts: tutorial/getting_started/core_concepts.md
+          - Architecture Overview: tutorial/getting_started/architecture_overview.md
+          - Model Lifecycle: tutorial/getting_started/model_lifecycle.md
+          - Configurations: tutorial/getting_started/configurations.md
+          - Docker Quickstart: tutorial/getting_started/docker_quickstart.md
       - Advanced:
-        - Overview: tutorial/advanced_overview.md
-        - Configure Environment: tutorial/configure_environment.md
-        - Data source: tutorial/data_source.md
-        - Fine-Tuning Method: tutorial/fine_tuning_method.md
-        - Fine-Tuning Worker: tutorial/fine_tuning_worker.md
-        - Collect clickstream: tutorial/collect_clickstream.md
-        - Run Fine-Tuning: tutorial/run_fine_tuning.md
-      - Fine-tuning tracking: tutorial/fine_tuning_tracking.md
-      - Plugins: tutorial/plugins.md
+          - Data Management:
+              - Clickstream: tutorial/data_management/clickstream.md
+              - Items: tutorial/data_management/items_data_flow.md
+              - Categories: tutorial/data_management/categories_data_flow.md
+              - API: tutorial/data_management/management_api.md
+          - About Vector DB:
+              - Integration: tutorial/vectordb/integration.md
+              - Configuring: tutorial/vectordb/configuring.md
+              - Managing: tutorial/vectordb/managing.md
+          - Suggestions:
+              - Overview: tutorial/suggestings/overview.md
+              - Management API: tutorial/suggestings/managing_via_api.md
+              - Configuring Redis: tutorial/suggestings/configuring_redis.md
+          - Query Parsing:
+              - Overview: tutorial/query_parsing/overview.md
+              - Customizing Selector: tutorial/query_parsing/custom_selector.md
+          - Vector Improvement & Personalization:
+              - Overview: tutorial/improvement/overview.md
+              - Configuring: tutorial/improvement/configuring.md
+      - Plugins:
+          - About Plugin System: tutorial/plugins/understanding_plugin_system.md
+          - Data Sources Integration: tutorial/plugins/data_sources_integration.md
+          - How to Implement: tutorial/plugins/implement_your_own.md
+  - Documentation:
+      - api:
+          - api_v1:
+              - endpoints:
+                  - clickstream_client: embedding_studio/api/api_v1/endpoints/clickstream_client.py.md
+                  - clickstream_internal: embedding_studio/api/api_v1/endpoints/clickstream_internal.py.md
+                  - delete: embedding_studio/api/api_v1/endpoints/delete.py.md
+                  - fine_tuning: embedding_studio/api/api_v1/endpoints/fine_tuning.py.md
+                  - ping: embedding_studio/api/api_v1/endpoints/ping.py.md
+                  - query_parsing: embedding_studio/api/api_v1/endpoints/query_parsing.py.md
+                  - similarity_search: embedding_studio/api/api_v1/endpoints/similarity_search.py.md
+                  - suggesting: embedding_studio/api/api_v1/endpoints/suggesting.py.md
+                  - upsert: embedding_studio/api/api_v1/endpoints/upsert.py.md
+              - internal_api: embedding_studio/api/api_v1/internal_api.py.md
+              - internal_endpoints:
+                  - delete: embedding_studio/api/api_v1/internal_endpoints/delete.py.md
+                  - inference_deployment_tasks: embedding_studio/api/api_v1/internal_endpoints/inference_deployment_tasks.py.md
+                  - reindex: embedding_studio/api/api_v1/internal_endpoints/reindex.py.md
+                  - upsert: embedding_studio/api/api_v1/internal_endpoints/upsert.py.md
+                  - vectordb: embedding_studio/api/api_v1/internal_endpoints/vectordb.py.md
+              - mocked_api: embedding_studio/api/api_v1/mocked_api.py.md
+              - mocked_endpoints:
+                  - mocked_fine_tuning: embedding_studio/api/api_v1/mocked_endpoints/mocked_fine_tuning.py.md
+      - clickstream_storage:
+          - converters:
+              - converter: embedding_studio/clickstream_storage/converters/converter.py.md
+          - query_retriever: embedding_studio/clickstream_storage/query_retriever.py.md
+          - search_event: embedding_studio/clickstream_storage/search_event.py.md
+          - text_query_retriever: embedding_studio/clickstream_storage/text_query_retriever.py.md
+      - core:
+          - plugin: embedding_studio/core/plugin.py.md
+      - data_access:
+          - clickstream: embedding_studio/data_access/clickstream.py.md
+          - model_stage_tasks: embedding_studio/data_access/model_stage_tasks.py.md
+          - model_transfer_tasks: embedding_studio/data_access/model_transfer_tasks.py.md
+          - mongo:
+              - clickstream: embedding_studio/data_access/mongo/clickstream.py.md
+              - crud_base: embedding_studio/data_access/mongo/crud_base.py.md
+              - mongo_dao: embedding_studio/data_access/mongo/mongo_dao.py.md
+      - data_storage:
+          - loaders:
+              - aggregated_data_loader: embedding_studio/data_storage/loaders/aggregated_data_loader.py.md
+              - cloud_storage:
+                  - bucket_file_meta: embedding_studio/data_storage/loaders/cloud_storage/bucket_file_meta.py.md
+                  - gcp:
+                      - gcp_image_loader: embedding_studio/data_storage/loaders/cloud_storage/gcp/gcp_image_loader.py.md
+                      - gcp_json_loader: embedding_studio/data_storage/loaders/cloud_storage/gcp/gcp_json_loader.py.md
+                      - gcp_loader: embedding_studio/data_storage/loaders/cloud_storage/gcp/gcp_loader.py.md
+                      - gcp_text_loader: embedding_studio/data_storage/loaders/cloud_storage/gcp/gcp_text_loader.py.md
+                  - s3:
+                      - s3_image_loader: embedding_studio/data_storage/loaders/cloud_storage/s3/s3_image_loader.py.md
+                      - s3_json_loader: embedding_studio/data_storage/loaders/cloud_storage/s3/s3_json_loader.py.md
+                      - s3_loader: embedding_studio/data_storage/loaders/cloud_storage/s3/s3_loader.py.md
+                      - s3_text_loader: embedding_studio/data_storage/loaders/cloud_storage/s3/s3_text_loader.py.md
+              - data_loader: embedding_studio/data_storage/loaders/data_loader.py.md
+              - item_meta: embedding_studio/data_storage/loaders/item_meta.py.md
+              - sql:
+                  - pgsql:
+                      - pgsql_image_loader: embedding_studio/data_storage/loaders/sql/pgsql/pgsql_image_loader.py.md
+                      - pgsql_jsonb_loader: embedding_studio/data_storage/loaders/sql/pgsql/pgsql_jsonb_loader.py.md
+                      - pgsql_loader: embedding_studio/data_storage/loaders/sql/pgsql/pgsql_loader.py.md
+                      - pgsql_multi_text_column_loader: embedding_studio/data_storage/loaders/sql/pgsql/pgsql_multi_text_column_loader.py.md
+                      - pgsql_text_loader: embedding_studio/data_storage/loaders/sql/pgsql/pgsql_text_loader.py.md
+                  - query_generator: embedding_studio/data_storage/loaders/sql/query_generator.py.md
+                  - sql_item_meta: embedding_studio/data_storage/loaders/sql/sql_item_meta.py.md
+      - db:
+          - mongo: embedding_studio/db/mongo.py.md
+      - embeddings:
+          - augmentations:
+              - augmentation_interface: embedding_studio/embeddings/augmentations/augmentation_interface.py.md
+              - augmentation_with_random_selection: embedding_studio/embeddings/augmentations/augmentation_with_random_selection.py.md
+              - clickstream_augmentation_applier: embedding_studio/embeddings/augmentations/clickstream_augmentation_applier.py.md
+              - compose: embedding_studio/embeddings/augmentations/compose.py.md
+              - items_set_augmentation_applier: embedding_studio/embeddings/augmentations/items_set_augmentation_applier.py.md
+              - text:
+                  - cases: embedding_studio/embeddings/augmentations/text/cases.py.md
+                  - misspellings: embedding_studio/embeddings/augmentations/text/misspellings.py.md
+          - data:
+              - clickstream:
+                  - paired_fine_tuning_inputs: embedding_studio/embeddings/data/clickstream/paired_fine_tuning_inputs.py.md
+                  - train_test_splitter: embedding_studio/embeddings/data/clickstream/train_test_splitter.py.md
+              - items:
+                  - items_set: embedding_studio/embeddings/data/items/items_set.py.md
+                  - manager: embedding_studio/embeddings/data/items/manager.py.md
+              - preprocessors:
+                  - dict_items_preprocessor: embedding_studio/embeddings/data/preprocessors/dict_items_preprocessor.py.md
+                  - image_items_preprocessor: embedding_studio/embeddings/data/preprocessors/image_items_preprocessor.py.md
+                  - preprocessor: embedding_studio/embeddings/data/preprocessors/preprocessor.py.md
+                  - text_items_preprocessor: embedding_studio/embeddings/data/preprocessors/text_items_preprocessor.py.md
+              - transforms:
+                  - dict:
+                      - line_from_dict: embedding_studio/embeddings/data/transforms/dict/line_from_dict.py.md
+                      - transforms: embedding_studio/embeddings/data/transforms/dict/transforms.py.md
+                  - image:
+                      - center_padded: embedding_studio/embeddings/data/transforms/image/center_padded.py.md
+                      - clip_original: embedding_studio/embeddings/data/transforms/image/clip_original.py.md
+                      - transforms: embedding_studio/embeddings/data/transforms/image/transforms.py.md
+                  - text:
+                      - dummy: embedding_studio/embeddings/data/transforms/text/dummy.py.md
+                      - transforms: embedding_studio/embeddings/data/transforms/text/transforms.py.md
+          - features:
+              - event_confidences: embedding_studio/embeddings/features/event_confidences.py.md
+              - extractor: embedding_studio/embeddings/features/extractor.py.md
+              - fine_tuning_features: embedding_studio/embeddings/features/fine_tuning_features.py.md
+              - fine_tuning_input: embedding_studio/embeddings/features/fine_tuning_input.py.md
+              - ranks_aggregators:
+                  - max_aggregator: embedding_studio/embeddings/features/ranks_aggregators/max_aggregator.py.md
+                  - mean_aggregator: embedding_studio/embeddings/features/ranks_aggregators/mean_aggregator.py.md
+                  - min_aggregator: embedding_studio/embeddings/features/ranks_aggregators/min_aggregator.py.md
+                  - ranks_aggregator: embedding_studio/embeddings/features/ranks_aggregators/ranks_aggregator.py.md
+          - improvement:
+              - torch_based_adjuster: embedding_studio/embeddings/improvement/torch_based_adjuster.py.md
+              - vectors_adjuster: embedding_studio/embeddings/improvement/vectors_adjuster.py.md
+          - inference:
+              - triton:
+                  - client: embedding_studio/embeddings/inference/triton/client.py.md
+                  - text_to_image:
+                      - clip: embedding_studio/embeddings/inference/triton/text_to_image/clip.py.md
+                  - text_to_text:
+                      - bert: embedding_studio/embeddings/inference/triton/text_to_text/bert.py.md
+                      - e5: embedding_studio/embeddings/inference/triton/text_to_text/e5.py.md
+          - losses:
+              - prob_margin_ranking_loss: embedding_studio/embeddings/losses/prob_margin_ranking_loss.py.md
+          - metrics:
+              - distance_shift: embedding_studio/embeddings/metrics/distance_shift.py.md
+          - models:
+              - interface: embedding_studio/embeddings/models/interface.py.md
+              - text_to_image:
+                  - clip: embedding_studio/embeddings/models/text_to_image/clip.py.md
+              - text_to_text:
+                  - bert: embedding_studio/embeddings/models/text_to_text/bert.py.md
+                  - e5: embedding_studio/embeddings/models/text_to_text/e5.py.md
+              - utils:
+                  - average_pool: embedding_studio/embeddings/models/utils/average_pool.py.md
+                  - differentiable_extreme: embedding_studio/embeddings/models/utils/differentiable_extreme.py.md
+                  - differentiable_mean: embedding_studio/embeddings/models/utils/differentiable_mean.py.md
+                  - pooler_output: embedding_studio/embeddings/models/utils/pooler_output.py.md
+                  - soft_indicator: embedding_studio/embeddings/models/utils/soft_indicator.py.md
+          - selectors:
+              - dist_based_selector: embedding_studio/embeddings/selectors/dist_based_selector.py.md
+              - prob_dist_based_selector: embedding_studio/embeddings/selectors/prob_dist_based_selector.py.md
+              - selector: embedding_studio/embeddings/selectors/selector.py.md
+              - vectors_based_selector: embedding_studio/embeddings/selectors/vectors_based_selector.py.md
+          - splitters:
+              - dataset_splitter: embedding_studio/embeddings/splitters/dataset_splitter.py.md
+              - text:
+                  - tokenized_grouped_splitter: embedding_studio/embeddings/splitters/text/tokenized_grouped_splitter.py.md
+          - training:
+              - embeddings_finetuner: embedding_studio/embeddings/training/embeddings_finetuner.py.md
+      - experiments:
+          - experiments_tracker: embedding_studio/experiments/experiments_tracker.py.md
+          - finetuning_iteration: embedding_studio/experiments/finetuning_iteration.py.md
+          - finetuning_params: embedding_studio/experiments/finetuning_params.py.md
+          - metrics_accumulator: embedding_studio/experiments/metrics_accumulator.py.md
+          - mlflow_client_wrapper: embedding_studio/experiments/mlflow_client_wrapper.py.md
+          - trackers:
+              - mlflow_minio_backend: embedding_studio/experiments/trackers/mlflow_minio_backend.py.md
+              - mlflow_with_aws_s3_backend: embedding_studio/experiments/trackers/mlflow_with_aws_s3_backend.py.md
+              - mlflow_with_azure_blob_backend: embedding_studio/experiments/trackers/mlflow_with_azure_blob_backend.py.md
+              - mlflow_with_dbfs_backend: embedding_studio/experiments/trackers/mlflow_with_dbfs_backend.py.md
+              - mlflow_with_gcp_backend: embedding_studio/experiments/trackers/mlflow_with_gcp_backend.py.md
+              - mlflow_with_local_backend: embedding_studio/experiments/trackers/mlflow_with_local_backend.py.md
+      - inference_management:
+          - triton:
+              - jit_trace_manager: embedding_studio/inference_management/triton/jit_trace_manager.py.md
+              - manager: embedding_studio/inference_management/triton/manager.py.md
+              - model_storage_info: embedding_studio/inference_management/triton/model_storage_info.py.md
+              - pytorch_manager: embedding_studio/inference_management/triton/pytorch_manager.py.md
+              - utils:
+                  - generate_model_file: embedding_studio/inference_management/triton/utils/generate_model_file.py.md
+                  - types_mapping: embedding_studio/inference_management/triton/utils/types_mapping.py.md
+      - models:
+          - plugin: embedding_studio/models/plugin.py.md
+          - reindex: embedding_studio/models/reindex.py.md
+          - suggesting: embedding_studio/models/suggesting.py.md
+          - utils: embedding_studio/models/utils.py.md
+      - suggesting:
+          - abstract_suggester: embedding_studio/suggesting/abstract_suggester.py.md
+          - abtract_phrase_manager: embedding_studio/suggesting/abtract_phrase_manager.py.md
+          - redis:
+              - complex_redis_suggester: embedding_studio/suggesting/redis/complex_redis_suggester.py.md
+              - phrases_manager: embedding_studio/suggesting/redis/phrases_manager.py.md
+              - suggester: embedding_studio/suggesting/redis/suggester.py.md
+          - tokenizer: embedding_studio/suggesting/tokenizer.py.md
+      - tests:
+          - conftest: embedding_studio/tests/conftest.py.md
+          - pytest_plugins:
+              - env_vars: embedding_studio/tests/pytest_plugins/env_vars.py.md
+          - test_fine_tuning: embedding_studio/tests/test_fine_tuning.py.md
+          - test_ping: embedding_studio/tests/test_ping.py.md
+      - utils:
+          - datetime_utils: embedding_studio/utils/datetime_utils.py.md
+          - dramatiq_middlewares: embedding_studio/utils/dramatiq_middlewares.py.md
+          - dramatiq_task_handler: embedding_studio/utils/dramatiq_task_handler.py.md
+          - gpu_monitoring: embedding_studio/utils/gpu_monitoring.py.md
+          - initializer_actions: embedding_studio/utils/initializer_actions.py.md
+          - misspelling:
+              - misspellers: embedding_studio/utils/misspelling/misspellers.py.md
+          - mlflow_utils: embedding_studio/utils/mlflow_utils.py.md
+          - model_download: embedding_studio/utils/model_download.py.md
+          - plugin_utils: embedding_studio/utils/plugin_utils.py.md
+          - redis_utils: embedding_studio/utils/redis_utils.py.md
+          - retry: embedding_studio/utils/retry.py.md
+          - string_utils: embedding_studio/utils/string_utils.py.md
+          - tasks: embedding_studio/utils/tasks.py.md
+      - vectordb:
+          - collection: embedding_studio/vectordb/collection.py.md
+          - collection_base: embedding_studio/vectordb/collection_base.py.md
+          - collection_info_cache: embedding_studio/vectordb/collection_info_cache.py.md
+          - pgvector:
+              - collection: embedding_studio/vectordb/pgvector/collection.py.md
+              - db_model: embedding_studio/vectordb/pgvector/db_model.py.md
+              - functions:
+                  - advanced_similarity: embedding_studio/vectordb/pgvector/functions/advanced_similarity.py.md
+                  - simple_similarity: embedding_studio/vectordb/pgvector/functions/simple_similarity.py.md
+                  - where_combinations: embedding_studio/vectordb/pgvector/functions/where_combinations.py.md
+              - optimization: embedding_studio/vectordb/pgvector/optimization.py.md
+              - query_to_sql: embedding_studio/vectordb/pgvector/query_to_sql.py.md
+              - vectordb: embedding_studio/vectordb/pgvector/vectordb.py.md
+          - vectordb: embedding_studio/vectordb/vectordb.py.md
+      - workers:
+          - fine_tuning:
+              - finetune_embedding: embedding_studio/workers/fine_tuning/finetune_embedding.py.md
+              - finetune_embedding_one_param: embedding_studio/workers/fine_tuning/finetune_embedding_one_param.py.md
+              - mocked_worker: embedding_studio/workers/fine_tuning/mocked_worker.py.md
+              - prepare_data: embedding_studio/workers/fine_tuning/prepare_data.py.md
+              - worker: embedding_studio/workers/fine_tuning/worker.py.md
+          - improvement:
+              - utils:
+                  - handle_improvement: embedding_studio/workers/improvement/utils/handle_improvement.py.md
+              - worker: embedding_studio/workers/improvement/worker.py.md
+          - inference:
+              - utils:
+                  - deletion: embedding_studio/workers/inference/utils/deletion.py.md
+                  - deployment: embedding_studio/workers/inference/utils/deployment.py.md
+                  - file_locks: embedding_studio/workers/inference/utils/file_locks.py.md
+                  - init_model_repo: embedding_studio/workers/inference/utils/init_model_repo.py.md
+                  - prepare_for_triton: embedding_studio/workers/inference/utils/prepare_for_triton.py.md
+              - worker: embedding_studio/workers/inference/worker.py.md
+          - upsertion:
+              - handlers:
+                  - delete: embedding_studio/workers/upsertion/handlers/delete.py.md
+                  - reindex: embedding_studio/workers/upsertion/handlers/reindex.py.md
+                  - reindex_subtask: embedding_studio/workers/upsertion/handlers/reindex_subtask.py.md
+                  - upsert: embedding_studio/workers/upsertion/handlers/upsert.py.md
+              - utils:
+                  - deployment: embedding_studio/workers/upsertion/utils/deployment.py.md
+                  - reindex: embedding_studio/workers/upsertion/utils/reindex.py.md
+                  - upsert: embedding_studio/workers/upsertion/utils/upsert.py.md
+                  - upsertion_stages: embedding_studio/workers/upsertion/utils/upsertion_stages.py.md
+              - worker: embedding_studio/workers/upsertion/worker.py.md
 extra:
   generator: false
   social:

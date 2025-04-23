@@ -10,10 +10,14 @@ from embedding_studio.data_storage.loaders.data_loader import DataLoader
 from embedding_studio.data_storage.loaders.downloaded_item import (
     DownloadedItem,
 )
+from embedding_studio.embeddings.data.preprocessors.preprocessor import (
+    ItemsDatasetDictPreprocessor,
+)
 from embedding_studio.embeddings.inference.triton.client import TritonClient
 from embedding_studio.embeddings.splitters.item_splitter import ItemSplitter
 from embedding_studio.models.embeddings.objects import Object, ObjectPart
 from embedding_studio.models.items_handler import DataItem
+from embedding_studio.utils.retry import retry_function
 from embedding_studio.vectordb.collection import Collection
 from embedding_studio.workers.upsertion.utils.exceptions import (
     DownloadException,
@@ -25,6 +29,11 @@ from embedding_studio.workers.upsertion.utils.exceptions import (
 logger = logging.getLogger(__name__)
 
 
+@retry_function(
+    max_attempts=10,
+    wait_time_seconds=30,
+    attempt_exception_types=(DownloadException,),
+)
 def download_items(
     items: List[DataItem], data_loader: DataLoader
 ) -> List[DownloadedItem]:
@@ -50,13 +59,16 @@ def download_items(
 
 
 def split_items(
-    items: List[DownloadedItem], item_splitter: ItemSplitter
+    items: List[DownloadedItem],
+    item_splitter: ItemSplitter,
+    preprocessor: ItemsDatasetDictPreprocessor,
 ) -> Tuple[List[Any], Dict[str, List[int]], List[Tuple[DownloadedItem, str]]]:
     """
     Split each item into parts using the specified ItemSplitter.
 
     :param items: List of DownloadedItem instances to split.
     :param item_splitter: ItemSplitter instance used for splitting the items.
+    :param preprocessor: ItemsDatasetDictPreprocessor instance used for preprocessing the items.
     :return: A tuple containing a list of parts,
              a dictionary mapping objects to their parts,
              and a list of tuples with failed items and their traceback.
@@ -67,7 +79,7 @@ def split_items(
         failed = []
         for item in items:
             try:
-                split_data = item_splitter(item.data)
+                split_data = item_splitter(preprocessor(item.data))
                 object_to_parts[item.meta.object_id] = [
                     i + len(parts) for i in range(len(split_data))
                 ]
@@ -82,6 +94,11 @@ def split_items(
         raise SplitException()
 
 
+@retry_function(
+    max_attempts=10,
+    wait_time_seconds=2,
+    attempt_exception_types=(InferenceException,),
+)
 def run_inference(
     items_data: List[Any],
     inference_client: TritonClient,
@@ -94,7 +111,7 @@ def run_inference(
     :return: Array of vectors representing the inference results.
     """
     try:
-        inference_batch_size = 16
+        inference_batch_size = settings.UPSERTION_INFERENCE_BATCH_SIZE
         batches = len(items_data) // inference_batch_size + 1
         result = []
         for batch_index in range(batches):
@@ -115,6 +132,11 @@ def run_inference(
         raise InferenceException()
 
 
+@retry_function(
+    max_attempts=10,
+    wait_time_seconds=30,
+    attempt_exception_types=(UploadException,),
+)
 def upload_vectors(
     items: List[DownloadedItem],
     vectors: np.ndarray,
@@ -136,6 +158,7 @@ def upload_vectors(
         object_ids = set()
         for item in items:
             parts = []
+
             for part_index in object_to_parts[item.meta.object_id]:
                 parts.append(
                     ObjectPart(
@@ -143,6 +166,15 @@ def upload_vectors(
                         part_id=f"{item.meta.object_id}:{part_index}",
                     )
                 )
+
+            average_vector = np.mean(vectors, axis=0)
+            parts.append(
+                ObjectPart(
+                    vector=average_vector.tolist(),
+                    part_id=f"{item.meta.object_id}:average",
+                    is_average=True,
+                )
+            )
 
             objects.append(
                 Object(
@@ -172,4 +204,5 @@ def upload_vectors(
                 collection.delete([obj.object_id for obj in improved_objects])
 
     except Exception:
+        logger.exception("Something went wrong during upload.")
         raise UploadException()

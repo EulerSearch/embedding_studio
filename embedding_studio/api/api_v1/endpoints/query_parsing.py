@@ -1,7 +1,6 @@
 import logging
 from typing import Any, List
 
-import torch
 from fastapi import APIRouter, HTTPException, status
 
 from embedding_studio.api.api_v1.schemas.query_parsing import (
@@ -10,6 +9,7 @@ from embedding_studio.api.api_v1.schemas.query_parsing import (
 )
 from embedding_studio.api.api_v1.schemas.similarity_search import SearchResult
 from embedding_studio.context.app_context import context
+from embedding_studio.core.config import settings
 from embedding_studio.models.embeddings.objects import SearchResults
 
 # Initialize logger for this module
@@ -42,23 +42,25 @@ def _get_similar_categories(search_query: Any) -> List[SearchResults]:
         collection_info.embedding_model.id
     )
 
+    categories_selector = plugin.get_category_selector()
+
     try:
         logger.debug("Retrieving search query.")
         # Retrieve and vectorize the search query
         search_query = query_retriever(search_query)
-
         logger.debug("Search query vectorizing.")
         query_vector = inference_client.forward_query(search_query)[0]
-
         logger.debug("Searching for similar categories.")
+
         # Search for similar objects in the collection
-        found_objects = collection.find_similar_objects(
-            query_vector=query_vector,
+        found_objects, _ = collection.find_similar_objects(
+            query_vector=query_vector.tolist(),
             offset=0,
             limit=plugin.get_max_similar_categories(),
-            # max_distance=plugin.get_max_margin(),
+            max_distance=plugin.get_max_margin(),
+            with_vectors=categories_selector.vectors_are_needed,
+            meta_info=settings.QUERY_PARSING_DB_META_INFO,
         )
-
         logger.debug(f"Found {len(found_objects)} similar categories.")
 
     except Exception:
@@ -74,23 +76,12 @@ def _get_similar_categories(search_query: Any) -> List[SearchResults]:
     if len(found_objects) == 0:
         return []
 
-    query_vector = torch.Tensor(query_vector).unsqueeze(0)
-
-    category_vectors = torch.stack(
-        [
-            torch.stack(
-                [torch.Tensor(part.vector) for part in obj.parts], dim=1
-            )
-            for obj in found_objects
-        ]
-    ).transpose(1, 2)
-
-    categories_selector = plugin.get_category_selector()
-    final_indexes = categories_selector.select(query_vector, category_vectors)
+    final_indexes = categories_selector.select(found_objects, query_vector)
     results = []
     for index in final_indexes:
         results.append(found_objects[index])
 
+    print(results)
     return results
 
 

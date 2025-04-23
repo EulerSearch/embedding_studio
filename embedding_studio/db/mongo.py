@@ -15,7 +15,9 @@ if os.getenv("ES_UNIT_TESTS") == "1":
 else:
 
     def _mongo_env_client(*args, **kwargs):
-        return MongoClient(*args, **kwargs)
+        return MongoClient(
+            directConnection=True, maxPoolSize=None, *args, **kwargs
+        )
 
 
 finetuning_mongo_client = _mongo_env_client(
@@ -68,7 +70,4 @@ clickstream_mongo_database = clickstream_mongo_client[
 ]
 embeddings_mongo_database = clickstream_mongo_client[
     settings.EMBEDDINGS_MONGO_DB_NAME
-]
-suggesting_mongo_database = clickstream_mongo_client[
-    settings.SUGGESTING_MONGO_DB_NAME
 ]

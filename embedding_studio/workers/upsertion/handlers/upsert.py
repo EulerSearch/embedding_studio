@@ -46,6 +46,7 @@ def handle_upsert(task: UpsertionTaskInDb):
 
     data_loader = plugin.get_data_loader()
     items_splitter = plugin.get_items_splitter()
+    preprocessor = plugin.get_items_preprocessor()
     inference_client = plugin.get_inference_client_factory().get_client(
         task.embedding_model_id
     )
@@ -77,6 +78,7 @@ def handle_upsert(task: UpsertionTaskInDb):
             collection,
             data_loader,
             items_splitter,
+            preprocessor,
             inference_client,
             context.upsertion_task,
         )

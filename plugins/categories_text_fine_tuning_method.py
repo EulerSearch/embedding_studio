@@ -37,6 +37,9 @@ from embedding_studio.embeddings.data.clickstream.train_test_splitter import (
 from embedding_studio.embeddings.data.items.managers.text import (
     TextItemSetManager,
 )
+from embedding_studio.embeddings.data.preprocessors.preprocessor import (
+    ItemsDatasetDictPreprocessor,
+)
 from embedding_studio.embeddings.data.utils.fields_normalizer import (
     DatasetFieldsNormalizer,
 )
@@ -79,10 +82,25 @@ from embedding_studio.models.embeddings.models import (
     SearchIndexInfo,
 )
 from embedding_studio.models.plugin import FineTuningBuilder, PluginMeta
+from embedding_studio.vectordb.optimization import Optimization
 from embedding_studio.workers.fine_tuning.prepare_data import prepare_data
 
 
 class CategoriesTextFineTuningMethod(CategoriesFineTuningMethod):
+    """
+    Plugin for category prediction fine-tuning using text embeddings.
+
+    This plugin is designed for classification-based tasks where embeddings are
+    optimized to predict category labels. Uses BERT-style models and GCP loader.
+
+    Steps to implement your own:
+    1. Subclass CategoriesFineTuningMethod.
+    2. Define `meta` with plugin name, version, and description.
+    3. Implement all abstract methods including category selection logic.
+    4. Configure loaders, preprocessors, and metrics trackers.
+    5. Register in PluginManager and list it in inference config.
+    """
+
     meta = PluginMeta(
         name="CategoriesTextFineTuningMethod",  # Should be a python-like naming
         version="0.0.1",
@@ -90,31 +108,56 @@ class CategoriesTextFineTuningMethod(CategoriesFineTuningMethod):
     )
 
     def __init__(self):
+        """
+        Step-by-step setup of a text fine-tuning plugin for categories.
+
+        Steps:
+        1. Set up model and tokenizer names.
+        2. Configure the data loader to read from GCP.
+        3. Initialize retriever and clickstream converter.
+        4. Split sessions into train/test.
+        5. Normalize fields to match item schema.
+        6. Configure sentence splitting and text augmentations.
+        7. Define training and test metrics.
+        8. Set up experiment manager (e.g. MLflow).
+        9. Define hyperparameters for fine-tuning trials.
+        10. Set training config: loss, epochs, validation.
+        """
         # uncomment and pass your credentials to use your own gcp bucket
         # creds = {
         #     "credentials_path": "./etc/your-gcp-credentials.json",
         #     "use_system_info": False
         # }
 
+        # 1. Define model + tokenizer
         self.model_name = (
             "EmbeddingStudio/all-MiniLM-L6-v2-huggingface-categories"
         )
-        self.tokenizer_name = (
-            "EmbeddingStudio/all-MiniLM-L6-v2-huggingface-categories"
-        )
+        self.tokenizer_name = self.model_name
         self.inference_client_factory = None
-        # with empty creds, use anonymous session
+
+        # 2. GCP loader (credentials optional)
         creds = {"use_system_info": True}
         self.data_loader = GCPTextLoader(**creds)
 
-        self.field_names = []  # Provide your dict field names here
+        # 3. Optional fields (if using dict-style structure)
+        self.field_names = []
 
+        # 4. Retrieve user queries from sessions
         self.retriever = TextQueryRetriever()
+
+        # 5. Convert user clicks into labeled data
         self.sessions_converter = ClickstreamSessionConverter(
             item_type=GCPFileMeta
         )
+
+        # 6. Session split logic
         self.splitter = TrainTestSplitter()
+
+        # 7. Field normalization
         self.normalizer = DatasetFieldsNormalizer("item", "item_id")
+
+        # 8. Sentence tokenization + augmentations (case/misspell)
         self.items_set_manager = TextItemSetManager(
             self.normalizer,
             items_set_splitter=ItemsSetSplitter(
@@ -129,6 +172,7 @@ class CategoriesTextFineTuningMethod(CategoriesFineTuningMethod):
             do_augment_test=False,
         )
 
+        # 9. Training and test metrics
         self.accumulators = [
             MetricsAccumulator(
                 "train_loss",
@@ -156,6 +200,7 @@ class CategoriesTextFineTuningMethod(CategoriesFineTuningMethod):
             MetricsAccumulator("test_irrelevant_dist_shift"),
         ]
 
+        # 10. MLflow or other experiment backend
         self.manager = ExperimentsManager.from_wrapper(
             wrapper=context.mlflow_client,
             main_metric="test_not_irrelevant_dist_shift",
@@ -163,21 +208,17 @@ class CategoriesTextFineTuningMethod(CategoriesFineTuningMethod):
             accumulators=self.accumulators,
         )
 
+        # 11. Define hyperparameter grid
         self.initial_params = INITIAL_PARAMS
         self.initial_params.update(
             {
                 "not_irrelevant_only": [True],
-                "negative_downsampling": [
-                    0.5,
-                ],
-                "examples_order": [
-                    [
-                        11,
-                    ]
-                ],
+                "negative_downsampling": [0.5],
+                "examples_order": [[11]],
             }
         )
 
+        # 12. Training config
         self.settings = FineTuningSettings(
             loss_func=CosineProbMarginRankingLoss(),
             step_size=35,
@@ -186,6 +227,10 @@ class CategoriesTextFineTuningMethod(CategoriesFineTuningMethod):
         )
 
     def upload_initial_model(self) -> None:
+        """
+        Downloads and wraps the base BERT model. Uploads it to the
+        experiment manager as the initial reference for training.
+        """
         model = context.model_downloader.download_model(
             model_name=self.model_name,
             download_fn=lambda mn: AutoModel.from_pretrained(mn),
@@ -197,15 +242,34 @@ class CategoriesTextFineTuningMethod(CategoriesFineTuningMethod):
         torch.cuda.empty_cache()
 
     def get_query_retriever(self) -> QueryRetriever:
+        """
+        Returns the retriever that fetches search queries from session data.
+        """
         return self.retriever
 
+    def get_items_preprocessor(self) -> ItemsDatasetDictPreprocessor:
+        """
+        Returns the preprocessor for sentence-split and normalized text.
+        """
+        return self.items_set_manager.preprocessor
+
     def get_data_loader(self) -> DataLoader:
+        """
+        Returns the GCP-based text loader used for category data ingestion.
+        """
         return self.data_loader
 
     def get_manager(self) -> ExperimentsManager:
+        """
+        Returns the MLflow-compatible experiment manager.
+        """
         return self.manager
 
     def get_inference_client_factory(self) -> TritonClientFactory:
+        """
+        Returns the Triton client factory for serving BERT embeddings.
+        Initializes it on first access with model and plugin name.
+        """
         if self.inference_client_factory is None:
             self.inference_client_factory = TextToTextBERTTritonClientFactory(
                 f"{settings.INFERENCE_HOST}:{settings.INFERENCE_GRPC_PORT}",
@@ -217,6 +281,12 @@ class CategoriesTextFineTuningMethod(CategoriesFineTuningMethod):
     def get_fine_tuning_builder(
         self, clickstream: List[SessionWithEvents]
     ) -> FineTuningBuilder:
+        """
+        Prepares ranking dataset and returns a builder to start training.
+
+        :param clickstream: A list of session events with user feedback.
+        :return: A configured FineTuningBuilder.
+        """
         ranking_dataset = prepare_data(
             clickstream,
             self.sessions_converter,
@@ -242,7 +312,9 @@ class CategoriesTextFineTuningMethod(CategoriesFineTuningMethod):
         return fine_tuning_builder
 
     def get_search_index_info(self) -> SearchIndexInfo:
-        """Return a SearchIndexInfo instance. Define a parameters of vectordb index."""
+        """
+        Defines vector DB indexing schema (384D, cosine, AVG).
+        """
         return SearchIndexInfo(
             dimensions=384,
             metric_type=MetricType.COSINE,
@@ -250,9 +322,16 @@ class CategoriesTextFineTuningMethod(CategoriesFineTuningMethod):
         )
 
     def get_vectors_adjuster(self) -> VectorsAdjuster:
+        """
+        Optional vector adjustment logic. Not implemented in this plugin.
+        """
         raise NotImplementedError()
 
     def get_category_selector(self) -> AbstractSelector:
+        """
+        Returns the selector used to determine category similarity and
+        margins based on softmaxed embedding logits.
+        """
         # TODO: do a category selector versioning, just as embedding model
         return ProbsDistBasedSelector(
             search_index_info=SearchIndexInfo(
@@ -268,7 +347,19 @@ class CategoriesTextFineTuningMethod(CategoriesFineTuningMethod):
         )
 
     def get_max_similar_categories(self) -> int:
+        """
+        Max number of top-k similar categories to retrieve.
+        """
         return 20
 
     def get_max_margin(self) -> float:
+        """
+        Max allowed distance/similarity between categories.
+        """
         return 0.7
+
+    def get_vectordb_optimizations(self) -> List[Optimization]:
+        """
+        Optional vector DB post-processing (empty by default).
+        """
+        return []

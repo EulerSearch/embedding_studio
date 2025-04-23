@@ -1,10 +1,13 @@
 import logging
-from typing import Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Type, Union
 
 from datasets import Features
 
 from embedding_studio.data_storage.loaders.sql.pgsql.pgsql_loader import (
     PgsqlDataLoader,
+)
+from embedding_studio.data_storage.loaders.sql.query_generator import (
+    AbstractQueryGenerator,
 )
 from embedding_studio.workers.fine_tuning.utils.config import RetryConfig
 
@@ -15,6 +18,7 @@ class PgsqlJSONBLoader(PgsqlDataLoader):
     def __init__(
         self,
         connection_string: str,
+        query_generator: Type[AbstractQueryGenerator],
         jsonb_column: str = "jsonb_data",
         fields_to_keep: Optional[Union[List[str], Set[str]]] = None,
         retry_config: Optional[RetryConfig] = None,
@@ -24,13 +28,18 @@ class PgsqlJSONBLoader(PgsqlDataLoader):
         """JSONB loader from PostgreSQL.
 
         :param connection_string: PostgreSQL connection string.
+        :param query_generator: PostgreSQL query generator class.
         :param jsonb_column: The column in the database where JSONB data is stored (default: 'jsonb_data').
         :param fields_to_keep: List or set of fields to select from the JSONB data (default: None).
         :param retry_config: Retry strategy (default: None).
         :param features: Expected features for the dataset (default: None).
         """
         super(PgsqlJSONBLoader, self).__init__(
-            connection_string, retry_config, features, **kwargs
+            connection_string,
+            query_generator,
+            retry_config,
+            features,
+            **kwargs,
         )
         self.jsonb_column = jsonb_column
         self.fields_to_keep = fields_to_keep

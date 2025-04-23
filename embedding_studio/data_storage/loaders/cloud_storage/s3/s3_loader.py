@@ -19,16 +19,29 @@ from embedding_studio.data_storage.loaders.downloaded_item import (
     DownloadedItem,
 )
 from embedding_studio.data_storage.loaders.item_meta import ItemMeta
+from embedding_studio.utils.retry import retry_method
 from embedding_studio.workers.fine_tuning.utils.config import (
     RetryConfig,
     RetryParams,
 )
-from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 
 logger = logging.getLogger(__name__)
 
 
 class AwsS3Credentials(BaseModel):
+    """
+    Pydantic model for AWS S3 credentials configuration.
+
+    This class handles different authentication methods for AWS S3,
+    including role-based access, direct access keys, and anonymous access.
+
+    :param role_arn: ARN of the role to assume (default: None)
+    :param aws_access_key_id: AWS access key ID (default: None)
+    :param aws_secret_access_key: AWS secret access key (default: None)
+    :param external_id: External ID for role assumption (default: None)
+    :param use_system_info: Whether to use system credentials (default: False)
+    """
+
     role_arn: Optional[str] = None
     aws_access_key_id: Optional[str] = None
     aws_secret_access_key: Optional[str] = None
@@ -37,6 +50,18 @@ class AwsS3Credentials(BaseModel):
 
 
 def read_from_s3(client, bucket: str, file: str) -> io.BytesIO:
+    """
+    Reads a file from S3 and returns it as a BytesIO object.
+
+    Helper function used by the AwsS3DataLoader to download files.
+
+    :param client: Boto3 S3 client
+    :param bucket: S3 bucket name
+    :param file: File path/key within the bucket
+    :return: BytesIO object containing the file content or None if not found
+    :raises ValueError: If bucket or file parameters are empty or not strings
+    :raises ClientError: For S3 errors other than 404 (Not Found)
+    """
     if not isinstance(bucket, str) or len(bucket) == 0:
         raise ValueError("bucket value should be not empty string")
 
@@ -59,6 +84,17 @@ def read_from_s3(client, bucket: str, file: str) -> io.BytesIO:
 
 
 class AwsS3DataLoader(DataLoader):
+    """
+    DataLoader implementation for AWS S3 storage.
+
+    This class provides functionality to load data items from AWS S3 buckets
+    with retry capabilities and customizable authentication methods.
+
+    :param retry_config: Configuration for retry strategies when operations fail
+    :param features: Expected features schema for loaded datasets
+    :param kwargs: Additional parameters for AWS S3 credentials configuration
+    """
+
     def __init__(
         self,
         retry_config: Optional[RetryConfig] = None,
@@ -83,10 +119,23 @@ class AwsS3DataLoader(DataLoader):
 
     @property
     def item_meta_cls(self) -> Type[ItemMeta]:
+        """
+        Returns the class used for item metadata.
+
+        :return: The ItemMeta class type used by this loader
+        """
         return S3FileMeta
 
     @staticmethod
     def _get_default_retry_config() -> RetryConfig:
+        """
+        Creates a default retry configuration for S3 operations.
+
+        Sets up retry parameters for credentials acquisition and data downloads
+        with appropriate timeout and attempt values from settings.
+
+        :return: A RetryConfig object with default parameters
+        """
         default_retry_params = RetryParams(
             max_attempts=settings.DEFAULT_MAX_ATTEMPTS,
             wait_time_seconds=settings.DEFAULT_WAIT_TIME_SECONDS,
@@ -105,10 +154,31 @@ class AwsS3DataLoader(DataLoader):
 
     @retry_method(name="download_data")
     def _read_from_s3(self, client, bucket: str, file: str) -> Any:
+        """
+        Reads a file from S3 with retry capabilities.
+
+        This method is decorated with @retry_method to attempt the operation
+        multiple times in case of failure.
+
+        :param client: Boto3 S3 client
+        :param bucket: S3 bucket name
+        :param file: File path/key within the bucket
+        :return: File content as BytesIO object
+        """
         return read_from_s3(client, bucket, file)
 
     @retry_method(name="credentials")
     def _get_client(self, task_id: str):
+        """
+        Obtains an S3 client with appropriate credentials.
+
+        Creates either an anonymous S3 client or one with assumed role
+        credentials based on the configured authentication details.
+        This method is decorated with @retry_method for reliability.
+
+        :param task_id: Unique ID for the session
+        :return: Configured boto3 S3 client
+        """
         if (
             self.credentials.aws_access_key_id is None
             or self.credentials.aws_secret_access_key is None
@@ -146,6 +216,22 @@ class AwsS3DataLoader(DataLoader):
         return s3_client
 
     def _get_item(self, file: io.BytesIO) -> Any:
+        """
+        Processes a downloaded file BytesIO object into the appropriate data type.
+
+        Base implementation returns the BytesIO object as is.
+        This method should be overridden by subclasses to handle specific file types.
+
+        :param file: The downloaded file as BytesIO
+        :return: The processed item
+
+        Example implementation in a subclass:
+        ```python
+        def _get_item(self, file: io.BytesIO) -> dict:
+            data = json.loads(file.read().decode('utf-8'))
+            return data
+        ```
+        """
         return file
 
     def _get_data_from_s3(
@@ -264,16 +350,39 @@ class AwsS3DataLoader(DataLoader):
     def _generate_dataset_from_s3(
         self, files: List[S3FileMeta]
     ) -> Iterable[Tuple[Dict, S3FileMeta]]:
+        """
+        Generator function to create a dataset from S3 files.
+
+        Used by the load method to convert S3 files into a dataset format.
+
+        :param files: List of S3FileMeta objects to load
+        :yield: Dictionary items for dataset creation
+        """
         for item, _ in self._get_data_from_s3(files):
             yield item
 
     def load(self, items_data: List[S3FileMeta]) -> Dataset:
+        """
+        Loads data from S3 files into a Hugging Face Dataset.
+
+        :param items_data: List of S3FileMeta objects describing the files to load
+        :return: A Hugging Face Dataset object containing the loaded data
+        """
         return Dataset.from_generator(
             lambda: self._generate_dataset_from_s3(items_data),
             features=self.features,
         )
 
     def load_items(self, items_data: List[S3FileMeta]) -> List[DownloadedItem]:
+        """
+        Loads individual items from S3 files.
+
+        Unlike load(), this method returns a list of DownloadedItem objects rather
+        than creating a Dataset.
+
+        :param items_data: List of S3FileMeta objects describing the files to load
+        :return: List of DownloadedItem objects containing the loaded data and metadata
+        """
         result = []
         for item_object, item_meta in self._get_data_from_s3(
             items_data, ignore_failures=False
@@ -360,4 +469,26 @@ class AwsS3DataLoader(DataLoader):
                 offset += batch_size
 
     def total_count(self, **kwargs) -> Optional[int]:
+        """
+        Returns the total count of items available.
+
+        Base implementation returns None as S3 doesn't provide an efficient way
+        to count objects without listing them.
+
+        :param kwargs: Additional parameters for the count operation
+        :return: Total count of items or None if not available
+
+        Example implementation for a case where count is known:
+        ```python
+        def total_count(self, **kwargs) -> Optional[int]:
+            try:
+                response = self._get_client(str(uuid.uuid4())).list_objects_v2(
+                    Bucket=kwargs['bucket'],
+                    MaxKeys=0
+                )
+                return response.get('KeyCount', 0)
+            except Exception:
+                return None
+        ```
+        """
         return None

@@ -40,15 +40,14 @@ def convert_for_triton(
     on a selected GPU, saving the traced model,and generating Triton
     configuration files.
 
-    Args:
-        model (EmbeddingsModelInterface): The model interface providing access
+    :param model: (EmbeddingsModelInterface): The model interface providing access
                                           to the query and item models.
-        plugin_name (str): The name used for creating directories
+    :param plugin_name: The name used for creating directories
                            and files for the model.
-        model_repo (str): The file path to the repository  where the model
+    :param model_repo: The file path to the repository  where the model
                           versions will be stored.
-        model_version (int): The version number of the model to be saved.
-        embedding_model_id (str): A unique identifier for the model.
+    :param model_version: The version number of the model to be saved.
+    :param embedding_model_id: A unique identifier for the model.
     """
     logger.info(f"Embedding model {embedding_model_id} deployment.")
     query_device = select_device()  # Dynamic GPU selection

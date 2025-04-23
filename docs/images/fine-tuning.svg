@@ -1,0 +1,39 @@
+<svg viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="400" height="250" fill="#f9f9fd" rx="10" ry="10"/>
+  
+  <!-- Wave path representing continuous improvement -->
+  <path d="M50,170 C90,120 130,180 170,130 C210,80 250,140 290,90 C330,40 370,60 370,60" 
+        fill="none" stroke="#6d57ff" stroke-width="4" stroke-opacity="0.5" stroke-linecap="round"/>
+  
+  <!-- Improvement indicators -->
+  <circle cx="90" cy="120" r="6" fill="#6d57ff"/>
+  <circle cx="170" cy="130" r="6" fill="#6d57ff"/>
+  <circle cx="250" cy="110" r="6" fill="#6d57ff"/>
+  <circle cx="330" cy="70" r="6" fill="#6d57ff"/>
+  
+  <!-- User feedback indicators -->
+  <path d="M90,180 L90,120" stroke="#ff5757" stroke-width="2" stroke-dasharray="3,2"/>
+  <path d="M170,180 L170,130" stroke="#ff5757" stroke-width="2" stroke-dasharray="3,2"/>
+  <path d="M250,180 L250,110" stroke="#ff5757" stroke-width="2" stroke-dasharray="3,2"/>
+  <path d="M330,180 L330,70" stroke="#ff5757" stroke-width="2" stroke-dasharray="3,2"/>
+  
+  <!-- Base platform with subtle grid -->
+  <line x1="50" y1="180" x2="370" y2="180" stroke="#999" stroke-width="2"/>
+  <line x1="90" y1="185" x2="90" y2="175" stroke="#999" stroke-width="1"/>
+  <line x1="170" y1="185" x2="170" y2="175" stroke="#999" stroke-width="1"/>
+  <line x1="250" y1="185" x2="250" y2="175" stroke="#999" stroke-width="1"/>
+  <line x1="330" y1="185" x2="330" y2="175" stroke="#999" stroke-width="1"/>
+  
+  <!-- Iteration labels -->
+  <text x="90" y="200" font-family="Arial" font-size="10" fill="#666" text-anchor="middle">Iteration 1</text>
+  <text x="170" y="200" font-family="Arial" font-size="10" fill="#666" text-anchor="middle">Iteration 2</text>
+  <text x="250" y="200" font-family="Arial" font-size="10" fill="#666" text-anchor="middle">Iteration 3</text>
+  <text x="330" y="200" font-family="Arial" font-size="10" fill="#666" text-anchor="middle">Iteration 4</text>
+  
+  <!-- Simple, abstract shapes depicting model evolution -->
+  <rect x="75" y="75" width="30" height="15" rx="2" fill="#43a047" fill-opacity="0.2" stroke="#43a047" stroke-width="1"/>
+  <rect x="155" y="85" width="30" height="15" rx="3" fill="#43a047" fill-opacity="0.3" stroke="#43a047" stroke-width="1"/>
+  <rect x="235" y="65" width="30" height="15" rx="4" fill="#43a047" fill-opacity="0.4" stroke="#43a047" stroke-width="1"/>
+  <rect x="315" y="25" width="30" height="15" rx="5" fill="#43a047" fill-opacity="0.5" stroke="#43a047" stroke-width="1"/>
+</svg>

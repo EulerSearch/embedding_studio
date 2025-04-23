@@ -1,10 +1,13 @@
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, Type
 
 from datasets import Features
 
 from embedding_studio.data_storage.loaders.sql.pgsql.pgsql_loader import (
     PgsqlDataLoader,
+)
+from embedding_studio.data_storage.loaders.sql.query_generator import (
+    AbstractQueryGenerator,
 )
 from embedding_studio.workers.fine_tuning.utils.config import RetryConfig
 
@@ -15,6 +18,7 @@ class PgsqlTextLoader(PgsqlDataLoader):
     def __init__(
         self,
         connection_string: str,
+        query_generator: Type[AbstractQueryGenerator],
         text_column: str = "text_data",
         retry_config: Optional[RetryConfig] = None,
         features: Optional[Features] = None,
@@ -24,13 +28,18 @@ class PgsqlTextLoader(PgsqlDataLoader):
         """Texts loader from PostgreSQL.
 
         :param connection_string: PostgreSQL connection string.
+        :param query_generator: PostgreSQL query generator class.
         :param text_column: The column in the database where text data is stored (default: 'text_data').
         :param retry_config: Retry strategy (default: None).
         :param features: Expected features for the dataset (default: None).
         :param encoding: The encoding to use when reading text data (default: 'utf-8').
         """
         super(PgsqlTextLoader, self).__init__(
-            connection_string, retry_config, features, **kwargs
+            connection_string,
+            query_generator,
+            retry_config,
+            features,
+            **kwargs,
         )
         self.text_column = text_column
         self.encoding = encoding

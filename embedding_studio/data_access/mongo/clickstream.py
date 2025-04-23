@@ -24,6 +24,15 @@ logger = logging.getLogger(__name__)
 
 
 class MongoClickstreamDao(ClickstreamDao):
+    """
+    MongoDB implementation of the ClickstreamDao interface for handling user session data.
+
+    This class provides methods to store and retrieve session data, events, and batches
+    in a MongoDB database.
+
+    :param mongo_database: MongoDB database instance to use for storage
+    """
+
     _SESSIONS_COLLECTION: str = "sessions"
     _SESSION_EVENTS_COLLECTION: str = "session_events"
     _SESSION_BATCHES_COLLECTION: str = "session_batches"
@@ -92,6 +101,15 @@ class MongoClickstreamDao(ClickstreamDao):
         )
 
     def register_session(self, session: Session) -> RegisteredSession:
+        """
+        Register a new session in the database.
+
+        Creates a new session entry and associates it with the current batch.
+        If a session with the same ID already exists, returns the existing session.
+
+        :param session: Session object to register
+        :return: RegisteredSession with batch information
+        """
         batch = self._increment_session_batch()
         reg_session = RegisteredSession(
             batch_id=batch.batch_id,
@@ -109,6 +127,14 @@ class MongoClickstreamDao(ClickstreamDao):
         return reg_session
 
     def update_session(self, session: Session) -> RegisteredSession:
+        """
+        Update an existing session in the database.
+
+        Updates the session data and associates it with the current batch.
+
+        :param session: Session object with updated data
+        :return: Updated RegisteredSession with batch information
+        """
         batch = self._increment_session_batch()
         reg_session = RegisteredSession(
             batch_id=batch.batch_id,
@@ -119,6 +145,13 @@ class MongoClickstreamDao(ClickstreamDao):
         return reg_session
 
     def push_events(self, session_events: List[SessionEvent]) -> None:
+        """
+        Store multiple session events in the database.
+
+        Attempts to insert all events, logging warnings for any duplicate events.
+
+        :param session_events: List of session events to store
+        """
         try:
             self._event_dao.insert_many(session_events, ordered=False)
         except pymongo.errors.BulkWriteError as err:
@@ -129,6 +162,12 @@ class MongoClickstreamDao(ClickstreamDao):
     def mark_session_irrelevant(
         self, session_id
     ) -> Optional[SessionWithEvents]:
+        """
+        Mark a session as irrelevant.
+
+        :param session_id: ID of the session to mark
+        :return: Updated SessionWithEvents if found, None otherwise
+        """
         return self._session_dao.find_one_and_update(
             session_id,
             update={"$set": {self._IS_IRRELEVANT: True}},
@@ -136,6 +175,12 @@ class MongoClickstreamDao(ClickstreamDao):
         )
 
     def get_session(self, session_id: str) -> Optional[SessionWithEvents]:
+        """
+        Retrieve a session with its events.
+
+        :param session_id: ID of the session to retrieve
+        :return: SessionWithEvents if found, None otherwise
+        """
         session = self._session_dao.find_one(session_id)
         if not session:
             return None
@@ -149,6 +194,15 @@ class MongoClickstreamDao(ClickstreamDao):
         limit: Optional[int] = None,
         events_limit: Optional[int] = None,
     ) -> List[SessionWithEvents]:
+        """
+        Retrieve sessions belonging to a specific batch.
+
+        :param batch_id: ID of the batch to retrieve sessions for
+        :param after_number: Only retrieve sessions with numbers greater than this value
+        :param limit: Maximum number of sessions to retrieve
+        :param events_limit: Maximum number of events to retrieve per session
+        :return: List of SessionWithEvents objects
+        """
         after_number = after_number or 0
         limit = limit or 0
         events_limit = events_limit or 0
@@ -171,9 +225,24 @@ class MongoClickstreamDao(ClickstreamDao):
         ]
 
     def get_batch(self, batch_id: str) -> Optional[SessionBatch]:
+        """
+        Retrieve a batch by ID.
+
+        :param batch_id: ID of the batch to retrieve
+        :return: SessionBatch if found, None otherwise
+        """
         return self._batch_dao.find_one(batch_id)
 
     def release_batch(self, release_id: str) -> Optional[SessionBatch]:
+        """
+        Mark the current collecting batch as released.
+
+        Updates the status of the current collecting batch to released and
+        assigns it the provided release ID.
+
+        :param release_id: ID to assign to the released batch
+        :return: Updated SessionBatch if found, None otherwise
+        """
         batch: Optional[SessionBatch] = None
         try:
             batch = self._batch_dao.find_one_and_update(
@@ -198,6 +267,13 @@ class MongoClickstreamDao(ClickstreamDao):
     def update_batch_status(
         self, batch_id: str, status: SessionBatchStatus
     ) -> Optional[SessionBatch]:
+        """
+        Update the status of a batch.
+
+        :param batch_id: ID of the batch to update
+        :param status: New status to set
+        :return: Updated SessionBatch if found, None otherwise
+        """
         return self._batch_dao.find_one_and_update(
             batch_id,
             update={"$set": {self._STATUS: status.value}},
@@ -207,11 +283,25 @@ class MongoClickstreamDao(ClickstreamDao):
     def _get_session_events(
         self, session_id, limit: int = 100
     ) -> List[SessionEvent]:
+        """
+        Retrieve events for a specific session.
+
+        :param session_id: ID of the session to retrieve events for
+        :param limit: Maximum number of events to retrieve
+        :return: List of SessionEvent objects
+        """
         return self._event_dao.find(
-            filter={self._SESSION_ID: session_id}, limit=limit
+            sort_args=None, filter={self._SESSION_ID: session_id}, limit=limit
         )
 
     def _increment_session_batch(self) -> SessionBatch:
+        """
+        Increment the session counter in the current collecting batch.
+
+        If no collecting batch exists, creates a new one.
+
+        :return: Updated or created SessionBatch
+        """
         return self._batch_dao.find_one_and_update(
             filter={self._STATUS: self._STATUS_COLLECTING},
             update={

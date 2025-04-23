@@ -7,6 +7,15 @@ from embedding_studio.embeddings.splitters.text.pattern_splitter import (
 
 
 class FieldCombinedSplitter(PatternSplitter):
+    """Split JSON strings into chunks by extracting specified fields.
+
+    This splitter parses a JSON string, extracts the specified fields, and returns
+    each field as a separate JSON string containing only that field. Fields that don't
+    exist in the input JSON are skipped.
+
+    :param field_names: List of field names to extract from the JSON
+    """
+
     def __init__(
         self,
         field_names: List[str],

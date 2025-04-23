@@ -1,3 +1,4 @@
+import json
 from typing import Dict, List, Optional, Union
 
 
@@ -14,7 +15,7 @@ def get_field_name(
     :return: mapped name of a field.
     """
     if ignore_missed:
-        return field_names.get(name, name)
+        return field_names.get(name, name) if field_names else name
     else:
         if field_names is not None:
             return field_names[name]
@@ -56,7 +57,30 @@ def get_text_line_from_dict(
     return separator.join(
         [
             f"{get_field_name(k, field_names, ignore_missed)}{field_name_separator} "
-            f"{text_quote}{order_fields[k].replace(text_quote, ' ')}{text_quote}"
+            f"{text_quote}{object[k].replace(text_quote, ' ')}{text_quote}"
             for k in fields
         ]
+    )
+
+
+def get_json_line_from_dict(
+    object: dict,
+    field_names: Optional[Dict[str, str]] = None,
+) -> str:
+    """Convert a dict into a JSON string, with optional field name mapping.
+
+    :param object: dict to be converted into a JSON string
+    :param field_names: dictionary mapping original field names to new field names (default: None)
+                        If provided, only fields present in this dictionary will be included in the output
+    :return: JSON string representation of the input dict with mapped field names
+    """
+    if field_names is None:
+        return json.dumps(object)
+
+    return json.dumps(
+        {
+            field_names.get(k, k): v
+            for k, v in object.items()
+            if k in field_names
+        }
     )

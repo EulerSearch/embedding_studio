@@ -30,6 +30,13 @@ router = APIRouter()
 def create_session(
     body: SessionCreateRequest,
 ) -> None:
+    """
+    Creates a new user interaction session with search data.
+
+    Validates and normalizes the timestamp, then registers the session in the
+    clickstream data store. Enables tracking of user search journeys from the
+    beginning of interaction with search results.
+    """
     logger.debug(f"Register session: {body}")
     body.created_at = _ensure_timestamp(body.created_at)
     session = Session.model_validate(body.model_dump())
@@ -43,6 +50,13 @@ def create_session(
     response_model=SessionGetResponse,
 )
 def get_session(session_id: str) -> SessionWithEvents:
+    """
+    Retrieves a complete session by ID with all related interaction events.
+
+    Fetches session data including search parameters and user events, providing
+    a comprehensive view of user interaction history. Returns 404 if session
+    doesn't exist.
+    """
     logger.debug(f"Get session by session_id={session_id}")
     session = context.clickstream_dao.get_session(session_id)
     if not session:
@@ -59,6 +73,13 @@ def get_session(session_id: str) -> SessionWithEvents:
     status_code=status.HTTP_200_OK,
 )
 def push_events(body: SessionAddEventsRequest) -> None:
+    """
+    Adds user interaction events to an existing session.
+
+    Processes and normalizes timestamps for each event before storing them
+    in the clickstream data store. Captures user interactions such as clicks,
+    allowing for analysis of user behavior.
+    """
     logger.debug(f"Push session events: body")
     session_id = body.session_id
     events = [
@@ -81,6 +102,12 @@ def push_events(body: SessionAddEventsRequest) -> None:
     status_code=status.HTTP_200_OK,
 )
 def mark_session_irrelevant(body: SessionMarkIrrelevantRequest) -> None:
+    """
+    Flags a session as irrelevant for analytics and model improvement.
+
+    Marks sessions that shouldn't influence search quality metrics or be used
+    for model training. Returns 404 if the specified session doesn't exist.
+    """
     logger.debug(f"Mark irrelevant session: {body}")
     session = context.clickstream_dao.mark_session_irrelevant(
         session_id=body.session_id

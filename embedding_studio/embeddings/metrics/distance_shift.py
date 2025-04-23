@@ -15,6 +15,17 @@ from embedding_studio.experiments.metrics_accumulator import MetricValue
 
 
 class DistanceShift(MetricCalculator):
+    """
+    Metric calculator that measures how ranks of provided inputs changed after model processing.
+
+    This class calculates two metrics:
+    1. not_irrelevant_dist_shift: Average rank change for relevant/positive items
+    2. irrelevant_dist_shift: Average rank change for irrelevant/negative items
+
+    For similarity metrics, higher ranks for relevant inputs are better.
+    For distance metrics, lower ranks for relevant inputs are better.
+    """
+
     def _calc_dist_shift(
         self,
         fine_tuning_input: FineTuningInput,
@@ -22,6 +33,15 @@ class DistanceShift(MetricCalculator):
         items_set: ItemsSet,
         query_retriever: QueryRetriever,
     ) -> float:
+        """
+        Calculate the distance/similarity shift for a single fine-tuning input.
+
+        :param fine_tuning_input: Input containing query and events information
+        :param extractor: Object to extract features and perform model inference
+        :param items_set: Dataset of items to retrieve embeddings from
+        :param query_retriever: Object to retrieve query embedding
+        :return: Average shift in rank for the given input
+        """
         # TODO: encapsulate inference in one class / object
         query_vector: FloatTensor = extractor.model.forward_query(
             query_retriever(fine_tuning_input.query)
@@ -70,12 +90,22 @@ class DistanceShift(MetricCalculator):
         :param query_retriever: how to retrieve a value related to fine-tuning input's query
         :return: list of calculated not_irrelevant_dist_shift and irrelevant_dist_shift metrics
         """
-        not_irrelevenat_shifts: List[float] = []
-        irrelevenat_shifts: List[float] = []
+        # Initialize lists to store shift values for both types of inputs
+        not_irrelevenat_shifts: List[
+            float
+        ] = []  # Stores shifts for relevant/positive inputs
+        irrelevenat_shifts: List[
+            float
+        ] = []  # Stores shifts for irrelevant/negative inputs
+
+        # Iterate through each pair of inputs in the batch
         for index, (not_irrelevenat_input, irrelevant_input) in enumerate(
             batch
         ):
+            # Process relevant/positive inputs if present
             if not_irrelevenat_input is not None:
+                # Calculate the distance shift for this relevant input and add to collection
+                # This measures how the rank has improved (or worsened) after model processing
                 not_irrelevenat_shifts.append(
                     self._calc_dist_shift(
                         not_irrelevenat_input,
@@ -85,7 +115,11 @@ class DistanceShift(MetricCalculator):
                     )
                 )
 
+            # Process irrelevant/negative inputs if present
             if irrelevant_input is not None:
+                # Calculate the distance shift for this irrelevant input and add to collection
+                # For irrelevant inputs, we want to see ranks decreasing (for similarity metrics)
+                # or increasing (for distance metrics)
                 irrelevenat_shifts.append(
                     self._calc_dist_shift(
                         irrelevant_input,
@@ -95,21 +129,30 @@ class DistanceShift(MetricCalculator):
                     )
                 )
 
+        # Return metrics as a list of MetricValue objects
         return [
+            # First metric: average shift for relevant/positive inputs
+            # Positive values indicate improvement in ranking
             MetricValue(
                 "not_irrelevant_dist_shift",
                 (
-                    float(np.mean(not_irrelevenat_shifts))
+                    float(
+                        np.mean(not_irrelevenat_shifts)
+                    )  # Calculate average if we have values
                     if len(not_irrelevenat_shifts) > 0
-                    else 0.0
+                    else 0.0  # Default to 0.0 if no relevant inputs were processed
                 ),
             ),
+            # Second metric: average shift for irrelevant/negative inputs
+            # Positive values indicate that irrelevant items are being properly pushed down/away
             MetricValue(
                 "irrelevant_dist_shift",
                 (
-                    float(np.mean(irrelevenat_shifts))
+                    float(
+                        np.mean(irrelevenat_shifts)
+                    )  # Calculate average if we have values
                     if len(irrelevenat_shifts) > 0
-                    else 0.0
+                    else 0.0  # Default to 0.0 if no irrelevant inputs were processed
                 ),
             ),
         ]

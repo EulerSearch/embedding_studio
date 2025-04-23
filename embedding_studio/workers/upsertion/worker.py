@@ -45,6 +45,8 @@ redis_broker.add_middleware(ActionsOnStartMiddleware([init_nltk]))
 )
 def deletion_worker(task_id: str):
     task = context.deletion_task.get(id=task_id)
+    if not task:
+        return
 
     # TODO: mechanism to unlock if python service crashed
     reindex_lock = context.reindex_locks.get_by_model_id(
@@ -116,6 +118,8 @@ def deletion_worker(task_id: str):
 )
 def upsertion_worker(task_id: str):
     task = context.upsertion_task.get(id=task_id)
+    if not task:
+        return
 
     # TODO: mechanism to unlock if python service crashed
     reindex_lock = context.reindex_locks.get_by_model_id(
@@ -177,6 +181,9 @@ def upsertion_worker(task_id: str):
 )
 def reindex_subworker(task_id: str):
     task = context.reindex_subtask.get(id=task_id)
+    if not task:
+        return
+
     handle_reindex_subtask(task)
     gc.collect()
     return
@@ -189,6 +196,8 @@ def reindex_subworker(task_id: str):
 )
 def reindex_worker(task_id: str):
     task = context.reindex_task.get(id=task_id)
+    if not task:
+        return
 
     reindex_lock = context.reindex_locks.get_by_model_id(
         task.source.embedding_model_id

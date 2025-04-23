@@ -25,11 +25,11 @@ from embedding_studio.experiments.mlflow_client_wrapper import (
 )
 from embedding_studio.experiments.status import MLflowStatus
 from embedding_studio.utils.mlflow_utils import get_experiment_id_by_name
+from embedding_studio.utils.retry import retry_method
 from embedding_studio.workers.fine_tuning.utils.config import RetryConfig
 from embedding_studio.workers.fine_tuning.utils.exceptions import (
     MaxAttemptsReachedException,
 )
-from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 
 INITIAL_EXPERIMENT_NAME: str = f"{EXPERIMENT_PREFIX} / initial"
 INITIAL_RUN_NAME: str = "initial_model"
@@ -99,6 +99,17 @@ class ExperimentsManager(MLflowClientWrapper):
         is_loss: bool = False,
         n_top_runs: int = 10,
     ) -> "ExperimentsManager":
+        """
+        Create an ExperimentsManager from an existing MLflowClientWrapper.
+
+        :param wrapper: Existing MLflowClientWrapper instance
+        :param main_metric: Name of main metric that will be used to find best model
+        :param plugin_name: Name of fine-tuning method being used
+        :param accumulators: Accumulators of metrics to be logged
+        :param is_loss: Is main metric loss (if True, then best quality is minimal)
+        :param n_top_runs: How many hyper params group consider to be used in following tuning steps
+        :return: A new ExperimentsManager instance
+        """
         return ExperimentsManager(
             wrapper.tracking_uri,
             main_metric,
@@ -112,6 +123,11 @@ class ExperimentsManager(MLflowClientWrapper):
 
     @property
     def is_loss(self) -> bool:
+        """
+        Check if the main metric is a loss metric.
+
+        :return: True if the main metric is a loss metric (lower is better), False otherwise
+        """
         return self._is_loss
 
     def __del__(self):
@@ -119,6 +135,12 @@ class ExperimentsManager(MLflowClientWrapper):
         self.finish_iteration()
 
     def _fix_name(self, name: str) -> str:
+        """
+        Prefix a name with the plugin name.
+
+        :param name: Base name to fix
+        :return: Name prefixed with plugin name
+        """
         return f"{self._plugin_name} / {name}"
 
     # START: INITIAL MODEL MANAGEMENT
@@ -132,6 +154,11 @@ class ExperimentsManager(MLflowClientWrapper):
         return run_id == self.get_initial_run_id()
 
     def get_initial_run_id(self) -> str:
+        """
+        Get the ID of the initial run.
+
+        :return: ID of the initial run
+        """
         initial_run_id: str = self._get_run_id_by_name(
             self._get_experiment_id_by_name(self.initial_experiment_name),
             INITIAL_RUN_NAME,
@@ -151,6 +178,11 @@ class ExperimentsManager(MLflowClientWrapper):
         return run_id == initial_run_id
 
     def has_initial_model(self) -> bool:
+        """
+        Check if an initial model exists.
+
+        :return: True if initial model exists, False otherwise
+        """
         experiment_id = self._get_experiment_id_by_name(
             self.initial_experiment_name
         )
@@ -269,6 +301,11 @@ class ExperimentsManager(MLflowClientWrapper):
 
     @retry_method(name="search_experiments")
     def get_experiments(self) -> List[Experiment]:
+        """
+        Get all experiments related to the current plugin.
+
+        :return: List of experiments
+        """
         experiments: List[Experiment] = [
             e
             for e in mlflow.search_experiments()
@@ -279,6 +316,11 @@ class ExperimentsManager(MLflowClientWrapper):
         return experiments
 
     def get_previous_iteration_id(self) -> Optional[str]:
+        """
+        Get the ID of the previous iteration.
+
+        :return: ID of the previous iteration, or None if not found
+        """
         if (
             self._tuning_iteration == self.initial_experiment_name
             or self._tuning_iteration is None
@@ -298,6 +340,11 @@ class ExperimentsManager(MLflowClientWrapper):
         ).experiment_id
 
     def get_last_iteration_id(self) -> Optional[str]:
+        """
+        Get the ID of the last iteration (excluding current).
+
+        :return: ID of the last iteration, or None if not found
+        """
         if (
             self._tuning_iteration == self.initial_experiment_name
             or self._tuning_iteration is None
@@ -321,6 +368,11 @@ class ExperimentsManager(MLflowClientWrapper):
         ).experiment_id
 
     def get_last_finished_iteration_id(self) -> Optional[str]:
+        """
+        Get the ID of the last finished iteration.
+
+        :return: ID of the last finished iteration, or None if not found
+        """
         if (
             self._tuning_iteration == self.initial_experiment_name
             or self._tuning_iteration is None
@@ -360,6 +412,11 @@ class ExperimentsManager(MLflowClientWrapper):
         ).experiment_id
 
     def delete_previous_iteration(self):
+        """
+        Delete models of the previous iteration and archive/delete the experiment.
+
+        :return: None
+        """
         experiment_id: Optional[str] = self.get_previous_iteration_id()
         logger.info("Delete models of previous iteration.")
         runs = self.get_runs(experiment_id, models_only=True)
@@ -383,6 +440,12 @@ class ExperimentsManager(MLflowClientWrapper):
 
     @retry_method(name="create_experiment")
     def _set_experiment_with_name(self, experiment_name: str):
+        """
+        Set current experiment by name.
+
+        :param experiment_name: Name of the experiment
+        :return: None
+        """
         self._iteration_experiment = mlflow.set_experiment(
             experiment_name=experiment_name
         )
@@ -390,6 +453,12 @@ class ExperimentsManager(MLflowClientWrapper):
 
     @retry_method(name="create_experiment")
     def _set_experiment_with_id(self, experiment_id: str):
+        """
+        Set current experiment by ID.
+
+        :param experiment_id: ID of the experiment
+        :return: None
+        """
         self._tuning_iteration_id = experiment_id
         self._iteration_experiment = mlflow.set_experiment(
             experiment_id=self._tuning_iteration_id
@@ -420,6 +489,11 @@ class ExperimentsManager(MLflowClientWrapper):
             self._set_experiment_with_id(tuning_iteration_id)
 
     def finish_iteration(self):
+        """
+        Finish current iteration and reset to initial experiment.
+
+        :return: None
+        """
         logger.info(f"Finish current iteration {self._tuning_iteration_id}")
         self._tuning_iteration = self.initial_experiment_name
         tuning_iteration_id = self._get_experiment_id_by_name(
@@ -441,6 +515,13 @@ class ExperimentsManager(MLflowClientWrapper):
     def get_run_by_id(
         self, run_id: str, models_only: bool = False
     ) -> pd.DataFrame:
+        """
+        Get run information by ID.
+
+        :param run_id: ID of the run to get
+        :param models_only: If True, only return runs with models
+        :return: DataFrame containing run information
+        """
         if models_only:
             runs: pd.DataFrame = mlflow.search_runs(
                 filter_string=self._get_model_exists_filter()
@@ -453,6 +534,12 @@ class ExperimentsManager(MLflowClientWrapper):
         return runs
 
     def _get_best_previous_run_id(self) -> Tuple[Optional[str], bool]:
+        """
+        Get the ID of the best run from the previous iteration.
+
+        :return: Tuple containing (run_id, is_initial),
+        where is_initial is True if no previous iteration exists
+        """
         initial_id: Optional[str] = self._get_experiment_id_by_name(
             self.initial_experiment_name
         )
@@ -487,6 +574,12 @@ class ExperimentsManager(MLflowClientWrapper):
 
     @retry_method(name="start_run")
     def _start_run(self, params: FineTuningParams):
+        """
+        Start a new MLflow run with the given parameters.
+
+        :param params: Fine-tuning parameters for the run
+        :return: None
+        """
         self._run_params = params
         run_name: str = self._run_params.id
         self._run_id = self._get_run_id_by_name(
@@ -499,6 +592,11 @@ class ExperimentsManager(MLflowClientWrapper):
 
     @retry_method(name="log_params")
     def _save_params(self):
+        """
+        Save all parameters to MLflow.
+
+        :return: None
+        """
         convert_value = lambda value: (
             ", ".join(map(str, value)) if isinstance(value, list) else value
         )
@@ -509,6 +607,12 @@ class ExperimentsManager(MLflowClientWrapper):
             mlflow.log_param(key, convert_value(value))
 
     def _set_run(self, params: FineTuningParams):
+        """
+        Set up a run with provided parameters.
+
+        :param params: Fine-tuning parameters for the run
+        :return: False if run already exists, True if new run
+        """
         self._start_run(params)
         if self._run_id is None:
             self._run_id = self._run.info.run_id
@@ -543,6 +647,12 @@ class ExperimentsManager(MLflowClientWrapper):
 
     @retry_method(name="end_run")
     def finish_run(self, as_failed: bool = False):
+        """
+        Finish current run and clear accumulators.
+
+        :param as_failed: If True, end run with failed status
+        :return: None
+        """
         logger.info(
             f"Finish current run {self._tuning_iteration_id} / {self._run_id}"
         )
@@ -659,6 +769,13 @@ class ExperimentsManager(MLflowClientWrapper):
 
     @retry_method(name="log_param")
     def _set_model_as_deleted(self, run_id: str, experiment_id: str):
+        """
+        Mark model as deleted by setting appropriate metrics.
+
+        :param run_id: ID of the run containing the model
+        :param experiment_id: ID of the experiment containing the run
+        :return: None
+        """
         with mlflow.start_run(
             run_id=run_id, experiment_id=experiment_id
         ) as run:
@@ -677,6 +794,11 @@ class ExperimentsManager(MLflowClientWrapper):
     # START: GET MODEL URL
 
     def get_last_model_url(self) -> Optional[str]:
+        """
+        Get URL for the best model from previous iteration.
+
+        :return: URL for the model, or None if not found
+        """
         run_id, is_initial = self._get_best_previous_run_id()
         if is_initial:
             logger.warning(
@@ -694,6 +816,11 @@ class ExperimentsManager(MLflowClientWrapper):
         return self._get_artifact_url(run_id, MODEL_ARTIFACT_PATH)
 
     def get_current_model_url(self) -> Optional[str]:
+        """
+        Get URL for the best model from current iteration.
+
+        :return: URL for the model, or None if not found
+        """
         run_id, is_initial = self.get_best_current_run_id()
         if is_initial:
             logger.warning(
@@ -716,6 +843,11 @@ class ExperimentsManager(MLflowClientWrapper):
 
     @retry_method(name="search_runs")
     def model_is_uploaded(self) -> bool:
+        """
+        Check if a model is uploaded for the current run.
+
+        :return: True if model is uploaded, False otherwise
+        """
         runs: pd.DataFrame = mlflow.search_runs(
             experiment_ids=[self._tuning_iteration_id],
             filter_string=self._get_model_exists_filter(),
@@ -724,6 +856,13 @@ class ExperimentsManager(MLflowClientWrapper):
         return runs.shape[0] > 0
 
     def delete_model(self, run_id: str, experiment_id: Optional[str] = None):
+        """
+        Delete a model for specified run.
+
+        :param run_id: ID of the run containing the model
+        :param experiment_id: ID of the experiment containing the run (uses current if None)
+        :return: None
+        """
         experiment_id = (
             self._tuning_iteration_id
             if experiment_id is None
@@ -758,6 +897,12 @@ class ExperimentsManager(MLflowClientWrapper):
 
     @retry_method(name="log_model")
     def _save_model(self, model: EmbeddingsModelInterface):
+        """
+        Upload a model to MLflow.
+
+        :param model: Model to be uploaded
+        :return: None
+        """
         mlflow.pytorch.log_model(
             model, "model", pip_requirements=self._requirements
         )
@@ -903,6 +1048,12 @@ class ExperimentsManager(MLflowClientWrapper):
     def _get_best_quality(
         self, experiment_id: str
     ) -> Tuple[Optional[str], float]:
+        """
+        Get best quality run from an experiment.
+
+        :param experiment_id: ID of the experiment
+        :return: Tuple containing (run_id, quality_value), run_id may be None if no runs found
+        """
         runs: pd.DataFrame = self.get_runs(experiment_id, models_only=True)
         runs = runs[
             runs.status == MLflowStatus.FINISHED.name

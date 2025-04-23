@@ -6,8 +6,8 @@ from mlflow.store.artifact.local_artifact_repo import LocalArtifactRepository
 
 from embedding_studio.experiments.experiments_tracker import ExperimentsManager
 from embedding_studio.experiments.metrics_accumulator import MetricsAccumulator
+from embedding_studio.utils.retry import retry_method
 from embedding_studio.workers.fine_tuning.utils.config import RetryConfig
-from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 
 logger = logging.getLogger(__name__)
 

@@ -52,6 +52,14 @@ class FineTuningParams(BaseModel):
 
     @validator("examples_order", pre=True, always=True)
     def validate_examples_order(cls, value):
+        """
+        Validate and convert examples_order to the correct format.
+
+        Handles string, tuple, and other formats and converts to a list of ExamplesType.
+
+        :param value: The value to validate
+        :return: Validated and converted value
+        """
         if isinstance(value, str):
             value = list(map(int, value.split(",")))
         elif isinstance(value, tuple):
@@ -60,6 +68,12 @@ class FineTuningParams(BaseModel):
 
     @validator("items_lr", "query_lr", pre=True, always=True)
     def validate_positive_float(cls, value):
+        """
+        Validate that the value is a positive float.
+
+        :param value: The value to validate
+        :return: Validated value
+        """
         if not (isinstance(value, float) and value > 0):
             raise ValueError(f"{value} must be a positive float")
         return value
@@ -68,24 +82,48 @@ class FineTuningParams(BaseModel):
         "items_weight_decay", "query_weight_decay", pre=True, always=True
     )
     def validate_non_negative_float(cls, value):
+        """
+        Validate that the value is a non-negative float.
+
+        :param value: The value to validate
+        :return: Validated value
+        """
         if not (isinstance(value, float) and value >= 0):
             raise ValueError(f"{value} must be a non-negative float")
         return value
 
     @validator("margin", pre=True, always=True)
     def validate_non_negative_float_margin(cls, value):
+        """
+        Validate that the margin is a non-negative float.
+
+        :param value: The value to validate
+        :return: Validated value
+        """
         if not (isinstance(value, float) and value >= 0):
             raise ValueError(f"{value} must be a non-negative float")
         return value
 
     @validator("num_fixed_layers", pre=True, always=True)
     def validate_non_negative_int(cls, value):
+        """
+        Validate that the value is a non-negative integer.
+
+        :param value: The value to validate
+        :return: Validated value
+        """
         if not (isinstance(value, int) and value >= 0):
             raise ValueError(f"{value} must be a non-negative integer")
         return value
 
     @root_validator(skip_on_failure=True)
     def validate_example_order(cls, values):
+        """
+        Validate and normalize the examples_order field across the model.
+
+        :param values: Dictionary of field values
+        :return: Validated values
+        """
         examples_order = values.get("examples_order")
         if examples_order:
             if isinstance(examples_order, str):
@@ -99,6 +137,11 @@ class FineTuningParams(BaseModel):
 
     @property
     def id(self) -> str:
+        """
+        Generate a unique ID for this parameter set using SHA-256 hash.
+
+        :return: Hexadecimal string representing the hash of the parameters
+        """
         # Convert the value to bytes (assuming it's a string)
         value_bytes: bytes = str(self).encode("utf-8")
 
@@ -114,6 +157,13 @@ class FineTuningParams(BaseModel):
         return unique_id
 
     def __str__(self) -> str:
+        """
+        Convert the parameters to a string representation.
+
+        Format: "key1: value1 / key2: value2 / ..."
+
+        :return: String representation of the parameters
+        """
         vals: List[str] = []
         for key, value in sorted(dict(self).items()):
             value = (

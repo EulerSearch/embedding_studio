@@ -11,16 +11,21 @@ from embedding_studio.core.config import settings
 from embedding_studio.inference_management.triton.model_storage_info import (
     DeployedModelInfo,
 )
+from embedding_studio.utils.retry import retry_method
 from embedding_studio.workers.fine_tuning.utils.config import (
     RetryConfig,
     RetryParams,
 )
-from embedding_studio.workers.fine_tuning.utils.retry import retry_method
 
 logger = logging.getLogger(__name__)
 
 
 class TritonClient(ABC):
+    """
+    Abstract base class for interacting with the Triton Inference Server.
+    Provides functionality for model readiness checks and inference operations.
+    """
+
     def __init__(
         self,
         url: str,
@@ -29,12 +34,14 @@ class TritonClient(ABC):
         same_query_and_items: bool = False,
         retry_config: Optional[RetryConfig] = None,
     ):
-        """Initialize the Triton client connection with the specified model version.
-        :param url: tritonserver connection URL.
-        :param plugin_name: model's plugin name.
-        :param embedding_model_id: deployed model ID.
-        :param same_query_and_items: are query and items models acutally the same model (default: False).
-        :param retry_config: retry policy (default: None).
+        """
+        Initialize the Triton client connection with the specified model version.
+
+        :param url: tritonserver connection URL
+        :param plugin_name: model's plugin name
+        :param embedding_model_id: deployed model ID
+        :param same_query_and_items: are query and items models actually the same model
+        :param retry_config: retry policy configuration for connection attempts
         """
         self.url = url
         self.plugin_name = plugin_name
@@ -60,6 +67,12 @@ class TritonClient(ABC):
         )
 
     def _is_model_ready(self, is_query: bool) -> bool:
+        """
+        Internal method to check if a specific model (query or items) is ready on the Triton server.
+
+        :param is_query: True to check query model, False to check items model
+        :return: True if the specified model is ready, False otherwise
+        """
         try:
             model_name = (
                 self.query_model_info.name
@@ -77,9 +90,10 @@ class TritonClient(ABC):
             return False
 
     def is_model_ready(self) -> bool:
-        """Check if the model is deployed.
+        """
+        Check if all required models are deployed and ready on the Triton server.
 
-        :return bool: True if the model is deployed, False otherwise.
+        :return: True if all needed models are deployed, False otherwise
         """
         if self.same_query_and_items:
             return self._is_model_ready(True)
@@ -91,6 +105,11 @@ class TritonClient(ABC):
 
     @staticmethod
     def _get_default_retry_config() -> RetryConfig:
+        """
+        Create default retry configuration for connection and inference attempts.
+
+        :return: RetryConfig object with default parameters
+        """
         default_retry_params = RetryParams(
             max_attempts=settings.DEFAULT_MAX_ATTEMPTS,
             wait_time_seconds=settings.DEFAULT_WAIT_TIME_SECONDS,
@@ -110,24 +129,68 @@ class TritonClient(ABC):
     @abstractmethod
     def _prepare_query(self, query: Any) -> List[grpcclient.InferInput]:
         """
-        Prepare input for the Triton server.
+        Prepare input for query embedding from the Triton server.
         Must be implemented to handle different data types (e.g., images, text).
+
+        :param query: Query data to be prepared for inference
+        :return: List of InferInput objects ready for submission to Triton
+
+        Example implementation:
+        ```python
+        def _prepare_query(self, query: str) -> List[grpcclient.InferInput]:
+            # For text models:
+            encoded_text = self.tokenizer.encode(query, max_length=128, truncation=True)
+            text_tensor = np.array([encoded_text], dtype=np.int64)
+            infer_input = grpcclient.InferInput("input_ids", text_tensor.shape, "INT64")
+            infer_input.set_data_from_numpy(text_tensor)
+            return [infer_input]
+        ```
         """
 
     @abstractmethod
     def _prepare_items(self, data: Any) -> List[grpcclient.InferInput]:
         """
-        Prepare input for the Triton server.
+        Prepare input for items embedding from the Triton server.
         Must be implemented to handle different data types (e.g., images, text).
+
+        :param data: Items data to be prepared for inference
+        :return: List of InferInput objects ready for submission to Triton
+
+        Example implementation:
+        ```python
+        def _prepare_items(self, data: List[str]) -> List[grpcclient.InferInput]:
+            # For batch text processing:
+            batch_tensors = []
+            for item in data:
+                encoded_text = self.tokenizer.encode(item, max_length=128, truncation=True)
+                batch_tensors.append(encoded_text)
+
+            padded_batch = pad_sequences(batch_tensors, maxlen=128, padding='post')
+            batch_tensor = np.array(padded_batch, dtype=np.int64)
+
+            infer_input = grpcclient.InferInput("input_ids", batch_tensor.shape, "INT64")
+            infer_input.set_data_from_numpy(batch_tensor)
+            return [infer_input]
+        ```
         """
 
     def forward_query(self, query: Any) -> np.ndarray:
-        """Send a query to the Triton server and receive the output."""
+        """
+        Send a query to the Triton server and receive embedding output.
+
+        :param query: Query data to be embedded
+        :return: Numpy array containing query embedding
+        """
         inputs = self._prepare_query(query)
         return self._send_query_request(inputs)
 
     def forward_items(self, items: List[Any]) -> np.ndarray:
-        """Send a list of items to the Triton server and receive the output."""
+        """
+        Send a list of items to the Triton server and receive embedding outputs.
+
+        :param items: List of items data to be embedded
+        :return: Numpy array containing item embeddings
+        """
         inputs = self._prepare_items(items)
         return self._send_items_request(inputs)
 
@@ -135,7 +198,13 @@ class TritonClient(ABC):
     def _send_query_request(
         self, inputs: List[grpcclient.InferInput]
     ) -> np.ndarray:
-        """Helper function to send a request to the Triton server."""
+        """
+        Helper function to send a query request to the Triton server with retry logic.
+
+        :param inputs: List of prepared InferInput objects
+        :return: Numpy array with model output
+        """
+
         try:
             model_name = self.query_model_info.name
             response = self.client.infer(
@@ -156,7 +225,12 @@ class TritonClient(ABC):
     def _send_items_request(
         self, inputs: List[grpcclient.InferInput]
     ) -> np.ndarray:
-        """Helper function to send a request to the Triton server."""
+        """
+        Helper function to send an items request to the Triton server with retry logic.
+
+        :param inputs: List of prepared InferInput objects
+        :return: Numpy array with model output
+        """
         try:
             model_name = (
                 self.query_model_info.name
@@ -181,6 +255,7 @@ class TritonClient(ABC):
 class TritonClientFactory:
     """
     Factory for creating instances of TritonClient with common configurations but different model versions.
+    Provides a standardized way to create client instances for specific embedding models.
     """
 
     def __init__(
@@ -193,10 +268,10 @@ class TritonClientFactory:
         """
         Initialize the factory with common configuration parameters.
 
-        :param url: The URL of the Triton Inference Server.
-        :param plugin_name: The name of the plugin/model used for inference tasks.
-        :param same_query_and_items: Indicates whether the same model handles both queries and items.
-        :param retry_config: retry policy (default: None).
+        :param url: The URL of the Triton Inference Server
+        :param plugin_name: The name of the plugin/model used for inference tasks
+        :param same_query_and_items: Indicates whether the same model handles both queries and items
+        :param retry_config: Retry policy configuration
         """
         self.url = url
         self.plugin_name = plugin_name
@@ -208,7 +283,20 @@ class TritonClientFactory:
         """
         Create an instance of a specified TritonClient subclass with a specific model version.
 
-        :param embedding_model_id: The deployed ID of the model.
-        :param kwargs: Additional keyword arguments to pass to the client class constructor.
-        :return: An instance of the specified TritonClient subclass.
+        :param embedding_model_id: The deployed ID of the model
+        :param kwargs: Additional keyword arguments to pass to the client class constructor
+        :return: An instance of a TritonClient subclass
+
+        Example implementation:
+        ```python
+        def get_client(self, embedding_model_id: str, **kwargs):
+            return TextTritonClient(
+                url=self.url,
+                plugin_name=self.plugin_name,
+                embedding_model_id=embedding_model_id,
+                tokenizer=self.tokenizer,
+                retry_config=self.retry_config,
+                **kwargs
+            )
+        ```
         """
