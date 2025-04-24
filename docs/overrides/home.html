@@ -11,14 +11,14 @@
                     <b>self-improving search engines that enhance both the recall of similarity search and precision of exact matching</b>.
                 <div class="button-container">
                     <a href="{{ page.next_page.url | url }}" title="{{ page.next_page.title | striptags }}"
-                       class="md-button md-button--primary">
+                       class="md-button md-button--primary button-width">
                         Get started
                     </a>
-                    <a href="{{ config.repo_url }}" title="{{ lang.t('source.link.title') }}" class="md-button">
-                        Support us on GitHub
-                    </a>
-                    <a href="https://hugsearch.demo.embeddingstud.io/" class="md-button md-button--primary">
+                    <a href="https://hugsearch.demo.embeddingstud.io/" class="md-button md-button--primary button-width">
                         Try the Live Demo
+                    </a>
+                    <a href="{{ config.repo_url }}" title="{{ lang.t('source.link.title') }}" class="md-button button-width">
+                        Support us on GitHub
                     </a>
                 </div>
             </div>
@@ -26,11 +26,19 @@
     </div>
 </section>
 
+<div class="top-hr">
+    <div class="hr">
+    </div>
+</div>
+
+
 <style>
+    .button-width {
+        min-width: 10rem;
+    }
+
     .centered-header {
         text-align: center;
-        max-width: 1000px;
-        margin: 0 auto;
     }
 
     .es-product {
@@ -63,329 +71,475 @@
             align-items: center;
         }
     }
-</style>
 
-<style>
     .top-hr {
         display: flex;
         flex-wrap: wrap;
         justify-content: space-between;
-        max-width: 1100px;
+        margin-top: 0px;
     }
 
+    /* Feature grid styling */
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 3rem;
+        max-width: 80rem;
+        margin: 2rem auto;
+    }
+
+    /* Feature item styling */
     .feature-item {
-        flex: 1;
-        min-width: 250px;
-        padding: 0 1rem;
-        margin-bottom: 1.5rem;
+        background-color: var(--light-gray);
+        border-radius: 6px;
+        padding: 1.5rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .feature-item h2 {
-        font-size: 1.2rem;
+    .feature-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    /* Header row styling */
+    .feature-header {
         display: flex;
         align-items: center;
-        margin-bottom: 0.75rem;
+        margin-bottom: 1rem;
+        min-height: 48px; /* Ensures consistent header height */
     }
 
-    .feature-item h2 img {
-        margin-right: 0.5rem;
-        width: 24px;
-        height: 24px;
+    .feature-icon {
+        width: 32px;
+        height: 32px;
+        margin-right: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .feature-item p {
-        font-size: 0.95rem;
-        line-height: 1.4;
+    .feature-icon img {
+        max-width: 100%;
+        max-height: 100%;
     }
+
+    .feature-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        flex: 1;
+    }
+
+    .feature-description {
+        font-size: 1rem;
+        color: #555;
+        margin: 0;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 992px) {
+        .features-grid {
+            grid-template-columns: repeat(2, 1fr);
+            margin: 2rem 4rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .features-grid {
+            grid-template-columns: 1fr;
+            margin: 2rem auto;
+        }
+
+        .feature-header {
+            min-height: auto;
+        }
+    }
+
+    /* Section styling */
+    .section {
+        padding-left: 2rem;
+        padding-right: 2rem;
+        max-width: 90rem;
+    }
+
+    .section-title {
+        text-align: center;
+        font-size: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .section-subtitle {
+        text-align: center;
+        font-size: 1rem;
+        margin-bottom: 2rem;
+        max-width: 50%;
+    }
+
+
+    /* Utility classes */
+    .text-center {
+        text-align: center;
+    }
+
+    .capabilities-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin: 2rem auto;
+            max-width: 1200px; /* Made wider */
+            margin: 2rem auto;
+        }
+
+        /* Card Styling */
+        .capability-card {
+            padding: 1.5rem 2rem;
+            border-radius: 0;
+            max-width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .capability-card h2 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            border-bottom: 2px solid;
+            padding-bottom: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .capability-card p {
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .capability-card i {
+            font-style: italic;
+        }
+
+        /* Card Types */
+        .semantic-card {
+            background-color: rgba(240, 248, 255, 0.5);
+            border-left: 4px solid var(--blue-color);
+        }
+
+        .semantic-card h2 {
+            border-color: var(--blue-color);
+            color: var(--blue-color);
+        }
+
+        .fine-tuning-card {
+            background-color: rgba(245, 255, 245, 0.5);
+            border-left: 4px solid var(--green-color);
+        }
+
+        .fine-tuning-card h2 {
+            border-color: var(--green-color);
+            color: var(--green-color);
+        }
+
+        .structured-card {
+            background-color: rgba(255, 248, 240, 0.5);
+            border-left: 4px solid var(--orange-color);
+        }
+
+        .structured-card h2 {
+            border-color: var(--orange-color);
+            color: var(--orange-color);
+        }
+
+        .multi-modal-card {
+            background-color: rgba(243, 240, 255, 0.5);
+            border-left: 4px solid var(--purple-color);
+        }
+
+        .multi-modal-card h2 {
+            border-color: var(--purple-color);
+            color: var(--purple-color);
+        }
+
+        /* Numbered list styling */
+        .numbered-list p {
+            margin-bottom: 0.8rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .numbered-list p:before {
+            position: absolute;
+            left: 0;
+            font-weight: 600;
+        }
+
+        .numbered-list p:nth-child(1):before {
+            content: "1.";
+        }
+
+        .numbered-list p:nth-child(2):before {
+            content: "2.";
+        }
+
+        .numbered-list p:nth-child(3):before {
+            content: "3.";
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 900px) {
+            .capabilities-grid {
+                grid-template-columns: 1fr; /* Switch to single column on smaller screens */
+                gap: 1.5rem;
+            }
+
+            .capability-card {
+                padding: 1.25rem 1.5rem;
+            }
+
+            .section-header h1 {
+                font-size: 2rem;
+            }
+
+            .section-header p {
+                font-size: 1.1rem;
+            }
+        }
+
+    button {
+            background-color: rgb(98, 94, 255);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+    }
+    button:hover {
+        background-color: rgb(78, 74, 235);
+    }
+    .fullscreen-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+    .fullscreen-video {
+        max-width: 90%;
+        max-height: 80vh;
+    }
+    .close-button {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background-color: transparent;
+        color: white;
+        font-size: 24px;
+        border: none;
+        cursor: pointer;
+    }
+    .video-controls {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+    }
+
 </style>
 
-<div class="top-hr">
-    <div class="feature-item">
-        <h2>
-            <img src="images/loop.svg"/>
-            Full-Cycle Search Engine
-        </h2>
-        <p>Transform your vector database into a complete search solution with built-in clickstream collection and continuous model refinement.</p>
-    </div>
-    <div class="feature-item">
-        <h2>
-            <img src="images/search.svg"/>
-            Intelligent Query Processing
-        </h2>
-        <p>Combine structured and unstructured search with our <a class="es-color"
-                                                                  href="https://huggingface.co/EmbeddingStudio/query-parser-falcon-7b-instruct">LLM
-            for natural query search parsing</a>.</p>
-    </div>
-    <div class="feature-item">
-        <h2>
-            <img src="images/click.svg"/>
-            User Feedback Collection
-        </h2>
-        <p>Automatically gather clickstream and session data for resource-saving and accuracy-effective fine-tuning.</p>
-    </div>
-</div>
-
-<div class="top-hr">
-    <div class="feature-item">
-        <h2>
-            <img src="images/python_logo.svg"/>
-            Python Ecosystem
-        </h2>
-        <p>Use Embedding Studio together with your preferred Python libraries.</p>
-    </div>
-    <div class="feature-item">
-        <h2>
-            <img src="images/plugin.svg"/>
-            Plugin-Based System
-        </h2>
-        <p>Connect your own Vector DB, Data Source and Embedding model by implementing a Python plugin.</p>
-    </div>
-    <div class="feature-item">
-        <h2>
-            <img src="images/data_model.svg"/>
-            Continuous Improvement
-        </h2>
-        <p>Enhance search quality on-the-fly without long waiting periods through iterative fine-tuning.</p>
-    </div>
-</div>
-
-<div class="top-hr">
-    <div class="feature-item">
-        <h2>
-            <img src="images/github.svg"/>
-            Open Source
-        </h2>
-        <p>All our code is open sourced under the Apache 2.0 license.</p>
-    </div>
-    <div class="feature-item">
-        <h2>
-            <img src="images/docker.svg"/>
-            Easy Deployment
-        </h2>
-        <p>Simple deployment with Docker Compose and blue-green deployment for zero-downtime updates.</p>
-    </div>
-    <div class="feature-item">
-        <h2>
-            <img src="images/mlflow.png"/>
-            Performance Monitoring
-        </h2>
-        <p>Track search quality metrics through comprehensive dashboards using MLflow.</p>
-    </div>
-</div>
-
-<div class="top-hr">
-    <div class="hr">
-    </div>
-</div>
-
-<div class="text-center">
-    <h2>When to Use Embedding Studio</h2>
+<div class="container">
+     <h2 class="section-title"> Want this search experience in your app? <a href="#contact" style="color: rgb(98 94 255);">Let’s talk</a>. </h2>
     <center>
-        <div class="disclaimer">
-            <p>
-                Embedding Studio is ideal for these scenarios:
-            </p>
-        </div>
+    <!-- Small inline video preview -->
+    <video id="previewVideo" width="1000" autoplay muted loop playsinline style="border-radius: 8px;">
+      <source src="https://hugsearch.demo.embeddingstud.io/demo.webm" type="video/webm">
+      Your browser does not support the video tag.
+    </video>
+    </center>
+
+    <center>
+    <!-- Button to open full video -->
+    <button onclick="openFullVideo()" style="margin-top: 10px;">▶ Watch Fullscreen</button>
     </center>
 </div>
 
-<div class="top-hr">
-    <div class="feature-item">
-        <h2>
-            <img src="images/data_model.svg"/>
-            Rich Content Collections
-        </h2>
-        <p>Businesses with extensive catalogs and unstructured data</p>
-    </div>
-    <div class="feature-item">
-        <h2>
-            <img src="images/click.svg"/>
-            Customer-Centric Platforms
-        </h2>
-        <p>Applications prioritizing personalized user experiences</p>
-    </div>
-    <div class="feature-item">
-        <h2>
-            <img src="images/loop.svg"/>
-            Dynamic Content
-        </h2>
-        <p>Platforms with evolving content and changing user preferences</p>
-    </div>
+<!-- Fullscreen video overlay -->
+<div id="videoOverlay" class="fullscreen-overlay">
+    <button class="close-button" onclick="closeFullVideo()">✕</button>
+    <video id="fullscreenVideo" class="fullscreen-video" controls>
+        <source src="https://hugsearch.demo.embeddingstud.io/demo.webm" type="video/webm">
+        Your browser does not support the video tag.
+    </video>
 </div>
 
-<div class="top-hr">
-    <div class="feature-item">
-        <h2>
-            <img src="images/search.svg"/>
-            Complex Queries
-        </h2>
-        <p>Systems handling nuanced and multifaceted search needs</p>
-    </div>
-    <div class="feature-item">
-        <h2>
-            <img src="images/data_model.svg"/>
-            Mixed Data Types
-        </h2>
-        <p>Applications integrating different data formats in search</p>
-    </div>
-    <div class="feature-item">
-        <h2>
-            <img src="images/github.svg"/>
-            Cost-Conscious
-        </h2>
-        <p>Teams looking for powerful yet affordable solutions</p>
-    </div>
-</div>
+<script>
+    function openFullVideo() {
+        // Get current playback position from preview video
+        const previewVideo = document.getElementById('previewVideo');
+        const currentTime = previewVideo.currentTime;
+
+        // Set the fullscreen video to the same position
+        const fullscreenVideo = document.getElementById('fullscreenVideo');
+        fullscreenVideo.currentTime = currentTime;
+
+        // Show the overlay
+        const overlay = document.getElementById('videoOverlay');
+        overlay.style.display = 'flex';
+
+        // Play the video
+        fullscreenVideo.play();
+    }
+
+    function closeFullVideo() {
+        const overlay = document.getElementById('videoOverlay');
+        const fullscreenVideo = document.getElementById('fullscreenVideo');
+
+        // Pause the video when closing
+        fullscreenVideo.pause();
+
+        // Hide the overlay
+        overlay.style.display = 'none';
+    }
+
+    function playPauseVideo() {
+        const video = document.getElementById('fullscreenVideo');
+        if (video.paused) {
+            video.play();
+        } else {
+            video.pause();
+        }
+    }
+
+    function muteUnmuteVideo() {
+        const video = document.getElementById('fullscreenVideo');
+        video.muted = !video.muted;
+    }
+
+    // Close the overlay when clicking outside the video
+    document.getElementById('videoOverlay').addEventListener('click', function(event) {
+        if (event.target === this) {
+            closeFullVideo();
+        }
+    });
+
+    // Close with ESC key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && document.getElementById('videoOverlay').style.display === 'flex') {
+            closeFullVideo();
+        }
+    });
+</script>
 
 <div class="top-hr">
     <div class="hr">
     </div>
 </div>
 
+<div class="container">
+    <h2 class="section-title">Key Features</h2>
+    <div class="features-grid">
+        <!-- Feature 1 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/loop.svg" alt="Full-Cycle Search Engine" />
+                </div>
+                <h3 class="feature-title">Full-Cycle Search Engine</h3>
+            </div>
+            <p class="feature-description">Transform your vector database into a complete search solution with built-in clickstream collection and continuous model refinement.</p>
+        </div>
 
-<div class="text-center">
-    <h2>Core Capabilities</h2>
-    <div class="centered-content">
-        <p class="capabilities-intro">
-            Embedding Studio is a framework which transforms your Vector Database into a
-            feature-rich, self-improving Search Engine.
-        </p>
-    </div>
-</div>
+        <!-- Feature 2 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/search.svg" alt="Intelligent Query Processing" />
+                </div>
+                <h3 class="feature-title">Intelligent Query Processing</h3>
+            </div>
+            <p class="feature-description">Combine structured and unstructured search with our LLM for natural query search parsing.</p>
+        </div>
 
-<style>
-    .capabilities-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        grid-gap: 1.5rem;
-        margin: 2rem auto;
-        max-width: 900px;
-    }
+        <!-- Feature 3 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/click.svg" alt="User Feedback Collection" />
+                </div>
+                <h3 class="feature-title">User Feedback Collection</h3>
+            </div>
+            <p class="feature-description">Automatically gather clickstream and session data for resource-saving and accuracy-effective fine-tuning.</p>
+        </div>
 
-    .centered-content {
-        text-align: center;
-        max-width: 800px;
-        margin: 0 auto;
-    }
+        <!-- Feature 4 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/python_logo.svg" alt="Python Ecosystem" />
+                </div>
+                <h3 class="feature-title">Python Ecosystem</h3>
+            </div>
+            <p class="feature-description">Use Embedding Studio together with your preferred Python libraries.</p>
+        </div>
 
-    .capabilities-intro {
-        font-size: 1.1rem;
-        line-height: 1.5;
-        margin-bottom: 1.5rem;
-    }
+        <!-- Feature 5 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/plugin.svg" alt="Plugin-Based System" />
+                </div>
+                <h3 class="feature-title">Plugin-Based System</h3>
+            </div>
+            <p class="feature-description">Connect your own Vector DB, Data Source and Embedding model by implementing a Python plugin.</p>
+        </div>
 
-    .capability-card {
-        padding: 1.2rem 1.5rem;
-        border-radius: 0;
-        max-width: 100%;
-    }
+        <!-- Feature 6 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/continous_improvement.png" alt="Continuous Improvement" />
+                </div>
+                <h3 class="feature-title">Continuous Improvement</h3>
+            </div>
+            <p class="feature-description">Enhance search quality on-the-fly without long waiting periods through iterative fine-tuning.</p>
+        </div>
 
-    .capability-card h2 {
-        margin-top: 0;
-        font-size: 1.2rem;
-        border-bottom: 2px solid;
-        padding-bottom: 0.5rem;
-        margin-bottom: 1rem;
-    }
+        <!-- Feature 7 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/github.svg" alt="Open Source" />
+                </div>
+                <h3 class="feature-title">Open Source</h3>
+            </div>
+            <p class="feature-description">All our code is open sourced under the Apache 2.0 license.</p>
+        </div>
 
-    .capability-card p {
-        margin-bottom: 1rem;
-        font-size: 0.95rem;
-        line-height: 1.4;
-    }
+        <!-- Feature 8 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/docker.svg" alt="Easy Deployment" />
+                </div>
+                <h3 class="feature-title">Easy Deployment</h3>
+            </div>
+            <p class="feature-description">Simple deployment with Docker Compose and blue-green deployment for zero-downtime updates.</p>
+        </div>
 
-    .semantic-card {
-        background-color: rgba(240, 248, 255, 0.5);
-        border-left: 4px solid #0078D7;
-    }
-
-    .semantic-card h2 {
-        border-color: #0078D7;
-        color: #0078D7;
-    }
-
-    .fine-tuning-card {
-        background-color: rgba(245, 255, 245, 0.5);
-        border-left: 4px solid #2E7D32;
-    }
-
-    .fine-tuning-card h2 {
-        border-color: #2E7D32;
-        color: #2E7D32;
-    }
-
-    .structured-card {
-        background-color: rgba(255, 248, 240, 0.5);
-        border-left: 4px solid #ED6C02;
-    }
-
-    .structured-card h2 {
-        border-color: #ED6C02;
-        color: #ED6C02;
-    }
-
-    .multi-modal-card {
-        background-color: rgba(243, 240, 255, 0.5);
-        border-left: 4px solid #7B1FA2;
-    }
-
-    .multi-modal-card h2 {
-        border-color: #7B1FA2;
-        color: #7B1FA2;
-    }
-
-    .numbered-list p {
-        margin-bottom: 0.6rem;
-        font-size: 0.95rem;
-    }
-
-    .text-center h2 {
-        font-size: 1.8rem;
-        margin-bottom: 1rem;
-    }
-
-    .disclaimer p {
-        font-size: 1rem;
-        max-width: 800px;
-        margin: 0 auto;
-    }
-
-    .contact-container {
-        text-align: right;
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 2rem;
-    }
-</style>
-
-<div class="capabilities-grid">
-    <div class="capability-card semantic-card">
-        <h2>Semantic & Similarity Search</h2>
-        <p>Build powerful search systems for images inspired by <i>True Detective</i> or <i>Breaking Bad</i>, or find blogposts related to <i>vector search topics</i>.</p>
-        <p>Using multimodal embeddings like <i>CLIP</i> or <i>BLIP</i>, a vector database like <i>QDrant</i> or <i>Milvus</i>, Embedding Studio enables powerful search without hashtags, classifiers, or classic text indexes.</p>
-    </div>
-
-    <div class="capability-card fine-tuning-card">
-        <h2>Iterative Fine-Tuning</h2>
-        <p>Embedding Studio implements a full feedback loop that enhances search quality over time based on real user interactions. This creates systems that improve automatically with minimal additional input.</p>
-        <p>With features like vector optimization and blue-green deployment, you can apply incremental improvements and deploy enhanced embedding models with zero downtime.</p>
-    </div>
-
-    <div class="capability-card structured-card">
-        <h2>Structured and Unstructured</h2>
-        <p>Businesses rarely use unstructured search alone. When users search for <i>brick red houses san francisco area for april</i>, they want houses in San Francisco for April rental, with brick-red color as a preference.</p>
-        <p>Embedding Studio provides <i>LLM instruct fine-tuning</i> for <i>Zero-Shot query parsing</i> to bridge the gap before a company collects sufficient data, potentially eliminating complex rule implementation entirely.</p>
-    </div>
-
-    <div class="capability-card multi-modal-card">
-        <h2>Multi-Modal Support</h2>
-        <p>Work with text, images, and structured data in one unified framework. Embedding Studio supports:</p>
-        <div class="numbered-list">
-            <p>1. <a href="https://huggingface.co/EmbeddingStudio/query-parser-falcon-7b-instruct">Zero-Shot queries parser</a> which needs only a filters schema.</p>
-
-            <p>2. Vector database capabilities to implement query-to-filters mapping that improves session by session.</p>
-
-            <p>3. Personalization support for user-specific vector adjustments based on individual behavior.</p>
+        <!-- Feature 9 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/mlflow.png" alt="Performance Monitoring" />
+                </div>
+                <h3 class="feature-title">Performance Monitoring</h3>
+            </div>
+            <p class="feature-description">Track search quality metrics through comprehensive dashboards using MLflow.</p>
         </div>
     </div>
 </div>
@@ -395,40 +549,238 @@
     </div>
 </div>
 
-<div class="text-center">
-    <h2 class="contact-header">Contact Information</h2>
-    <div class="contact-details">
-        <p class="contact-text">
-            <strong>EulerSearch Inc.</strong><br/>
-            3416, 1007 N Orange St. 4th Floor,<br/>
-            Wilmington, DE, New Castle, US, 19801<br/>
-            Email: <a href="mailto:aleksandr.iudaev@eulersearch.com">aleksandr.iudaev@eulersearch.com</a><br/>
-            Phone: +34 (691) 454 148<br/>
-            LinkedIn: <a href="https://www.linkedin.com/in/alexanderyudaev/">alexanderyudaev</a>
-        </p>
+<div class="container">
+    <h2 class="section-title">When to Use Embedding Studio</h2>
+    <div class="features-grid">
+        <!-- Use Case 1 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/rich_content.svg" alt="Rich Content Collections" />
+                </div>
+                <h3 class="feature-title">Rich Content Collections</h3>
+            </div>
+            <p class="feature-description">Businesses with extensive catalogs and unstructured data</p>
+        </div>
+
+        <!-- Use Case 2 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/customer_centric.svg" alt="Customer-Centric Platforms" />
+                </div>
+                <h3 class="feature-title">Customer-Centric Platforms</h3>
+            </div>
+            <p class="feature-description">Applications prioritizing personalized user experiences</p>
+        </div>
+
+        <!-- Use Case 3 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/dynamic_content.svg" alt="Dynamic Content" />
+                </div>
+                <h3 class="feature-title">Dynamic Content</h3>
+            </div>
+            <p class="feature-description">Platforms with evolving content and changing user preferences</p>
+        </div>
+
+        <!-- Use Case 4 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/search.svg" alt="Complex Queries" />
+                </div>
+                <h3 class="feature-title">Complex Queries</h3>
+            </div>
+            <p class="feature-description">Systems handling nuanced and multifaceted search needs</p>
+        </div>
+
+        <!-- Use Case 5 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/data_model.svg" alt="Mixed Data Types" />
+                </div>
+                <h3 class="feature-title">Mixed Data Types</h3>
+            </div>
+            <p class="feature-description">Applications integrating different data formats in search</p>
+        </div>
+
+        <!-- Use Case 6 -->
+        <div class="feature-item">
+            <div class="feature-header">
+                <div class="feature-icon">
+                    <img src="images/cost_safe.svg" alt="Cost-Conscious" />
+                </div>
+                <h3 class="feature-title">Cost-Conscious</h3>
+            </div>
+            <p class="feature-description">Teams looking for powerful yet affordable solutions</p>
+        </div>
+    </div>
+</div>
+
+<div class="top-hr">
+    <div class="hr">
+    </div>
+</div>
+
+<div class="container">
+        <h2 class="section-title">Core Capabilities</h2>
+        <center><p class="section-subtitle">Embedding Studio is a framework which transforms your Vector Database into a feature-rich, self-improving Search Engine.</p></center>
+
+        <div class="capabilities-grid">
+            <!-- Semantic & Similarity Search -->
+            <div class="capability-card semantic-card">
+                <h2 style="color: rgb(98 94 255);">Semantic & Similarity Search</h2>
+                <p>Build powerful search systems for images inspired by <i>True Detective</i> or <i>Breaking Bad</i>, or find blogposts related to <i>vector search topics</i>.</p>
+                <p>Using multimodal embeddings like <i>CLIP</i> or <i>BLIP</i>, a vector database like <i>Pgvector</i>, <i>QDrant</i> or <i>Milvus</i>, Embedding Studio enables powerful search without hashtags, classifiers, or classic text indexes.</p>
+            </div>
+
+            <!-- Iterative Fine-Tuning -->
+            <div class="capability-card fine-tuning-card">
+                <h2 style="color: rgb(86 159 86);">Iterative Fine-Tuning</h2>
+                <p>Embedding Studio implements a full feedback loop that enhances search quality over time based on real user interactions. This creates systems that improve automatically with minimal additional input.</p>
+                <p>With features like vector optimization and blue-green deployment, you can apply incremental improvements and deploy enhanced embedding models with zero downtime.</p>
+            </div>
+
+            <!-- Structured and Unstructured -->
+            <div class="capability-card structured-card">
+                <h2 style="color: rgb(235 197 84);">Structured & Unstructured Search</h2>
+                <p>Businesses rarely use unstructured search alone. When users search for <i>brick red houses san francisco area for april</i>, they want houses in San Francisco for April rental, with brick-red color as a preference.</p>
+                <p>Embedding Studio provides <i>LLM instruct fine-tuning</i> for <i>Zero-Shot query parsing</i> to bridge the gap before a company collects sufficient data, potentially eliminating complex rule implementation entirely.</p>
+            </div>
+
+            <!-- Multi-Modal Support -->
+            <div class="capability-card multi-modal-card">
+                <h2 style="color: rgb(106 92 163);">Multi-Modal Support</h2>
+                <p>Work with text, images, and structured data in one unified framework. Embedding Studio supports:</p>
+                <div class="numbered-list">
+                    <p><a href="https://huggingface.co/EmbeddingStudio/query-parser-falcon-7b-instruct" style="color: inherit; text-decoration: underline;">Zero-Shot queries parser</a> which needs only a filters schema.</p>
+                    <p>Vector database capabilities to implement query-to-filters mapping that improves session by session.</p>
+                    <p>Personalization support for user-specific vector adjustments based on individual behavior.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+<div class="top-hr">
+    <div class="hr">
     </div>
 </div>
 
 <style>
-    .contact-header {
-        font-size: 1.5rem;
-        margin-bottom: 0.8rem;
-        text-align: center;
+    .contact-section {
+        margin: 2rem 0;
     }
 
-    .contact-details {
+    .contact-header {
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
         text-align: center;
-        max-width: 500px;
-        margin: 0 auto;
+        color: var(--text-color);
+    }
+
+    /* Two-column grid layout */
+    .contact-row {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 2rem;
+        align-items: center;
+        background-color: var(--light-bg);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Photo column */
+    .contact-photo {
+        height: 100%;
+        display: flex;
+        justify-content: end;
+        align-items: center;
+        padding: 1.5rem;
+        background-color: rgba(0, 120, 215, 0.05);
+
+    }
+
+    .profile-image {
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid white;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Contact details column */
+    .contact-details {
+        padding: 2rem;
     }
 
     .contact-text {
-        font-size: 0.95rem;
-        line-height: 1.5;
-        display: inline-block;
-        text-align: left;
+        font-size: 1rem;
+        line-height: 1.8;
+        margin: 0;
+    }
+
+    .contact-text strong {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--primary-color);
+    }
+
+    .contact-text a {
+        color: var(--primary-color);
+        text-decoration: none;
+        border-bottom: 1px dashed var(--primary-color);
+        transition: all 0.2s ease;
+    }
+
+    .contact-text a:hover {
+        opacity: 0.8;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .contact-row {
+            grid-template-columns: 1fr;
+        }
+
+        .contact-photo {
+            padding: 2rem 1rem;
+        }
+
+        .profile-image {
+            width: 150px;
+            height: 150px;
+        }
     }
 </style>
+
+<div class="container" id="contact">
+    <section class="contact-section">
+        <h2 class="contact-header">Contact Information</h2>
+
+        <div class="contact-row">
+            <!-- Left column: Photo -->
+            <div class="contact-photo">
+                <img src="https://hugsearch.demo.embeddingstud.io/photo.jpeg" alt="Aleksandr Iudaev" class="profile-image">
+            </div>
+
+            <!-- Right column: Contact details -->
+            <div class="contact-details">
+                <p class="contact-text">
+                    <strong>EulerSearch Inc.</strong><br>
+                    3416, 1007 N Orange St. 4th Floor,<br>
+                    Wilmington, DE, New Castle, US, 19801<br><br>
+                    <strong>Email:</strong> <a href="mailto:aleksandr.iudaev@eulersearch.com">aleksandr.iudaev@eulersearch.com</a><br>
+                    <strong>Phone:</strong> +34 (691) 454 148<br>
+                    <strong>LinkedIn:</strong> <a href="https://www.linkedin.com/in/alexanderyudaev/">alexanderyudaev</a>
+                </p>
+            </div>
+        </div>
+    </section>
+</div>
 
 {% endblock %}
 {% block content %}{% endblock %}

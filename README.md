@@ -22,8 +22,6 @@
 
 **Embedding Studio** is an innovative open-source framework designed to transform embedding models and vector databases into comprehensive, self-improving search engines. With built-in clickstream collection, continuous model refinement, and intelligent vector optimization, it creates a feedback loop that enhances search quality over time based on real user interactions.
 
-Demo: 
-
 <table style="margin-left: auto; margin-right: auto">
     <tr align="center"><td>Community Support</td></tr>
     <tr align="center">
@@ -119,11 +117,20 @@ Embedding Studio uses a modular, service-based architecture:
 
 ![Embedding Studio Chart](assets/embedding_studio_chart.png)
 
-$\color{red}{\textsf{RED:}}$ Traditional search solutions (FTS, NNS) without enhancement remain static in quality over time.
+Our framework enables you to continuously fine-tune your model based on user experience, allowing you to form search 
+results for user queries faster and more accurately.
 
-$\color{orange}{\textsf{ORANGE:}}$ Solutions that accumulate feedback but require expensive periodic full retraining, causing delayed improvements.
+$${\color{red}RED:}$$ On the graph, typical search solutions without enhancements, 
+such as Full Text Searching (FTS), Nearest Neighbor Search (NNS), and others, are marked in red. Without the use of 
+additional tools, the search quality remains unchanged over time.
 
-$\color{#6666ff}{\textsf{INDIGO:}}$ Embedding Studio's approach with continuous incremental improvement, providing smoother quality gains based on user feedback.
+$${\color{orange}ORANGE:}$$ Solutions are depicted that accumulate some feedback (clicks, reviews, votes, discussions, etc.) and then
+initiate a full model retraining. The primary issue with these solutions is that full model retraining is a
+time-consuming and expensive procedure, thus lacking reactive adjustments (for example, when a product suddenly
+experiences increased demand, and the search system has not yet adapted to it).
+
+$${\color{#6666ff}INDIGO:}$$ We propose a solution that allows collecting user feedback and rapidly retraining the model on the difference between
+the old and new versions. This enables a smoother and more relevant search quality curve for your system.
 
 ## Getting Started
 

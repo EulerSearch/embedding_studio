@@ -1,4 +1,4 @@
-![Embedding Studio](images/embedding_studio_logo.svg){ .center }
+![Embedding Studio](images/embedding_studio_logo.svg)
 
 <p align="center">
     <a href="https://hugsearch.demo.embeddingstud.io/" style="font-size: 20px;"><strong>👉 Try the Live Demo</strong></a>
@@ -18,6 +18,16 @@
     <a href="https://embeddingstud.io/challenges/">Use Cases</a>
 </p>
 
+
+---
+
+<center>
+    <video height="640" autoplay muted loop playsinline>
+      <source src="https://hugsearch.demo.embeddingstud.io/demo.webm" type="video/webm">
+      Your browser does not support the video tag.
+    </video>
+</center>
+
 ---
 
 **Embedding Studio** is an innovative open-source framework designed to transform embedding models and vector databases into comprehensive, self-improving search engines. With built-in clickstream collection, continuous model refinement, and intelligent vector optimization, it creates a feedback loop that enhances search quality over time based on real user interactions.
@@ -26,11 +36,17 @@
 
 ## Search Quality Evolution
 
-$\color{red}{\textsf{RED:}}$ Traditional search solutions (FTS, NNS) without enhancement remain static in quality over time.
+<span style="color:red">RED:</span> On the graph, typical search solutions without enhancements, 
+such as Full Text Searching (FTS), Nearest Neighbor Search (NNS), and others, are marked in red. Without the use of 
+additional tools, the search quality remains unchanged over time.
 
-$\color{orange}{\textsf{ORANGE:}}$ Solutions that accumulate feedback but require expensive periodic full retraining, causing delayed improvements.
+<span style="color:orange">ORANGE:</span> Solutions are depicted that accumulate some feedback (clicks, reviews, votes, discussions, etc.) and then
+initiate a full model retraining. The primary issue with these solutions is that full model retraining is a
+time-consuming and expensive procedure, thus lacking reactive adjustments (for example, when a product suddenly
+experiences increased demand, and the search system has not yet adapted to it).
 
-$\color{#6666ff}{\textsf{INDIGO:}}$ Embedding Studio's approach with continuous incremental improvement, providing smoother quality gains based on user feedback.
+<span style="color:#6666ff">INDIGO:</span> We propose a solution that allows collecting user feedback and rapidly retraining the model on the difference between
+the old and new versions. This enables a smoother and more relevant search quality curve for your system.
 
 ![](images/embedding_studio_chart.png)
 
